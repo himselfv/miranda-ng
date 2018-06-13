@@ -1424,9 +1424,10 @@ INT_PTR CSrmmWindow::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 						m_hDbUnreadEventFirst = hDbEvent;
 					m_lastMessage = dbei.timestamp;
 					UpdateStatusBar();
-					if (GetForegroundWindow() == m_hwndParent && m_pParent->hwndActive == m_hwnd)
+					if (bIsActive)
 						Skin_PlaySound("RecvMsgActive");
-					else Skin_PlaySound("RecvMsgInactive");
+					else
+						Skin_PlaySound("RecvMsgInactive");
 					if ((g_dat.flags2 & SMF2_SWITCHTOACTIVE) && (IsIconic(m_hwndParent) || GetActiveWindow() != m_hwndParent) && IsWindowVisible(m_hwndParent))
 						SendMessage(m_hwndParent, CM_ACTIVATECHILD, 0, (LPARAM)m_hwnd);
 					if (IsAutoPopup(m_hContact))
