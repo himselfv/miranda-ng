@@ -1433,11 +1433,11 @@ INT_PTR CSrmmWindow::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 						SendMessage(m_hwndParent, CM_POPUPWINDOW, 1, (LPARAM)m_hwnd);
 				}
 				if (hDbEvent != m_hDbEventFirst && db_event_next(m_hContact, hDbEvent) == 0)
-					SendMessage(m_hwnd, DM_APPENDTOLOG, WPARAM(hDbEvent), 0);
+					StreamInEvents(hDbEvent, 1, 1);
 				else
 					SendMessage(m_hwnd, DM_REMAKELOG, 0, 0);
 				if (!(dbei.flags & DBEF_SENT) && !DbEventIsCustomForMsgWindow(&dbei)) {
-					if (GetActiveWindow() != m_hwndParent || GetForegroundWindow() != m_hwndParent || m_pParent->hwndActive != m_hwnd) {
+					if (!bIsActive) {
 						m_iShowUnread = 1;
 						SendMessage(m_hwnd, DM_UPDATEICON, 0, 0);
 						SetTimer(m_hwnd, TIMERID_UNREAD, TIMEOUT_UNREAD, nullptr);
