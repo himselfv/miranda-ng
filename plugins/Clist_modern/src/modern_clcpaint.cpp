@@ -519,7 +519,7 @@ MODERNMASK* CLCPaint::_GetCLCContactRowBackModernMask(ClcGroup *group, ClcContac
 			}
 			else _AddParamShort(mpModernMask, hi_Type, hi_Contact);
 
-			AddParam(mpModernMask, HASH[hi_Protocol], Drawing->proto, 0);
+			AddParam(mpModernMask, HASH[hi_Protocol], Drawing->pce->szProto, 0);
 			_AddParamShort(mpModernMask, hi_RootGroup, (group && group->parent == nullptr) ? hi_True : hi_False);
 			switch (GetContactCachedStatus(Drawing->hContact)) {
 			case ID_STATUS_ONLINE:      _AddParamShort(mpModernMask, hi_Status, hi_ONLINE);    break;
@@ -1233,7 +1233,7 @@ void CLCPaint::_PaintRowItemsEx(HDC hdcMem, ClcData *dat, ClcContact *Drawing, R
 								break;
 							case SETTING_AVATAR_OVERLAY_TYPE_PROTOCOL:
 								{
-									int item = pcli->pfnIconFromStatusMode(Drawing->proto, Drawing->proto == nullptr ? ID_STATUS_OFFLINE : GetContactCachedStatus(Drawing->hContact), Drawing->hContact);
+									int item = pcli->pfnIconFromStatusMode(Drawing->pce->szProto, Drawing->proto == nullptr ? ID_STATUS_OFFLINE : GetContactCachedStatus(Drawing->hContact), Drawing->hContact);
 									if (item != -1)
 										_DrawStatusIcon(Drawing, dat, item, hdcMem,
 											p_rect.left, p_rect.top, ICON_HEIGHT, ICON_HEIGHT,
@@ -1473,7 +1473,7 @@ int CLCPaint::_DetermineDrawMode(HWND hWnd, ClcData *dat)
 	return paintMode;
 }
 
-void CLCPaint::_PreparePaintContext(ClcData *dat, HDC hdc, int paintMode, RECT& clRect, _PaintContext& pc)
+void CLCPaint::_PreparePaintContext(ClcData *dat, HDC hdc, int paintMode, RECT &clRect, _PaintContext &pc)
 {
 	if ((paintMode & DM_GRAY) && !(paintMode & DM_LAYERED)) {
 		pc.hdcMem2 = CreateCompatibleDC(hdc);
@@ -1525,7 +1525,7 @@ void CLCPaint::_PreparePaintContext(ClcData *dat, HDC hdc, int paintMode, RECT& 
 	SetBrushOrgEx(pc.hdcMem, org.x, org.y, nullptr);
 }
 
-void CLCPaint::_DrawBackground(HWND hWnd, ClcData *dat, int paintMode, RECT *rcPaint, RECT& clRect, _PaintContext& pc)
+void CLCPaint::_DrawBackground(HWND hWnd, ClcData *dat, int paintMode, RECT *rcPaint, RECT &clRect, _PaintContext &pc)
 {
 	if (paintMode & (DM_FLOAT | DM_CONTROL)) {
 		HBRUSH hBrush = CreateSolidBrush(pc.tmpbkcolour);
@@ -1550,7 +1550,7 @@ void CLCPaint::_DrawBackground(HWND hWnd, ClcData *dat, int paintMode, RECT *rcP
 	}
 }
 
-void CLCPaint::_DrawLines(HWND hWnd, ClcData *dat, int paintMode, RECT *rcPaint, RECT& clRect, _PaintContext &pc)
+void CLCPaint::_DrawLines(HWND hWnd, ClcData *dat, int paintMode, RECT *rcPaint, RECT &clRect, _PaintContext &pc)
 {
 	ClcGroup *group = &dat->list;
 	group->scanIndex = 0;
@@ -1803,7 +1803,7 @@ void CLCPaint::_DrawInsertionMark(ClcData *dat, RECT &clRect, _PaintContext &pc)
 	DeleteObject(hBrush);
 }
 
-void CLCPaint::_CopyPaintToDest(HDC hdc, int paintMode, RECT* rcPaint, _PaintContext& pc)
+void CLCPaint::_CopyPaintToDest(HDC hdc, int paintMode, RECT *rcPaint, _PaintContext &pc)
 {
 	if (!(paintMode & DM_GRAY) && (paintMode & DM_DRAW_OFFSCREEN))
 		BitBlt(hdc, rcPaint->left, rcPaint->top, rcPaint->right - rcPaint->left, rcPaint->bottom - rcPaint->top, pc.hdcMem, rcPaint->left, rcPaint->top, SRCCOPY);
@@ -2471,7 +2471,7 @@ void CLCPaint::_DrawContactAvatar(HDC hdcMem, ClcData *dat, ClcContact *Drawing,
 				overlayIdx = g_pAvatarOverlayIcons[GetContactCachedStatus(Drawing->hContact) - ID_STATUS_OFFLINE].listID;
 				break;
 			case SETTING_AVATAR_OVERLAY_TYPE_PROTOCOL:
-				overlayIdx = pcli->pfnIconFromStatusMode(Drawing->proto, Drawing->proto == nullptr ? ID_STATUS_OFFLINE : GetContactCachedStatus(Drawing->hContact), Drawing->hContact);
+				overlayIdx = pcli->pfnIconFromStatusMode(Drawing->pce->szProto, Drawing->proto == nullptr ? ID_STATUS_OFFLINE : GetContactCachedStatus(Drawing->hContact), Drawing->hContact);
 				break;
 			case SETTING_AVATAR_OVERLAY_TYPE_CONTACT:
 				overlayIdx = Drawing->iImage;
@@ -2545,7 +2545,7 @@ void CLCPaint::_DrawContactAvatar(HDC hdcMem, ClcData *dat, ClcContact *Drawing,
 				break;
 			case SETTING_AVATAR_OVERLAY_TYPE_PROTOCOL:
 				{
-					int item = pcli->pfnIconFromStatusMode(Drawing->proto, Drawing->proto == nullptr ? ID_STATUS_OFFLINE : GetContactCachedStatus(Drawing->hContact), Drawing->hContact);
+					int item = pcli->pfnIconFromStatusMode(Drawing->pce->szProto, Drawing->proto == nullptr ? ID_STATUS_OFFLINE : GetContactCachedStatus(Drawing->hContact), Drawing->hContact);
 					if (item != -1)
 						_DrawStatusIcon(Drawing, dat, item, hdcMem,
 							ptOverlay.x, ptOverlay.y, ICON_HEIGHT, ICON_HEIGHT,

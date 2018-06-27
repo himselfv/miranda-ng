@@ -39,6 +39,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "resource.h"
 #include "version.h"
 
+struct ClcCacheEntry : public ClcCacheEntryBase {};
+
 struct ClcContact : public ClcContactBase {};
 
 struct ClcData : public ClcDataBase
