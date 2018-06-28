@@ -43,12 +43,12 @@ void BackupStart(wchar_t *backup_filename);
 
 struct ZipFile
 {
-	std::string sPath;
-	std::string sZipPath;
-	__forceinline ZipFile(const std::string &path, const std::string &zpath) : sPath(path), sZipPath(zpath) {}
+	std::wstring sPath;
+	std::wstring sZipPath;
+	__forceinline ZipFile(const std::wstring &path, const std::wstring &zpath) : sPath(path), sZipPath(zpath) {}
 };
 
-int CreateZipFile(const char *szDestPath, OBJLIST<ZipFile> &lstFiles, const std::function<bool(size_t)> &fnCallback);
+int CreateZipFile(const wchar_t *szDestPath, OBJLIST<ZipFile> &lstFiles, const std::function<bool(size_t)> &fnCallback);
 
 extern HINSTANCE g_hInstance;
 extern char g_szMirVer[];

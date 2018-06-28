@@ -8,14 +8,14 @@ LRESULT CALLBACK DlgProcPopup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg) {
 	case WM_COMMAND:
-	{
-		wchar_t* ptszPath = (wchar_t*)PUGetPluginData(hWnd);
-		if (ptszPath != nullptr)
-			ShellExecute(nullptr, L"open", ptszPath, nullptr, nullptr, SW_SHOW);
+		{
+			wchar_t* ptszPath = (wchar_t*)PUGetPluginData(hWnd);
+			if (ptszPath != nullptr)
+				ShellExecute(nullptr, L"open", ptszPath, nullptr, nullptr, SW_SHOW);
 
-		PUDeletePopup(hWnd);
-		break;
-	}
+			PUDeletePopup(hWnd);
+			break;
+		}
 	case WM_CONTEXTMENU:
 		PUDeletePopup(hWnd);
 		break;
@@ -84,8 +84,7 @@ bool MakeZip_Dir(LPCWSTR szDir, LPCWSTR szDest, LPCWSTR pwszBackupFolder, HWND p
 	size_t count = 0, folderNameLen = mir_wstrlen(pwszBackupFolder);
 	OBJLIST<ZipFile> lstFiles(15);
 
-	for (auto it = fs::recursive_directory_iterator(fs::path(szDir)); it != fs::recursive_directory_iterator(); ++it)
-	{
+	for (auto it = fs::recursive_directory_iterator(fs::path(szDir)); it != fs::recursive_directory_iterator(); ++it) {
 		const auto& file = it->path();
 		if (fs::is_directory(file))
 			continue;
@@ -102,9 +101,8 @@ bool MakeZip_Dir(LPCWSTR szDir, LPCWSTR szDest, LPCWSTR pwszBackupFolder, HWND p
 	if (count == 0)
 		return 1;
 
-	CreateZipFile(_T2A(szDest), lstFiles, [&](size_t i)->bool
-	{ 
-		SendMessage(hProgBar, PBM_SETPOS, (WPARAM)(100 * i / count), 0); 
+	CreateZipFile(szDest, lstFiles, [&](size_t i)->bool {
+		SendMessage(hProgBar, PBM_SETPOS, (WPARAM)(100 * i / count), 0);
 		return GetWindowLongPtr(progress_dialog, GWLP_USERDATA) != 1;
 	});
 
@@ -115,12 +113,11 @@ bool MakeZip(wchar_t *tszSource, wchar_t *tszDest, wchar_t *dbname, HWND progres
 {
 	HWND hProgBar = GetDlgItem(progress_dialog, IDC_PROGRESS);
 
-	ptrA szSourceName(mir_u2a(dbname));
 	ptrW tszDestPath(DoubleSlash(tszDest));
 	OBJLIST<ZipFile> lstFiles(15);
-	lstFiles.insert(new ZipFile((char*)_T2A(tszSource), (char*)szSourceName));
+	lstFiles.insert(new ZipFile(tszSource, dbname));
 
-	CreateZipFile(_T2A(tszDest), lstFiles, [&](size_t)->bool{ SendMessage(hProgBar, PBM_SETPOS, (WPARAM)(100), 0); return true; });
+	CreateZipFile(tszDest, lstFiles, [&](size_t)->bool { SendMessage(hProgBar, PBM_SETPOS, (WPARAM)(100), 0); return true; });
 
 	return true;
 }
@@ -168,11 +165,11 @@ int RotateBackups(wchar_t *backupfolder, wchar_t *dbname)
 		bf = bftmp;
 		wcsncpy_s(bf[i].Name, FindFileData.cFileName, _TRUNCATE);
 		bf[i].CreationTime = FindFileData.ftCreationTime;
-		i ++;
+		i++;
 	} while (FindNextFile(hFind, &FindFileData));
 	if (i > 0)
 		qsort(bf, i, sizeof(backupFile), Comp); /* Sort the list of found files by date in descending order. */
-	for (; i >= options.num_backups; i --) {
+	for (; i >= options.num_backups; i--) {
 		mir_snwprintf(backupfolderTmp, L"%s\\%s", backupfolder, bf[(i - 1)].Name);
 		DeleteFile(backupfolderTmp);
 	}
@@ -181,7 +178,6 @@ err_out:
 	mir_free(bf);
 	return 0;
 }
-
 
 int Backup(wchar_t *backup_filename)
 {
@@ -234,8 +230,8 @@ int Backup(wchar_t *backup_filename)
 			? MakeZip_Dir(profile_path, dest_file, backupfolder, progress_dialog)
 			: MakeZip(source_file, dest_file, dbname, progress_dialog);
 	}
-	else
-		res = CopyFile(source_file, dest_file, 0);
+	else res = CopyFile(source_file, dest_file, 0);
+
 	if (res) {
 		if (!bZip) { // Set the backup file to the current time for rotator's correct  work
 			SYSTEMTIME st;
