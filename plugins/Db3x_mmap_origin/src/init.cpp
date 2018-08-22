@@ -95,13 +95,12 @@ MIDatabaseChecker* CheckDb(const wchar_t *profile, int *error)
 
 static DATABASELINK dblink =
 {
-	sizeof(DATABASELINK),
+	0,
 	"dbx_mmap",
 	L"dbx mmap driver",
 	makeDatabase,
 	grokHeader,
-	LoadDatabase,
-	CheckDb
+	LoadDatabase
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
