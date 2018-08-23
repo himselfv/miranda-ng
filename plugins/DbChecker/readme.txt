@@ -1,6 +1,9 @@
 This is the original DbChecker plugin, compatible with latest Miranda NG.
 
-See plugins/db3x_mmap_origin for more details.
+* The DLL has been renamed to DbCheckerOrig.dll
+* Only db3x_mmap_origin supports it currently
+* Can only be run from the command line with:
+  Miranda[32/64].exe /svc:dbcheckerorig
 
 Original DbChecker:
 Last official revision: 24.02.2018, dff565f40105b20b0e8e4dba1f48ccc9b8e7ff44
@@ -36,4 +39,4 @@ Profilemanager and profilemanagerex integration:
 4. plugins/ProfileManager/src/pmanagerEx.cpp:
   - Removed: #define SRV_CHECK_DB   "Database/CheckDb"
   - Removed the option to check the database which reboots Miranda in /svc:dbchecker mode
-We cannot restore these in-place. For now, for offline checks we'll rely on manual checks from the command line only.
+We cannot restore these in-place. For now, for offline checks we'll rely on manual checks from the command line only. Online checks had never been possible at all.
