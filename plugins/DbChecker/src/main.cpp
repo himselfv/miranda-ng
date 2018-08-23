@@ -35,8 +35,10 @@ PLUGININFOEX pluginInfoEx =
 	__COPYRIGHT,
 	__AUTHORWEB,
 	UNICODE_AWARE | STATIC_PLUGIN,
+	// {1F2BD439-FCBB-4951-8CB4-1E84828A5A7D}
+	{ 0x1F2BD439, 0xFCBB, 0x4951, { 0x8C, 0xB4, 0x1E, 0x84, 0x82, 0x8A, 0x5A, 0x7D } }
+	// Old DbChecker PID (now deprecated):
 	// {A0138FC6-4C52-4501-AF93-7D3E20BCAE5B}
-	{ 0xa0138fc6, 0x4c52, 0x4501, { 0xaf, 0x93, 0x7d, 0x3e, 0x20, 0xbc, 0xae, 0x5b } }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
