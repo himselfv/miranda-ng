@@ -22,7 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static bool CheckBroken(const wchar_t *ptszFullPath)
 {
 	DATABASELINK *dblink = FindDatabasePlugin(ptszFullPath);
-	if (dblink == nullptr || dblink->CheckDB == nullptr)
+	DBCHECKERLINK* checkerlink = getDBCheckerLink(dblink);
+	if (dblink == nullptr || checkerlink == nullptr || checkerlink->CheckDB == nullptr)
 		return true;
 
 	return dblink->grokHeader(ptszFullPath) != EGROKPRF_NOERROR;
@@ -44,14 +45,15 @@ int OpenDatabase(HWND hdlg, INT iNextPage)
 			return false;
 		}
 
-		if (dblink->CheckDB == nullptr) {
+		DBCHECKERLINK* checkerlink = getDBCheckerLink(dblink);
+		if (checkerlink == nullptr || checkerlink->CheckDB == nullptr) {
 			mir_snwprintf(tszMsg,
 				TranslateT("Database driver '%s' doesn't support checking."),
 				TranslateW(dblink->szFullName));
 			goto LBL_Error;
 		}
 
-		opts.dbChecker = dblink->CheckDB(opts.filename, &error);
+		opts.dbChecker = checkerlink->CheckDB(opts.filename, &error);
 		if (opts.dbChecker == nullptr) {
 			if ((opts.error = GetLastError()) == 0)
 				opts.error = error;

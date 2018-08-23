@@ -45,6 +45,26 @@ LIST<CDb3Mmap> g_Dbs(1, HandleKeySortT);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
+MIDatabaseChecker* CheckDb(const wchar_t *profile, int *error)
+{
+	std::auto_ptr<CDb3Mmap> db(new CDb3Mmap(profile, DBMODE_READONLY));
+	if (db->Load(true) != ERROR_SUCCESS) {
+		*error = ERROR_ACCESS_DENIED;
+		return nullptr;
+	}
+
+	if (db->PrepareCheck(error))
+		return nullptr;
+
+	return db.release();
+}
+
+static DBCHECKERLINK dbcheckerlink =
+{
+	CheckDb,
+};
+
+
 // returns 0 if the profile is created, EMKPRF*
 static int makeDatabase(const wchar_t *profile)
 {
@@ -68,6 +88,10 @@ static int grokHeader(const wchar_t *profile)
 // returns 0 if all the APIs are injected otherwise, 1
 static MDatabaseCommon* LoadDatabase(const wchar_t *profile, BOOL bReadOnly)
 {
+	//Check for optional interface request
+	if (mir_wstrcmp(profile, DB_INTERFACE_DBCHECKERLINK))
+		return reinterpret_cast<MDatabaseCommon*>(&dbcheckerlink);
+
 	// set the memory, lists & UTF8 manager
 	mir_getLP(&pluginInfo);
 
@@ -79,20 +103,6 @@ static MDatabaseCommon* LoadDatabase(const wchar_t *profile, BOOL bReadOnly)
 	return db.release();
 }
 
-MIDatabaseChecker* CheckDb(const wchar_t *profile, int *error)
-{
-	std::auto_ptr<CDb3Mmap> db(new CDb3Mmap(profile, DBMODE_READONLY));
-	if (db->Load(true) != ERROR_SUCCESS) {
-		*error = ERROR_ACCESS_DENIED;
-		return nullptr;
-	}
-
-	if (db->PrepareCheck(error))
-		return nullptr;
-
-	return db.release();
-}
-
 static DATABASELINK dblink =
 {
 	0,
@@ -100,7 +110,7 @@ static DATABASELINK dblink =
 	L"dbx mmap driver",
 	makeDatabase,
 	grokHeader,
-	LoadDatabase
+	LoadDatabase,
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////

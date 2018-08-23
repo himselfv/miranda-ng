@@ -22,7 +22,9 @@ DbChecker plugin itself removed:
 To restore DbChecker we'll have to restore the plugin, change PID, rename it. (And /svc:dbchecker will probably break as it assumes the second part is a dll name, as well as code which depended on running Miranda with this key)
 
 Integration removed:
-1. m_db_int.h: Field CheckDb removed from DATABASELINK interface - we can't do anything about it, should not populate.
+1. m_db_int.h: CheckDb() slot removed from DATABASELINK interface - replaced with DBCHECKERLINK which can be queried (see m_db_checker.h)
+
+restored as DBCHECKERLINK returned by Load() for profile_name=DB_INTERFACE_DBCHECKER (see m_db_checker.h)
 2. src/database.cpp: Database checker related calls removed:
   - MS_DB_CHECKPROFILE call in getProfile
   - EGROKPRF_OBSOLETE handling by calling CHECKPROFILE in tryOpenDatabase
