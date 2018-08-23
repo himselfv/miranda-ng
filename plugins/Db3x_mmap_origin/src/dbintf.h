@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define OWN_CACHED_CONTACT
 
 #include <m_db_int.h>
-#include <m_db_checker.h>
+#include <../DbChecker/include/m_db_checker.h>
 
 /* tree diagram
 
