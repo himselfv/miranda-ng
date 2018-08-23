@@ -89,7 +89,7 @@ static int grokHeader(const wchar_t *profile)
 static MDatabaseCommon* LoadDatabase(const wchar_t *profile, BOOL bReadOnly)
 {
 	//Check for optional interface request
-	if (mir_wstrcmp(profile, DB_INTERFACE_DBCHECKERLINK))
+	if (mir_wstrcmp(profile, DB_INTERFACE_DBCHECKERLINK) == 0)
 		return reinterpret_cast<MDatabaseCommon*>(&dbcheckerlink);
 
 	// set the memory, lists & UTF8 manager
