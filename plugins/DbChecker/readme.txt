@@ -34,7 +34,6 @@ profilemanager and profilemanagerex integration:
 4. plugins/ProfileManager/src/pmanagerEx.cpp:
   - Removed: #define SRV_CHECK_DB   "Database/CheckDb"
   - Removed the option to check the database which reboots Miranda in /svc:dbchecker mode
-
-In the last two cases we'll hardly be able to restore the removed parts. We can move the same functions elsewhere:
+We'll hardly be able to restore the last two cases. We can move the same functions elsewhere:
 - Database checks on load to the database itself
 - Manual checks to the command line only
