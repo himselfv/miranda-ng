@@ -105,7 +105,7 @@ static MDatabaseCommon* LoadDatabase(const wchar_t *profile, BOOL bReadOnly)
 
 static DATABASELINK dblink =
 {
-	0,
+	MDB_CAPS_CREATE,
 	"dbx_mmap",
 	L"dbx mmap driver",
 	makeDatabase,

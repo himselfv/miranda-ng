@@ -15,3 +15,5 @@ DbChecker plugin removed -- restored as DbCheckerOrig.dll (see plugins/DbChecker
 
 3. First field of DATABASELINK instead of structure size now stores flags. We should pass 0 (or "Compact" if we support it) -- done.
   The zero-implementation for Compact() itself is not needed - MDatabaseCommon provides one automatically.
+
+4. Database plugins now need to report MDB_CAPS_CREATE if they support the creation of new DBs.
