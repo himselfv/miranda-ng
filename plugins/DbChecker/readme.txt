@@ -3,7 +3,12 @@ This is the original DbChecker plugin, compatible with latest Miranda NG.
 * The DLL has been renamed to DbCheckerOrig.dll
 * Only db3x_mmap_origin supports it currently
 * Can only be run from the command line with:
-  Miranda[32/64].exe /svc:dbcheckerorig
+    Miranda[32/64].exe /svc:dbcheckerorig
+  Or from the profile manager
+    ShowProfileMgr=yes    # in mirandaboot.ini
+
+Due to the changes in Miranda the plugin cannot operate on the database that is active in Miranda. So you _need to have another database_ (create an empty one if you wish) and select it in the profile manager, then choose the actual one in DbChecker. Otherwise you'll get "file in use".
+
 
 Original DbChecker:
 Last official revision: 24.02.2018, dff565f40105b20b0e8e4dba1f48ccc9b8e7ff44
@@ -40,3 +45,9 @@ Profilemanager and profilemanagerex integration:
   - Removed: #define SRV_CHECK_DB   "Database/CheckDb"
   - Removed the option to check the database which reboots Miranda in /svc:dbchecker mode
 We cannot restore these in-place. For now, for offline checks we'll rely on manual checks from the command line only. Online checks had never been possible at all.
+
+5. Service plugin loading has been changed [commit 509b46f9, 29.03.2018]:
+Miranda now always loads the database before the service plugin. "Choose Profile" dialog now appears if you have multiple profiles - you need to re-select the service plugin manually.
+
+This also means that DbChecker cannot access the loaded database. This can be amended by manually unloading it. But the problem is deeper. If the database is broken, Miranda will load it and bug out before DbChecker has a chance to look at it.
+The The quick workaround is to have another, working DB, load Miranda on that DB and run DbChecker. It lets you choose the database so just choose another DB.
