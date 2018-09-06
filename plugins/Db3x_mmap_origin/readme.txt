@@ -4,6 +4,7 @@ The plugins/db3x_mmap in the original Miranda NG now contains a gutted version w
 
 MAINTENANCE:
 Watch for changes in main/db3x_mmap, main/dbx_mdbx, and files m_db_int.h, m_database.h. Implement them in this plugin.
+Update the version in src/version.h (Miranda won't load older version plugins and will certainly try to update them).
 
 
 0.95.9
