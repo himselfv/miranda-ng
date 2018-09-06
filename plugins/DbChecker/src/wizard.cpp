@@ -61,9 +61,9 @@ int DoMyControlProcessing(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam,
 	case WM_INITDIALOG:
 		EnumChildWindows(hdlg, MyControlsEnumChildren, 0);
 		if (hEmfHeaderLogo == nullptr) {
-			HRSRC hRsrc = FindResourceA(hInst, MAKEINTRESOURCEA(IDE_HDRLOGO), "EMF");
-			HGLOBAL hGlob = LoadResource(hInst, hRsrc);
-			hEmfHeaderLogo = SetEnhMetaFileBits(SizeofResource(hInst, hRsrc), (PBYTE)LockResource(hGlob));
+			HRSRC hRsrc = FindResourceA(g_plugin.getInst(), MAKEINTRESOURCEA(IDE_HDRLOGO), "EMF");
+			HGLOBAL hGlob = LoadResource(g_plugin.getInst(), hRsrc);
+			hEmfHeaderLogo = SetEnhMetaFileBits(SizeofResource(g_plugin.getInst(), hRsrc), (PBYTE)LockResource(hGlob));
 		}
 		SendDlgItemMessage(hdlg, IDC_HDRLOGO, STM_SETIMAGE, IMAGE_ENHMETAFILE, (LPARAM)hEmfHeaderLogo);
 		break;
@@ -96,7 +96,7 @@ INT_PTR CALLBACK WizardDlgProc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lP
 
 	switch (message) {
 	case WM_INITDIALOG:
-		SendMessage(hdlg, WM_SETICON, ICON_SMALL, (LPARAM)LoadIcon(hInst, MAKEINTRESOURCE(IDI_DBTOOL)));
+		SendMessage(hdlg, WM_SETICON, ICON_SMALL, (LPARAM)LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_DBTOOL)));
 		hdlgPage = nullptr;
 		if (bShortMode)
 			SendMessage(hdlg, WZM_GOTOPAGE, IDD_SELECTDB, (LPARAM)SelectDbDlgProc);
@@ -111,7 +111,7 @@ INT_PTR CALLBACK WizardDlgProc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lP
 		EnableWindow(GetDlgItem(hdlg, IDOK), TRUE);
 		EnableWindow(GetDlgItem(hdlg, IDCANCEL), TRUE);
 		SetDlgItemText(hdlg, IDCANCEL, TranslateT("Cancel"));
-		hdlgPage = CreateDialog(hInst, MAKEINTRESOURCE(wParam), hdlg, (DLGPROC)lParam);
+		hdlgPage = CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(wParam), hdlg, (DLGPROC)lParam);
 		TranslateDialogDefault(hdlgPage);
 		SetWindowPos(hdlgPage, nullptr, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
 		ShowWindow(hdlgPage, SW_SHOW);

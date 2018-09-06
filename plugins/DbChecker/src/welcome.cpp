@@ -31,9 +31,9 @@ INT_PTR CALLBACK WelcomeDlgProc(HWND hdlg, UINT message, WPARAM wParam, LPARAM l
 	switch (message) {
 	case WM_INITDIALOG:
 	{
-		HRSRC hRsrcWatermark = FindResourceA(hInst, MAKEINTRESOURCEA(IDE_WATERMARK), "EMF");
-		HGLOBAL hGlobWatermark = LoadResource(hInst, hRsrcWatermark);
-		hEmfWatermark = SetEnhMetaFileBits(SizeofResource(hInst, hRsrcWatermark), (PBYTE)LockResource(hGlobWatermark));
+		HRSRC hRsrcWatermark = FindResourceA(g_plugin.getInst(), MAKEINTRESOURCEA(IDE_WATERMARK), "EMF");
+		HGLOBAL hGlobWatermark = LoadResource(g_plugin.getInst(), hRsrcWatermark);
+		hEmfWatermark = SetEnhMetaFileBits(SizeofResource(g_plugin.getInst(), hRsrcWatermark), (PBYTE)LockResource(hGlobWatermark));
 	}
 	SendDlgItemMessage(hdlg, IDC_WATERMARK, STM_SETIMAGE, IMAGE_ENHMETAFILE, (LPARAM)hEmfWatermark);
 	{

@@ -176,8 +176,8 @@ INT_PTR CALLBACK SelectDbDlgProc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 		TranslateDialogDefault(hdlg);
 		{
 			HIMAGELIST hIml = ImageList_Create(GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), ILC_COLOR32 | ILC_MASK, 3, 3);
-			ImageList_AddIcon(hIml, LoadIcon(hInst, MAKEINTRESOURCE(IDI_PROFILEGREEN)));
-			ImageList_AddIcon(hIml, LoadIcon(hInst, MAKEINTRESOURCE(IDI_BAD)));
+			ImageList_AddIcon(hIml, LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_PROFILEGREEN)));
+			ImageList_AddIcon(hIml, LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_BAD)));
 			ListView_SetImageList(GetDlgItem(hdlg, IDC_DBLIST), hIml, LVSIL_SMALL);
 		}
 		ListView_SetExtendedListViewStyleEx(GetDlgItem(hdlg, IDC_DBLIST), LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);

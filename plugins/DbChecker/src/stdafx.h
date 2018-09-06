@@ -56,7 +56,13 @@ struct DbToolOptions
 	int bEraseHistory, bMarkRead, bConvertUtf;
 };
 
-extern HINSTANCE hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+	int Load() override;
+	int Unload() override;
+};
+
 extern DbToolOptions opts;
 extern HANDLE hEventRun, hEventAbort;
 extern int errorCount;

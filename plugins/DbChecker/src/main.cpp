@@ -19,8 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 
-HINSTANCE hInst;
-int hLangpack = 0;
+CMPlugin g_plugin;
+
 bool bServiceMode, bLaunchMiranda, bShortMode, bAutoExit;
 
 DbToolOptions opts = { 0 };
@@ -41,18 +41,11 @@ PLUGININFOEX pluginInfoEx =
 	// {A0138FC6-4C52-4501-AF93-7D3E20BCAE5B}
 };
 
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
+
 /////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
 
 // we implement service mode interface
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_SERVICEMODE, MIID_LAST };
@@ -65,7 +58,7 @@ static INT_PTR ServiceMode(WPARAM, LPARAM)
 {
 	bLaunchMiranda = bShortMode = bAutoExit = false;
 	bServiceMode = true;
-	DialogBox(hInst, MAKEINTRESOURCE(IDD_WIZARD), nullptr, WizardDlgProc);
+	DialogBox(g_plugin.getInst(), MAKEINTRESOURCE(IDD_WIZARD), nullptr, WizardDlgProc);
 	return (bLaunchMiranda) ? SERVICE_CONTINUE : SERVICE_FAILED;
 }
 
@@ -76,19 +69,17 @@ static INT_PTR CheckProfile(WPARAM wParam, LPARAM lParam)
 	bAutoExit = lParam == 2;
 	bServiceMode = false;
 	wcsncpy(opts.filename, (wchar_t*)wParam, _countof(opts.filename));
-	return DialogBox(hInst, MAKEINTRESOURCE(IDD_WIZARD), nullptr, WizardDlgProc);
+	return DialogBox(g_plugin.getInst(), MAKEINTRESOURCE(IDD_WIZARD), nullptr, WizardDlgProc);
 }
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-
 	CreateServiceFunction(MS_DB_CHECKPROFILE, CheckProfile);
 	hService = CreateServiceFunction(MS_SERVICEMODE_LAUNCH, ServiceMode);
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	DestroyServiceFunction(hService);
 	return 0;
