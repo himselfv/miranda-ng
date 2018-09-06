@@ -32,7 +32,7 @@ static INT_PTR MenuitemNotifyCmd(WPARAM, LPARAM)
 	bNotify = !bNotify;
 	MenuitemUpdate(bNotify);
 
-	//write changes to options->bDisable and into database
+	// write changes to options->bDisable and into database
 	Opt_DisableNEN(!bNotify);
 	return 0;
 }
@@ -40,9 +40,9 @@ static INT_PTR MenuitemNotifyCmd(WPARAM, LPARAM)
 int MenuitemUpdate(BOOL bStatus)
 {
 	if (bStatus)
-		Menu_ModifyItem(hMenuitemNotify, MENUITEM_DISABLE, LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_ENABLED)));
+		Menu_ModifyItem(hMenuitemNotify, MENUITEM_DISABLE, LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_ENABLED)));
 	else
-		Menu_ModifyItem(hMenuitemNotify, MENUITEM_ENABLE, LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_DISABLED)));
+		Menu_ModifyItem(hMenuitemNotify, MENUITEM_ENABLE, LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_DISABLED)));
 	return 0;
 }
 
@@ -50,13 +50,13 @@ int MenuitemInit(BOOL bStatus)
 {
 	CreateServiceFunction(MS_NEN_MENUNOTIFY, MenuitemNotifyCmd);
 
-	HGENMENU hRoot = Menu_CreateRoot(MO_MAIN, LPGENW("Popups"), 0);
+	HGENMENU hRoot = g_plugin.addRootMenu(MO_MAIN, LPGENW("Popups"), 0);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x7aed93f7, 0x835, 0x4ff6, 0xb1, 0x34, 0xae, 0x0, 0x21, 0x2a, 0xd7, 0x81);
 	mi.root = hRoot;
 	mi.position = 1;
-	mi.hIcolibItem = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_ENABLED));
+	mi.hIcolibItem = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_ENABLED));
 	mi.pszService = MS_NEN_MENUNOTIFY;
 	mi.flags = 0;
 	hMenuitemNotify = Menu_AddMainMenuItem(&mi);

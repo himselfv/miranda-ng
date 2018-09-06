@@ -38,6 +38,7 @@ MDatabaseCommon::MDatabaseCommon() :
 
 MDatabaseCommon::~MDatabaseCommon()
 {
+	UnlockName();
 	delete (MDatabaseCache*)m_cache;
 }
 
@@ -58,6 +59,39 @@ int MDatabaseCommon::CheckProto(DBCachedContact *cc, const char *proto)
 	}
 
 	return !mir_strcmp(cc->szProto, proto);
+}
+
+bool MDatabaseCommon::LockName(const wchar_t *pwszProfileName)
+{
+	if (m_hLock != nullptr)
+		return true;
+
+	if (pwszProfileName == nullptr)
+		return false;
+
+	CMStringW wszPhysName(pwszProfileName);
+	wszPhysName.Replace(L"\\", L"_");
+	wszPhysName.Insert(0, L"Global\\");
+
+	HANDLE hMutex = ::CreateMutexW(nullptr, false, wszPhysName);
+	if (hMutex == nullptr)
+		return false;
+
+	if (GetLastError() == ERROR_ALREADY_EXISTS) {
+		::CloseHandle(hMutex);
+		return false;
+	}
+
+	m_hLock = hMutex;
+	return true;
+}
+
+void MDatabaseCommon::UnlockName()
+{
+	if (m_hLock) {
+		CloseHandle(m_hLock);
+		m_hLock = nullptr;
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -83,6 +117,11 @@ BOOL MDatabaseCommon::DeleteModule(MCONTACT hContact, LPCSTR szModule)
 }
 
 BOOL MDatabaseCommon::Compact(void)
+{
+	return ERROR_NOT_SUPPORTED;
+}
+
+BOOL MDatabaseCommon::Backup(LPCWSTR)
 {
 	return ERROR_NOT_SUPPORTED;
 }
@@ -166,24 +205,11 @@ STDMETHODIMP_(BOOL) MDatabaseCommon::GetContactSetting(MCONTACT contactID, LPCST
 		return 1;
 
 	if (dbv->type == DBVT_UTF8) {
-		WCHAR *tmp = nullptr;
-		char *p = NEWSTR_ALLOCA(dbv->pszVal);
-		if (mir_utf8decode(p, &tmp) != nullptr) {
-			BOOL bUsed = FALSE;
-			int  result = WideCharToMultiByte(m_codePage, WC_NO_BEST_FIT_CHARS, tmp, -1, nullptr, 0, nullptr, &bUsed);
-
+		wchar_t *tmp = mir_utf8decodeW(dbv->pszVal);
+		if (tmp != nullptr) {
 			mir_free(dbv->pszVal);
-
-			if (bUsed || result == 0) {
-				dbv->type = DBVT_WCHAR;
-				dbv->pwszVal = tmp;
-			}
-			else {
-				dbv->type = DBVT_ASCIIZ;
-				dbv->pszVal = (char *)mir_alloc(result);
-				WideCharToMultiByte(m_codePage, WC_NO_BEST_FIT_CHARS, tmp, -1, dbv->pszVal, result, nullptr, nullptr);
-				mir_free(tmp);
-			}
+			dbv->type = DBVT_WCHAR;
+			dbv->pwszVal = tmp;
 		}
 		else {
 			dbv->type = DBVT_ASCIIZ;

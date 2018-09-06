@@ -6,10 +6,9 @@
 #include <commctrl.h>
 #include <assert.h>
 
-
-
 // Miranda headers
 //LotusNotify.h
+
 #include <m_core.h>
 #include <win2k.h>
 #include <newpluginapi.h>
@@ -37,5 +36,3 @@
 #include "cnotesapi/include/extmgr.h"
 #include "cnotesapi/include/bsafeerr.h"
 #include "cnotesapi/include/nsferr.h"
-
-

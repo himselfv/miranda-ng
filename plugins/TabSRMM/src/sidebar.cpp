@@ -95,7 +95,7 @@ void CSideBarButton::_create()
 	m_sz.cx = m_sz.cy = 0;
 
 	m_hwnd = ::CreateWindowEx(0, L"MButtonClass", L"", WS_CHILD | WS_TABSTOP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
-		0, 0, 40, 40, m_sideBar->getScrollWnd(), reinterpret_cast<HMENU>(m_id), g_hInst, nullptr);
+		0, 0, 40, 40, m_sideBar->getScrollWnd(), reinterpret_cast<HMENU>(m_id), g_plugin.getInst(), nullptr);
 	if (m_hwnd) {
 		CustomizeButton(m_hwnd);
 		::SendMessage(m_hwnd, BUTTONSETASSIDEBARBUTTON, (WPARAM)this, 0);
@@ -392,7 +392,7 @@ void CSideBar::Init()
 	if (m_pContainer->dwFlags & CNT_SIDEBAR) {
 		if (m_hwndScrollWnd == nullptr)
 			m_hwndScrollWnd = ::CreateWindowEx(0, L"TS_SideBarClass", L"", WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE | WS_CHILD,
-				0, 0, m_width, 40, m_pContainer->m_hwnd, reinterpret_cast<HMENU>(5000), g_hInst, this);
+				0, 0, m_width, 40, m_pContainer->m_hwnd, reinterpret_cast<HMENU>(5000), g_plugin.getInst(), this);
 
 		m_isActive = true;
 		m_isVisible = m_isActive ? m_isVisible : true;
@@ -496,17 +496,14 @@ void CSideBar::populateAll()
 
 	int iItems = (int)TabCtrl_GetItemCount(hwndTab);
 
-	TCITEM item = {};
-	item.mask = TCIF_PARAM;
-
 	m_iTopButtons = 0;
 
 	for (int i = 0; i < iItems; i++) {
-		TabCtrl_GetItem(hwndTab, i, &item);
-		if (item.lParam == 0 || !IsWindow((HWND)item.lParam))
+		HWND hDlg = GetTabWindow(hwndTab, i);
+		if (hDlg == 0 || !IsWindow(hDlg))
 			continue;
 
-		CSrmmWindow *dat = (CSrmmWindow*)::GetWindowLongPtr((HWND)item.lParam, GWLP_USERDATA);
+		CSrmmWindow *dat = (CSrmmWindow*)::GetWindowLongPtr(hDlg, GWLP_USERDATA);
 		if (dat == nullptr)
 			continue;
 

@@ -210,7 +210,7 @@ static INT_PTR CALLBACK DlgProcMoreData(HWND hwndDlg, UINT msg, WPARAM wParam, L
 				case WM_LBUTTONUP:
 					TEXTRANGE tr;
 					tr.chrg = enlink->chrg;
-					tr.lpstrText = (LPTSTR)mir_alloc(sizeof(wchar_t)*(tr.chrg.cpMax - tr.chrg.cpMin + 8));
+					tr.lpstrText = (wchar_t*)mir_alloc(sizeof(wchar_t)*(tr.chrg.cpMax - tr.chrg.cpMin + 8));
 					SendMessage(pNmhdr->hwndFrom, EM_GETTEXTRANGE, 0, (LPARAM)&tr);
 					Utils_OpenUrlW(tr.lpstrText);
 					mir_free(tr.lpstrText);
@@ -313,15 +313,14 @@ static INT_PTR CALLBACK DlgProcUIPage(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 // lParam = current contact
 int UserInfoInit(WPARAM wParam, LPARAM lParam)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_plugin.getInst();
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 100000000;
 	odp.szTitle.a = WEATHERPROTONAME;
 
 	if (lParam == 0) {
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_INFO);
 		odp.pfnDlgProc = DlgProcINIPage;
-		UserInfo_AddPage(wParam, &odp);
+		g_plugin.addUserInfo(wParam, &odp);
 	}
 	else {
 		// check if it is a weather contact
@@ -330,7 +329,7 @@ int UserInfoInit(WPARAM wParam, LPARAM lParam)
 			odp.pszTemplate = MAKEINTRESOURCEA(IDD_USERINFO);
 			odp.pfnDlgProc = DlgProcUIPage;
 			odp.flags = ODPF_BOLDGROUPS;
-			UserInfo_AddPage(wParam, &odp);
+			g_plugin.addUserInfo(wParam, &odp);
 		}
 	}
 	return 0;

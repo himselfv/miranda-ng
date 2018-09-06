@@ -36,8 +36,8 @@ extern int IsTrayProto(const wchar_t *swzProto, BOOL bExtendedTip)
 
 	DBVARIANT dbv;
 	int result = 1;
-	if (!db_get_ws(NULL, MODULE, szSetting, &dbv)) {
-		result = wcsstr(dbv.ptszVal, swzProto) ? 1 : 0;
+	if (!db_get_ws(NULL, MODULENAME, szSetting, &dbv)) {
+		result = wcsstr(dbv.pwszVal, swzProto) ? 1 : 0;
 		db_free(&dbv);
 	}
 
@@ -100,7 +100,7 @@ bool LoadDS(DISPLAYSUBST *ds, int index)
 	if (db_get_ws(0, MODULE_ITEMS, setting, &dbv))
 		return false;
 
-	wcsncpy(ds->swzName, dbv.ptszVal, _countof(ds->swzName));
+	wcsncpy(ds->swzName, dbv.pwszVal, _countof(ds->swzName));
 	ds->swzName[_countof(ds->swzName) - 1] = 0;
 	db_free(&dbv);
 
@@ -109,7 +109,7 @@ bool LoadDS(DISPLAYSUBST *ds, int index)
 
 	mir_snprintf(setting, "Module%d", index);
 	ds->szModuleName[0] = 0;
-	if (!db_get(0, MODULE_ITEMS, setting, &dbv)) {
+	if (!db_get_s(0, MODULE_ITEMS, setting, &dbv)) {
 		strncpy(ds->szModuleName, dbv.pszVal, MODULE_NAME_LEN);
 		ds->szModuleName[MODULE_NAME_LEN - 1] = 0;
 		db_free(&dbv);
@@ -117,7 +117,7 @@ bool LoadDS(DISPLAYSUBST *ds, int index)
 
 	mir_snprintf(setting, "Setting%d", index);
 	ds->szSettingName[0] = 0;
-	if (!db_get(0, MODULE_ITEMS, setting, &dbv)) {
+	if (!db_get_s(0, MODULE_ITEMS, setting, &dbv)) {
 		strncpy(ds->szSettingName, dbv.pszVal, SETTING_NAME_LEN);
 		ds->szSettingName[SETTING_NAME_LEN - 1] = 0;
 		db_free(&dbv);
@@ -161,14 +161,14 @@ bool LoadDI(DISPLAYITEM *di, int index)
 	if (db_get_ws(0, MODULE_ITEMS, setting, &dbv))
 		return false;
 
-	wcsncpy(di->swzLabel, dbv.ptszVal, _countof(di->swzLabel));
+	wcsncpy(di->swzLabel, dbv.pwszVal, _countof(di->swzLabel));
 	di->swzLabel[_countof(di->swzLabel) - 1] = 0;
 	db_free(&dbv);
 
 	mir_snprintf(setting, "DIValue%d", index);
 	di->swzValue[0] = 0;
 	if (!db_get_ws(0, MODULE_ITEMS, setting, &dbv)) {
-		wcsncpy(di->swzValue, dbv.ptszVal, _countof(di->swzValue));
+		wcsncpy(di->swzValue, dbv.pwszVal, _countof(di->swzValue));
 		di->swzValue[_countof(di->swzValue) - 1] = 0;
 		db_free(&dbv);
 	}
@@ -219,43 +219,43 @@ void SaveDI(DISPLAYITEM *di, int index)
 
 void SaveOptions()
 {
-	db_set_dw(0, MODULE, "MaxWidth", opt.iWinWidth);
-	db_set_dw(0, MODULE, "MaxHeight", opt.iWinMaxHeight);
-	db_set_b(0, MODULE, "AvatarOpacity", (BYTE)opt.iAvatarOpacity);
-	db_set_b(0, MODULE, "AvatarRoundCorners", (opt.bAvatarRound ? 1 : 0));
-	db_set_b(0, MODULE, "TitleIconLayout", (BYTE)opt.titleIconLayout);
-	db_set_b(0, MODULE, "TitleShow", (opt.bShowTitle ? 1 : 0));
+	db_set_dw(0, MODULENAME, "MaxWidth", opt.iWinWidth);
+	db_set_dw(0, MODULENAME, "MaxHeight", opt.iWinMaxHeight);
+	db_set_b(0, MODULENAME, "AvatarOpacity", (BYTE)opt.iAvatarOpacity);
+	db_set_b(0, MODULENAME, "AvatarRoundCorners", (opt.bAvatarRound ? 1 : 0));
+	db_set_b(0, MODULENAME, "TitleIconLayout", (BYTE)opt.titleIconLayout);
+	db_set_b(0, MODULENAME, "TitleShow", (opt.bShowTitle ? 1 : 0));
 	if (ServiceExists(MS_AV_DRAWAVATAR))
-		db_set_b(0, MODULE, "AVLayout", (BYTE)opt.avatarLayout);
+		db_set_b(0, MODULENAME, "AVLayout", (BYTE)opt.avatarLayout);
 	opt.bWaitForAvatar = (opt.avatarLayout == PAV_NONE) ? false : true;
 
-	db_set_dw(0, MODULE, "AVSize", opt.iAvatarSize);
-	db_set_dw(0, MODULE, "TextIndent", opt.iTextIndent);
-	db_set_dw(0, MODULE, "TitleIndent", opt.iTitleIndent);
-	db_set_dw(0, MODULE, "ValueIndent", opt.iValueIndent);
-	db_set_b(0, MODULE, "ShowNoFocus", (opt.bShowNoFocus ? 1 : 0));
+	db_set_dw(0, MODULENAME, "AVSize", opt.iAvatarSize);
+	db_set_dw(0, MODULENAME, "TextIndent", opt.iTextIndent);
+	db_set_dw(0, MODULENAME, "TitleIndent", opt.iTitleIndent);
+	db_set_dw(0, MODULENAME, "ValueIndent", opt.iValueIndent);
+	db_set_b(0, MODULENAME, "ShowNoFocus", (opt.bShowNoFocus ? 1 : 0));
 
-	db_set_w(0, MODULE, "TimeIn", opt.iTimeIn);
+	db_set_w(0, MODULENAME, "TimeIn", opt.iTimeIn);
 	CallService(MS_CLC_SETINFOTIPHOVERTIME, opt.iTimeIn, 0);
 
-	db_set_w(0, MODULE, "Padding", opt.iPadding);
-	db_set_w(0, MODULE, "OuterAvatarPadding", opt.iOuterAvatarPadding);
-	db_set_w(0, MODULE, "InnerAvatarPadding", opt.iInnerAvatarPadding);
-	db_set_w(0, MODULE, "TextPadding", opt.iTextPadding);
-	db_set_b(0, MODULE, "Position", (BYTE)opt.pos);
-	db_set_dw(0, MODULE, "MinWidth", (DWORD)opt.iMinWidth);
-	db_set_dw(0, MODULE, "MinHeight", (DWORD)opt.iMinHeight);
-	db_set_dw(0, MODULE, "SidebarWidth", (DWORD)opt.iSidebarWidth);
-	db_set_b(0, MODULE, "MouseTollerance", (BYTE)opt.iMouseTollerance);
-	db_set_b(0, MODULE, "SBarTips", (opt.bStatusBarTips ? 1 : 0));
+	db_set_w(0, MODULENAME, "Padding", opt.iPadding);
+	db_set_w(0, MODULENAME, "OuterAvatarPadding", opt.iOuterAvatarPadding);
+	db_set_w(0, MODULENAME, "InnerAvatarPadding", opt.iInnerAvatarPadding);
+	db_set_w(0, MODULENAME, "TextPadding", opt.iTextPadding);
+	db_set_b(0, MODULENAME, "Position", (BYTE)opt.pos);
+	db_set_dw(0, MODULENAME, "MinWidth", (DWORD)opt.iMinWidth);
+	db_set_dw(0, MODULENAME, "MinHeight", (DWORD)opt.iMinHeight);
+	db_set_dw(0, MODULENAME, "SidebarWidth", (DWORD)opt.iSidebarWidth);
+	db_set_b(0, MODULENAME, "MouseTollerance", (BYTE)opt.iMouseTollerance);
+	db_set_b(0, MODULENAME, "SBarTips", (opt.bStatusBarTips ? 1 : 0));
 
-	db_set_w(0, MODULE, "LabelVAlign", opt.iLabelValign);
-	db_set_w(0, MODULE, "LabelHAlign", opt.iLabelHalign);
-	db_set_w(0, MODULE, "ValueVAlign", opt.iValueValign);
-	db_set_w(0, MODULE, "ValueHAlign", opt.iValueHalign);
+	db_set_w(0, MODULENAME, "LabelVAlign", opt.iLabelValign);
+	db_set_w(0, MODULENAME, "LabelHAlign", opt.iLabelHalign);
+	db_set_w(0, MODULENAME, "ValueVAlign", opt.iValueValign);
+	db_set_w(0, MODULENAME, "ValueHAlign", opt.iValueHalign);
 
-	db_set_b(0, MODULE, "OriginalAvSize", (opt.bOriginalAvatarSize ? 1 : 0));
-	db_set_b(0, MODULE, "AvatarBorder", (opt.bAvatarBorder ? 1 : 0));
+	db_set_b(0, MODULENAME, "OriginalAvSize", (opt.bOriginalAvatarSize ? 1 : 0));
+	db_set_b(0, MODULENAME, "AvatarBorder", (opt.bAvatarBorder ? 1 : 0));
 }
 
 void SaveItems()
@@ -286,16 +286,16 @@ void SaveItems()
 
 void SaveSkinOptions()
 {
-	db_set_b(0, MODULE, "Border", (opt.bBorder ? 1 : 0));
-	db_set_b(0, MODULE, "DropShadow", (opt.bDropShadow ? 1 : 0));
-	db_set_b(0, MODULE, "RoundCorners", (opt.bRound ? 1 : 0));
-	db_set_b(0, MODULE, "AeroGlass", (opt.bAeroGlass ? 1 : 0));
-	db_set_b(0, MODULE, "Opacity", (BYTE)opt.iOpacity);
-	db_set_b(0, MODULE, "ShowEffect", (BYTE)opt.showEffect);
-	db_set_b(0, MODULE, "ShowEffectSpeed", (BYTE)opt.iAnimateSpeed);
-	db_set_b(0, MODULE, "LoadFonts", (opt.bLoadFonts ? 1 : 0));
-	db_set_b(0, MODULE, "LoadProportions", (opt.bLoadProportions ? 1 : 0));
-	db_set_dw(0, MODULE, "EnableColoring", opt.iEnableColoring);
+	db_set_b(0, MODULENAME, "Border", (opt.bBorder ? 1 : 0));
+	db_set_b(0, MODULENAME, "DropShadow", (opt.bDropShadow ? 1 : 0));
+	db_set_b(0, MODULENAME, "RoundCorners", (opt.bRound ? 1 : 0));
+	db_set_b(0, MODULENAME, "AeroGlass", (opt.bAeroGlass ? 1 : 0));
+	db_set_b(0, MODULENAME, "Opacity", (BYTE)opt.iOpacity);
+	db_set_b(0, MODULENAME, "ShowEffect", (BYTE)opt.showEffect);
+	db_set_b(0, MODULENAME, "ShowEffectSpeed", (BYTE)opt.iAnimateSpeed);
+	db_set_b(0, MODULENAME, "LoadFonts", (opt.bLoadFonts ? 1 : 0));
+	db_set_b(0, MODULENAME, "LoadProportions", (opt.bLoadProportions ? 1 : 0));
+	db_set_dw(0, MODULENAME, "EnableColoring", opt.iEnableColoring);
 }
 
 void LoadObsoleteSkinSetting()
@@ -305,15 +305,15 @@ void LoadObsoleteSkinSetting()
 
 	for (int i = 0; i < SKIN_ITEMS_COUNT; i++) {
 		mir_snprintf(setting, "SPaintMode%d", i);
-		opt.transfMode[i] = (TransformationMode)db_get_b(0, MODULE, setting, 0);
+		opt.transfMode[i] = (TransformationMode)db_get_b(0, MODULENAME, setting, 0);
 		mir_snprintf(setting, "SImgFile%d", i);
-		if (!db_get_ws(NULL, MODULE, setting, &dbv)) {
-			opt.szImgFile[i] = mir_wstrdup(dbv.ptszVal);
+		if (!db_get_ws(NULL, MODULENAME, setting, &dbv)) {
+			opt.szImgFile[i] = mir_wstrdup(dbv.pwszVal);
 			db_free(&dbv);
 		}
 
 		mir_snprintf(setting, "SGlyphMargins%d", i);
-		DWORD margins = db_get_dw(NULL, MODULE, setting, 0);
+		DWORD margins = db_get_dw(NULL, MODULENAME, setting, 0);
 		opt.margins[i].top = LOBYTE(LOWORD(margins));
 		opt.margins[i].right = HIBYTE(LOWORD(margins));
 		opt.margins[i].bottom = LOBYTE(HIWORD(margins));
@@ -323,25 +323,25 @@ void LoadObsoleteSkinSetting()
 
 void LoadOptions()
 {
-	opt.iWinWidth = db_get_dw(0, MODULE, "MaxWidth", 420);
-	opt.iWinMaxHeight = db_get_dw(0, MODULE, "MaxHeight", 400);
-	opt.iAvatarOpacity = db_get_b(0, MODULE, "AvatarOpacity", 100);
+	opt.iWinWidth = db_get_dw(0, MODULENAME, "MaxWidth", 420);
+	opt.iWinMaxHeight = db_get_dw(0, MODULENAME, "MaxHeight", 400);
+	opt.iAvatarOpacity = db_get_b(0, MODULENAME, "AvatarOpacity", 100);
 	if (opt.iAvatarOpacity > 100) opt.iAvatarOpacity = 100;
-	opt.bAvatarRound = (db_get_b(0, MODULE, "AvatarRoundCorners", opt.bRound ? 1 : 0) == 1);
-	opt.titleIconLayout = (PopupIconTitleLayout)db_get_b(0, MODULE, "TitleIconLayout", (BYTE)PTL_LEFTICON);
-	opt.bShowTitle = (db_get_b(0, MODULE, "TitleShow", 1) == 1);
+	opt.bAvatarRound = (db_get_b(0, MODULENAME, "AvatarRoundCorners", opt.bRound ? 1 : 0) == 1);
+	opt.titleIconLayout = (PopupIconTitleLayout)db_get_b(0, MODULENAME, "TitleIconLayout", (BYTE)PTL_LEFTICON);
+	opt.bShowTitle = (db_get_b(0, MODULENAME, "TitleShow", 1) == 1);
 	if (ServiceExists(MS_AV_DRAWAVATAR))
-		opt.avatarLayout = (PopupAvLayout)db_get_b(0, MODULE, "AVLayout", PAV_RIGHT);
+		opt.avatarLayout = (PopupAvLayout)db_get_b(0, MODULENAME, "AVLayout", PAV_RIGHT);
 	else
 		opt.avatarLayout = PAV_NONE;
 
 	opt.bWaitForAvatar = (opt.avatarLayout == PAV_NONE) ? false : true;
-	opt.iAvatarSize = db_get_dw(0, MODULE, "AVSize", 60); //tweety
-	opt.iTextIndent = db_get_dw(0, MODULE, "TextIndent", 22);
-	opt.iTitleIndent = db_get_dw(0, MODULE, "TitleIndent", 22);
-	opt.iValueIndent = db_get_dw(0, MODULE, "ValueIndent", 10);
-	opt.iSidebarWidth = db_get_dw(0, MODULE, "SidebarWidth", 22);
-	opt.bShowNoFocus = (db_get_b(0, MODULE, "ShowNoFocus", 1) == 1);
+	opt.iAvatarSize = db_get_dw(0, MODULENAME, "AVSize", 60); //tweety
+	opt.iTextIndent = db_get_dw(0, MODULENAME, "TextIndent", 22);
+	opt.iTitleIndent = db_get_dw(0, MODULENAME, "TitleIndent", 22);
+	opt.iValueIndent = db_get_dw(0, MODULENAME, "ValueIndent", 10);
+	opt.iSidebarWidth = db_get_dw(0, MODULENAME, "SidebarWidth", 22);
+	opt.bShowNoFocus = (db_get_b(0, MODULENAME, "ShowNoFocus", 1) == 1);
 
 	int i, real_count = 0;
 	opt.dsList = nullptr;
@@ -378,21 +378,21 @@ void LoadOptions()
 	}
 	opt.iDiCount = real_count;
 
-	opt.iTimeIn = db_get_w(0, MODULE, "TimeIn", 750);
-	opt.iPadding = db_get_w(0, MODULE, "Padding", 4);
-	opt.iOuterAvatarPadding = db_get_w(0, MODULE, "OuterAvatarPadding", 6);
-	opt.iInnerAvatarPadding = db_get_w(0, MODULE, "InnerAvatarPadding", 10);
-	opt.iTextPadding = db_get_w(0, MODULE, "TextPadding", 4);
-	opt.pos = (PopupPosition)db_get_b(0, MODULE, "Position", (BYTE)PP_BOTTOMRIGHT);
-	opt.iMinWidth = db_get_dw(0, MODULE, "MinWidth", 0);
-	opt.iMinHeight = db_get_dw(0, MODULE, "MinHeight", 0);
+	opt.iTimeIn = db_get_w(0, MODULENAME, "TimeIn", 750);
+	opt.iPadding = db_get_w(0, MODULENAME, "Padding", 4);
+	opt.iOuterAvatarPadding = db_get_w(0, MODULENAME, "OuterAvatarPadding", 6);
+	opt.iInnerAvatarPadding = db_get_w(0, MODULENAME, "InnerAvatarPadding", 10);
+	opt.iTextPadding = db_get_w(0, MODULENAME, "TextPadding", 4);
+	opt.pos = (PopupPosition)db_get_b(0, MODULENAME, "Position", (BYTE)PP_BOTTOMRIGHT);
+	opt.iMinWidth = db_get_dw(0, MODULENAME, "MinWidth", 0);
+	opt.iMinHeight = db_get_dw(0, MODULENAME, "MinHeight", 0);
 
-	opt.iMouseTollerance = db_get_b(0, MODULE, "MouseTollerance", (BYTE)GetSystemMetrics(SM_CXSMICON));
-	opt.bStatusBarTips = (db_get_b(0, MODULE, "SBarTips", 1) == 1);
+	opt.iMouseTollerance = db_get_b(0, MODULENAME, "MouseTollerance", (BYTE)GetSystemMetrics(SM_CXSMICON));
+	opt.bStatusBarTips = (db_get_b(0, MODULENAME, "SBarTips", 1) == 1);
 
 	// convert defunct last message and status message options to new 'sys' items, and remove the old settings
-	if (db_get_b(0, MODULE, "ShowLastMessage", 0)) {
-		db_unset(0, MODULE, "ShowLastMessage");
+	if (db_get_b(0, MODULENAME, "ShowLastMessage", 0)) {
+		db_unset(0, MODULENAME, "ShowLastMessage");
 
 		// find end of list
 		di_node = opt.diList;
@@ -416,8 +416,8 @@ void LoadOptions()
 		opt.iDiCount++;
 	}
 
-	if (db_get_b(0, MODULE, "ShowStatusMessage", 0)) {
-		db_unset(0, MODULE, "ShowStatusMessage");
+	if (db_get_b(0, MODULENAME, "ShowStatusMessage", 0)) {
+		db_unset(0, MODULENAME, "ShowStatusMessage");
 
 		// find end of list
 		di_node = opt.diList;
@@ -441,31 +441,31 @@ void LoadOptions()
 		opt.iDiCount++;
 	}
 
-	opt.iLabelValign = db_get_w(0, MODULE, "LabelVAlign", DT_TOP /*DT_VCENTER*/);
-	opt.iLabelHalign = db_get_w(0, MODULE, "LabelHAlign", DT_LEFT);
-	opt.iValueValign = db_get_w(0, MODULE, "ValueVAlign", DT_TOP /*DT_VCENTER*/);
-	opt.iValueHalign = db_get_w(0, MODULE, "ValueHAlign", DT_LEFT);
+	opt.iLabelValign = db_get_w(0, MODULENAME, "LabelVAlign", DT_TOP /*DT_VCENTER*/);
+	opt.iLabelHalign = db_get_w(0, MODULENAME, "LabelHAlign", DT_LEFT);
+	opt.iValueValign = db_get_w(0, MODULENAME, "ValueVAlign", DT_TOP /*DT_VCENTER*/);
+	opt.iValueHalign = db_get_w(0, MODULENAME, "ValueHAlign", DT_LEFT);
 
 	// tray tooltip
-	opt.bTraytip = db_get_b(0, MODULE, "TrayTip", 1) ? true : false;
-	opt.bHandleByTipper = db_get_b(0, MODULE, "ExtendedTrayTip", 1) ? true : false;
-	opt.bExpandTraytip = db_get_b(0, MODULE, "ExpandTrayTip", 1) ? true : false;
-	opt.bHideOffline = db_get_b(0, MODULE, "HideOffline", 0) ? true : false;
-	opt.iExpandTime = db_get_dw(0, MODULE, "ExpandTime", 1000);
-	opt.iFirstItems = db_get_dw(0, MODULE, "TrayTipItems", TRAYTIP_NUMCONTACTS | TRAYTIP_LOGON | TRAYTIP_STATUS | TRAYTIP_CLIST_EVENT);
-	opt.iSecondItems = db_get_dw(0, MODULE, "TrayTipItemsEx", TRAYTIP_NUMCONTACTS | TRAYTIP_LOGON | TRAYTIP_STATUS | TRAYTIP_STATUS_MSG | TRAYTIP_EXTRA_STATUS | TRAYTIP_MIRANDA_UPTIME | TRAYTIP_CLIST_EVENT);
-	opt.iFavoriteContFlags = db_get_dw(0, MODULE, "FavContFlags", FAVCONT_APPEND_PROTO);
+	opt.bTraytip = db_get_b(0, MODULENAME, "TrayTip", 1) ? true : false;
+	opt.bHandleByTipper = db_get_b(0, MODULENAME, "ExtendedTrayTip", 1) ? true : false;
+	opt.bExpandTraytip = db_get_b(0, MODULENAME, "ExpandTrayTip", 1) ? true : false;
+	opt.bHideOffline = db_get_b(0, MODULENAME, "HideOffline", 0) ? true : false;
+	opt.iExpandTime = db_get_dw(0, MODULENAME, "ExpandTime", 1000);
+	opt.iFirstItems = db_get_dw(0, MODULENAME, "TrayTipItems", TRAYTIP_NUMCONTACTS | TRAYTIP_LOGON | TRAYTIP_STATUS | TRAYTIP_CLIST_EVENT);
+	opt.iSecondItems = db_get_dw(0, MODULENAME, "TrayTipItemsEx", TRAYTIP_NUMCONTACTS | TRAYTIP_LOGON | TRAYTIP_STATUS | TRAYTIP_STATUS_MSG | TRAYTIP_EXTRA_STATUS | TRAYTIP_MIRANDA_UPTIME | TRAYTIP_CLIST_EVENT);
+	opt.iFavoriteContFlags = db_get_dw(0, MODULENAME, "FavContFlags", FAVCONT_APPEND_PROTO);
 
 	// extra setting
-	opt.bWaitForContent = db_get_b(0, MODULE, "WaitForContent", 0) ? true : false;
-	opt.bGetNewStatusMsg = db_get_b(0, MODULE, "GetNewStatusMsg", 0) ? true : false;
-	opt.bDisableIfInvisible = db_get_b(0, MODULE, "DisableInvisible", 1) ? true : false;
-	opt.bRetrieveXstatus = db_get_b(0, MODULE, "RetrieveXStatus", 0) ? true : false;
-	opt.bOriginalAvatarSize = db_get_b(0, MODULE, "OriginalAvSize", 0) ? true : false;
-	opt.bAvatarBorder = db_get_b(0, MODULE, "AvatarBorder", 0) ? true : false;
-	opt.bLimitMsg = db_get_b(0, MODULE, "LimitMsg", 0) ? true : false;
-	opt.iLimitCharCount = db_get_b(0, MODULE, "LimitCharCount", 64);
-	opt.iSmileyAddFlags = db_get_dw(0, MODULE, "SmileyAddFlags", SMILEYADD_ENABLE);
+	opt.bWaitForContent = db_get_b(0, MODULENAME, "WaitForContent", 0) ? true : false;
+	opt.bGetNewStatusMsg = db_get_b(0, MODULENAME, "GetNewStatusMsg", 0) ? true : false;
+	opt.bDisableIfInvisible = db_get_b(0, MODULENAME, "DisableInvisible", 1) ? true : false;
+	opt.bRetrieveXstatus = db_get_b(0, MODULENAME, "RetrieveXStatus", 0) ? true : false;
+	opt.bOriginalAvatarSize = db_get_b(0, MODULENAME, "OriginalAvSize", 0) ? true : false;
+	opt.bAvatarBorder = db_get_b(0, MODULENAME, "AvatarBorder", 0) ? true : false;
+	opt.bLimitMsg = db_get_b(0, MODULENAME, "LimitMsg", 0) ? true : false;
+	opt.iLimitCharCount = db_get_b(0, MODULENAME, "LimitCharCount", 64);
+	opt.iSmileyAddFlags = db_get_dw(0, MODULENAME, "SmileyAddFlags", SMILEYADD_ENABLE);
 
 	DBVARIANT dbv;
 	// Load the icons order
@@ -474,12 +474,12 @@ void LoadOptions()
 		opt.exIconsVis[i] = 1;
 	}
 
-	if (!db_get(NULL, MODULE, "IconOrder", &dbv)) {
+	if (!db_get(NULL, MODULENAME, "IconOrder", &dbv)) {
 		memcpy(opt.exIconsOrder, dbv.pbVal, dbv.cpbVal);
 		db_free(&dbv);
 	}
 
-	if (!db_get(NULL, MODULE, "icons_vis", &dbv)) {
+	if (!db_get(NULL, MODULENAME, "icons_vis", &dbv)) {
 		memcpy(opt.exIconsVis, dbv.pbVal, dbv.cpbVal);
 		db_free(&dbv);
 	}
@@ -489,32 +489,32 @@ void LoadOptions()
 		exIcons[i].vis = opt.exIconsVis[i];
 	}
 
-	opt.iOpacity = db_get_b(0, MODULE, "Opacity", 75);
-	opt.bBorder = db_get_b(0, MODULE, "Border", 1) ? true : false;
-	opt.bDropShadow = db_get_b(0, MODULE, "DropShadow", 1) ? true : false;
-	opt.bRound = db_get_b(0, MODULE, "RoundCorners", 1) ? true : false;
-	opt.bAeroGlass = db_get_b(0, MODULE, "AeroGlass", 0) ? true : false;
-	opt.showEffect = (PopupShowEffect)db_get_b(0, MODULE, "ShowEffect", (BYTE)PSE_FADE);
-	opt.iAnimateSpeed = db_get_b(0, MODULE, "ShowEffectSpeed", 12);
+	opt.iOpacity = db_get_b(0, MODULENAME, "Opacity", 75);
+	opt.bBorder = db_get_b(0, MODULENAME, "Border", 1) ? true : false;
+	opt.bDropShadow = db_get_b(0, MODULENAME, "DropShadow", 1) ? true : false;
+	opt.bRound = db_get_b(0, MODULENAME, "RoundCorners", 1) ? true : false;
+	opt.bAeroGlass = db_get_b(0, MODULENAME, "AeroGlass", 0) ? true : false;
+	opt.showEffect = (PopupShowEffect)db_get_b(0, MODULENAME, "ShowEffect", (BYTE)PSE_FADE);
+	opt.iAnimateSpeed = db_get_b(0, MODULENAME, "ShowEffectSpeed", 12);
 
 	if (opt.iAnimateSpeed < 1)
 		opt.iAnimateSpeed = 1;
 	else if (opt.iAnimateSpeed > 20)
 		opt.iAnimateSpeed = 20;
 
-	int iBgImg = db_get_b(0, MODULE, "SBgImage", 0);
-	opt.skinMode = (SkinMode)db_get_b(0, MODULE, "SkinEngine", iBgImg ? SM_OBSOLOTE : SM_COLORFILL);
-	opt.bLoadFonts = db_get_b(0, MODULE, "LoadFonts", 1) ? true : false;
-	opt.bLoadProportions = db_get_b(0, MODULE, "LoadProportions", 1) ? true : false;
-	opt.iEnableColoring = db_get_dw(0, MODULE, "EnableColoring", 0);
+	int iBgImg = db_get_b(0, MODULENAME, "SBgImage", 0);
+	opt.skinMode = (SkinMode)db_get_b(0, MODULENAME, "SkinEngine", iBgImg ? SM_OBSOLOTE : SM_COLORFILL);
+	opt.bLoadFonts = db_get_b(0, MODULENAME, "LoadFonts", 1) ? true : false;
+	opt.bLoadProportions = db_get_b(0, MODULENAME, "LoadProportions", 1) ? true : false;
+	opt.iEnableColoring = db_get_dw(0, MODULENAME, "EnableColoring", 0);
 	opt.szSkinName[0] = 0;
 
 	if (opt.skinMode == SM_OBSOLOTE) {
 		LoadObsoleteSkinSetting();
 	}
 	else if (opt.skinMode == SM_IMAGE) {
-		if (!db_get_ws(NULL, MODULE, "SkinName", &dbv)) {
-			wcsncpy(opt.szSkinName, dbv.ptszVal, _countof(opt.szSkinName) - 1);
+		if (!db_get_ws(NULL, MODULENAME, "SkinName", &dbv)) {
+			wcsncpy(opt.szSkinName, dbv.pwszVal, _countof(opt.szSkinName) - 1);
 			db_free(&dbv);
 		}
 	}
@@ -847,7 +847,7 @@ INT_PTR CALLBACK DlgProcOptsContent(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			int sel = SendDlgItemMessage(hwndDlg, IDC_LST_SUBST, LB_GETCURSEL, 0, 0);
 			if (sel != CB_ERR) {
 				DSListNode *ds_value = (DSListNode *)SendDlgItemMessage(hwndDlg, IDC_LST_SUBST, LB_GETITEMDATA, sel, 0);
-				if (DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_SUBST), hwndDlg, DlgProcAddSubst, (LPARAM)&ds_value->ds) == IDOK) {
+				if (DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_SUBST), hwndDlg, DlgProcAddSubst, (LPARAM)&ds_value->ds) == IDOK) {
 					SendDlgItemMessage(hwndDlg, IDC_LST_SUBST, LB_DELETESTRING, (WPARAM)sel, 0);
 
 					sel = SendDlgItemMessage(hwndDlg, IDC_LST_SUBST, LB_ADDSTRING, 0, (LPARAM)ds_value->ds.swzName);
@@ -867,7 +867,7 @@ INT_PTR CALLBACK DlgProcOptsContent(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 					memset(di_value, 0, sizeof(DIListNode));
 					di_value->di.bIsVisible = true;
 
-					int result = DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_ITEM), hwndDlg, DlgProcAddItem, (LPARAM)&di_value->di);
+					int result = DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_ITEM), hwndDlg, DlgProcAddItem, (LPARAM)&di_value->di);
 					if (result == IDOK || (result >= IDPRESETITEM && result < (IDPRESETITEM + 100))) {
 						TVINSERTSTRUCT tvi = {};
 						tvi.item.mask = TVIF_TEXT | TVIF_PARAM | TVIF_STATE;
@@ -1020,7 +1020,7 @@ INT_PTR CALLBACK DlgProcOptsContent(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 					if (item.hItem) {
 						if (TreeView_GetItem(GetDlgItem(hwndDlg, IDC_TREE_FIRST_ITEMS), &item)) {
 							DIListNode *di_value = (DIListNode *)item.lParam;
-							if (DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_ITEM), hwndDlg, DlgProcAddItem, (LPARAM)&di_value->di) == IDOK) {
+							if (DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_ITEM), hwndDlg, DlgProcAddItem, (LPARAM)&di_value->di) == IDOK) {
 								item.mask = TVIF_TEXT;
 								SetTreeItemText(di_value, &item.pszText);
 								TreeView_SetItem(GetDlgItem(hwndDlg, IDC_TREE_FIRST_ITEMS), &item);
@@ -1036,7 +1036,7 @@ INT_PTR CALLBACK DlgProcOptsContent(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 				{
 					DSListNode *ds_value = (DSListNode *)mir_alloc(sizeof(DSListNode));
 					memset(ds_value, 0, sizeof(DSListNode));
-					if (DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_SUBST), hwndDlg, DlgProcAddSubst, (LPARAM)&ds_value->ds) == IDOK) {
+					if (DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_SUBST), hwndDlg, DlgProcAddSubst, (LPARAM)&ds_value->ds) == IDOK) {
 						int index = SendDlgItemMessage(hwndDlg, IDC_LST_SUBST, LB_ADDSTRING, 0, (LPARAM)ds_value->ds.swzName);
 						SendDlgItemMessage(hwndDlg, IDC_LST_SUBST, LB_SETITEMDATA, index, (LPARAM)ds_value);
 						SendDlgItemMessage(hwndDlg, IDC_LST_SUBST, LB_SETCURSEL, index, 0);
@@ -1067,7 +1067,7 @@ INT_PTR CALLBACK DlgProcOptsContent(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 					int sel = SendDlgItemMessage(hwndDlg, IDC_LST_SUBST, LB_GETCURSEL, 0, 0);
 					if (sel != LB_ERR) {
 						DSListNode *ds_value = (DSListNode *)SendDlgItemMessage(hwndDlg, IDC_LST_SUBST, LB_GETITEMDATA, sel, 0);
-						if (DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_SUBST), hwndDlg, DlgProcAddSubst, (LPARAM)&ds_value->ds) == IDOK) {
+						if (DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_SUBST), hwndDlg, DlgProcAddSubst, (LPARAM)&ds_value->ds) == IDOK) {
 							SendDlgItemMessage(hwndDlg, IDC_LST_SUBST, LB_DELETESTRING, (WPARAM)sel, 0);
 
 							sel = SendDlgItemMessage(hwndDlg, IDC_LST_SUBST, LB_ADDSTRING, 0, (LPARAM)ds_value->ds.swzName);
@@ -1144,7 +1144,7 @@ INT_PTR CALLBACK DlgProcOptsContent(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 				if (item.hItem) {
 					if (TreeView_GetItem(GetDlgItem(hwndDlg, IDC_TREE_FIRST_ITEMS), &item)) {
 						DIListNode *di_value = (DIListNode *)item.lParam;
-						if (DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_ITEM), hwndDlg, DlgProcAddItem, (LPARAM)&di_value->di) == IDOK) {
+						if (DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_ITEM), hwndDlg, DlgProcAddItem, (LPARAM)&di_value->di) == IDOK) {
 							item.mask = TVIF_TEXT;
 							SetTreeItemText(di_value, &item.pszText);
 							TreeView_SetItem(GetDlgItem(hwndDlg, IDC_TREE_FIRST_ITEMS), &item);
@@ -1500,8 +1500,8 @@ INT_PTR CALLBACK DlgProcOptsExtra(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM 
 					item.hItem = TreeView_GetNextSibling(GetDlgItem(hwndDlg, IDC_TREE_EXTRAICONS), item.hItem);
 					i++;
 				}
-				db_set_blob(NULL, MODULE, "IconOrder", opt.exIconsOrder, _countof(opt.exIconsOrder));
-				db_set_blob(NULL, MODULE, "icons_vis", opt.exIconsVis, _countof(opt.exIconsVis));
+				db_set_blob(NULL, MODULENAME, "IconOrder", opt.exIconsOrder, _countof(opt.exIconsOrder));
+				db_set_blob(NULL, MODULENAME, "icons_vis", opt.exIconsVis, _countof(opt.exIconsVis));
 
 				opt.iSmileyAddFlags = 0;
 				opt.iSmileyAddFlags |= (IsDlgButtonChecked(hwndDlg, IDC_CHK_ENABLESMILEYS) ? SMILEYADD_ENABLE : 0)
@@ -1516,13 +1516,13 @@ INT_PTR CALLBACK DlgProcOptsExtra(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM 
 				opt.bLimitMsg = IsDlgButtonChecked(hwndDlg, IDC_CHK_LIMITMSG) ? true : false;
 				opt.iLimitCharCount = GetDlgItemInt(hwndDlg, IDC_ED_CHARCOUNT, nullptr, FALSE);
 
-				db_set_dw(0, MODULE, "SmileyAddFlags", opt.iSmileyAddFlags);
-				db_set_b(0, MODULE, "WaitForContent", opt.bWaitForContent ? 1 : 0);
-				db_set_b(0, MODULE, "GetNewStatusMsg", opt.bGetNewStatusMsg ? 1 : 0);
-				db_set_b(0, MODULE, "DisableInvisible", opt.bDisableIfInvisible ? 1 : 0);
-				db_set_b(0, MODULE, "RetrieveXStatus", opt.bRetrieveXstatus ? 1 : 0);
-				db_set_b(0, MODULE, "LimitMsg", opt.bLimitMsg ? 1 : 0);
-				db_set_b(0, MODULE, "LimitCharCount", opt.iLimitCharCount);
+				db_set_dw(0, MODULENAME, "SmileyAddFlags", opt.iSmileyAddFlags);
+				db_set_b(0, MODULENAME, "WaitForContent", opt.bWaitForContent ? 1 : 0);
+				db_set_b(0, MODULENAME, "GetNewStatusMsg", opt.bGetNewStatusMsg ? 1 : 0);
+				db_set_b(0, MODULENAME, "DisableInvisible", opt.bDisableIfInvisible ? 1 : 0);
+				db_set_b(0, MODULENAME, "RetrieveXStatus", opt.bRetrieveXstatus ? 1 : 0);
+				db_set_b(0, MODULENAME, "LimitMsg", opt.bLimitMsg ? 1 : 0);
+				db_set_b(0, MODULENAME, "LimitCharCount", opt.iLimitCharCount);
 
 				return TRUE;
 			}
@@ -1785,8 +1785,8 @@ INT_PTR CALLBACK DlgProcOptsSkin(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM l
 					}
 				}
 
-				db_set_b(0, MODULE, "SkinEngine", opt.skinMode);
-				db_set_ws(0, MODULE, "SkinName", opt.szSkinName);
+				db_set_b(0, MODULENAME, "SkinEngine", opt.skinMode);
+				db_set_ws(0, MODULENAME, "SkinName", opt.szSkinName);
 
 				DestroySkinBitmap();
 				SetDlgItemInt(hwndDlg, IDC_ED_TRANS, opt.iOpacity, FALSE);
@@ -1844,7 +1844,7 @@ INT_PTR CALLBACK DlgProcFavouriteContacts(HWND hwndDlg, UINT msg, WPARAM wParam,
 
 		for (auto &hContact : Contacts()) {
 			HANDLE hItem = (HANDLE)SendDlgItemMessage(hwndDlg, IDC_CLIST, CLM_FINDCONTACT, hContact, 0);
-			if (hItem && db_get_b(hContact, MODULE, "FavouriteContact", 0))
+			if (hItem && db_get_b(hContact, MODULENAME, "FavouriteContact", 0))
 				SendDlgItemMessage(hwndDlg, IDC_CLIST, CLM_SETCHECKMARK, (WPARAM)hItem, 1);
 		}
 
@@ -1863,18 +1863,18 @@ INT_PTR CALLBACK DlgProcFavouriteContacts(HWND hwndDlg, UINT msg, WPARAM wParam,
 					HANDLE hItem = (HANDLE)SendDlgItemMessage(hwndDlg, IDC_CLIST, CLM_FINDCONTACT, hContact, 0);
 					if (hItem) {
 						isChecked = (BYTE)SendDlgItemMessage(hwndDlg, IDC_CLIST, CLM_GETCHECKMARK, (WPARAM)hItem, 0);
-						db_set_b(hContact, MODULE, "FavouriteContact", isChecked);
+						db_set_b(hContact, MODULENAME, "FavouriteContact", isChecked);
 						if (isChecked)
 							count++;
 					}
 				}
-				db_set_dw(0, MODULE, "FavouriteContactsCount", count);
+				db_set_dw(0, MODULENAME, "FavouriteContactsCount", count);
 
 				opt.iFavoriteContFlags = 0;
 				opt.iFavoriteContFlags |= IsDlgButtonChecked(hwndDlg, IDC_CHK_HIDEOFFLINE) ? FAVCONT_HIDE_OFFLINE : 0
 					| IsDlgButtonChecked(hwndDlg, IDC_CHK_APPENDPROTO) ? FAVCONT_APPEND_PROTO : 0;
 
-				db_set_dw(0, MODULE, "FavContFlags", opt.iFavoriteContFlags);
+				db_set_dw(0, MODULENAME, "FavContFlags", opt.iFavoriteContFlags);
 			}
 			__fallthrough;
 
@@ -1965,7 +1965,7 @@ INT_PTR CALLBACK DlgProcOptsTraytip(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			break;
 
 		case IDC_BTN_FAVCONTACTS:
-			CreateDialog(hInst, MAKEINTRESOURCE(IDD_FAVCONTACTS), nullptr, DlgProcFavouriteContacts);
+			CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(IDD_FAVCONTACTS), nullptr, DlgProcFavouriteContacts);
 			break;
 		}
 
@@ -1997,7 +1997,7 @@ INT_PTR CALLBACK DlgProcOptsTraytip(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 					item.hItem = TreeView_GetNextSibling(GetDlgItem(hwndDlg, IDC_TREE_FIRST_PROTOS), item.hItem);
 				}
 
-				db_set_ws(0, MODULE, "TrayProtocols", swzProtos);
+				db_set_ws(0, MODULENAME, "TrayProtocols", swzProtos);
 
 				swzProtos[0] = 0;
 				item.hItem = TreeView_GetRoot(GetDlgItem(hwndDlg, IDC_TREE_SECOND_PROTOS));
@@ -2012,7 +2012,7 @@ INT_PTR CALLBACK DlgProcOptsTraytip(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 					item.hItem = TreeView_GetNextSibling(GetDlgItem(hwndDlg, IDC_TREE_SECOND_PROTOS), item.hItem);
 				}
 
-				db_set_ws(0, MODULE, "TrayProtocolsEx", swzProtos);
+				db_set_ws(0, MODULENAME, "TrayProtocolsEx", swzProtos);
 
 				int count = 0;
 				opt.iFirstItems = 0;
@@ -2046,13 +2046,13 @@ INT_PTR CALLBACK DlgProcOptsTraytip(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 				opt.bHideOffline = IsDlgButtonChecked(hwndDlg, IDC_CHK_HIDEOFFLINE) ? true : false;
 				opt.iExpandTime = max(min(GetDlgItemInt(hwndDlg, IDC_ED_EXPANDTIME, nullptr, FALSE), 5000), 10);
 
-				db_set_b(0, MODULE, "TrayTip", (opt.bTraytip ? 1 : 0));
-				db_set_b(0, MODULE, "ExtendedTrayTip", (opt.bHandleByTipper ? 1 : 0));
-				db_set_b(0, MODULE, "ExpandTrayTip", (opt.bExpandTraytip ? 1 : 0));
-				db_set_b(0, MODULE, "HideOffline", (opt.bHideOffline ? 1 : 0));
-				db_set_dw(0, MODULE, "ExpandTime", opt.iExpandTime);
-				db_set_dw(0, MODULE, "TrayTipItems", opt.iFirstItems);
-				db_set_dw(0, MODULE, "TrayTipItemsEx", opt.iSecondItems);
+				db_set_b(0, MODULENAME, "TrayTip", (opt.bTraytip ? 1 : 0));
+				db_set_b(0, MODULENAME, "ExtendedTrayTip", (opt.bHandleByTipper ? 1 : 0));
+				db_set_b(0, MODULENAME, "ExpandTrayTip", (opt.bExpandTraytip ? 1 : 0));
+				db_set_b(0, MODULENAME, "HideOffline", (opt.bHideOffline ? 1 : 0));
+				db_set_dw(0, MODULENAME, "ExpandTime", opt.iExpandTime);
+				db_set_dw(0, MODULENAME, "TrayTipItems", opt.iFirstItems);
+				db_set_dw(0, MODULENAME, "TrayTipItemsEx", opt.iSecondItems);
 				return TRUE;
 			}
 			break;
@@ -2080,44 +2080,43 @@ INT_PTR CALLBACK DlgProcOptsTraytip(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 
 int OptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.position = -790000000;
-	odp.hInstance = hInst;
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_APPEARANCE);
 	odp.szTab.a = LPGEN("Appearance");
 	odp.szTitle.a = LPGEN("Tooltips");
 	odp.szGroup.a = LPGEN("Customize");
 	odp.pfnDlgProc = DlgProcOptsAppearance;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_SKIN);
 	odp.szTab.a = LPGEN("Tooltips");
 	odp.szGroup.a = LPGEN("Skins");
 	odp.pfnDlgProc = DlgProcOptsSkin;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_CONTENT);
 	odp.szTab.a = LPGEN("Content");
 	odp.szTitle.a = LPGEN("Tooltips");
 	odp.szGroup.a = LPGEN("Customize");
 	odp.pfnDlgProc = DlgProcOptsContent;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_TRAYTIP);
 	odp.szTab.a = LPGEN("Tray tooltip");
 	odp.szTitle.a = LPGEN("Tooltips");
 	odp.szGroup.a = LPGEN("Customize");
 	odp.pfnDlgProc = DlgProcOptsTraytip;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_EXTRA);
 	odp.szTab.a = LPGEN("Extra");
 	odp.szTitle.a = LPGEN("Tooltips");
 	odp.szGroup.a = LPGEN("Customize");
 	odp.pfnDlgProc = DlgProcOptsExtra;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 

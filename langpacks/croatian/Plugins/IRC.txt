@@ -352,8 +352,6 @@ obavještava
 
 [Ban'n Kick]
 
-[Jerk]
-
 [*Disconnected*]
 
 [The usage of /AWAY in your perform buffer is restricted\n as IRC sends this command automatically.]
@@ -771,7 +769,7 @@ obavještava
 
 [%s - Filtered - %d items]
 
-[---- Not listed server ----]
+[Not listed server]
 
 [Type new server address here]
 

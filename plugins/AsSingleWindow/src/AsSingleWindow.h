@@ -15,7 +15,6 @@
 typedef std::list<sWindowInfo> windowsList;
 
 struct sPluginVars {
-    HINSTANCE hInst;
     CRITICAL_SECTION m_CS;
 
     HWND contactListHWND;
@@ -30,7 +29,3 @@ struct sPluginVars {
 };
 
 extern sPluginVars pluginVars;
-extern PLUGININFOEX pluginInfo;
-
-int OnModulesLoaded(WPARAM, LPARAM);
-int MsgWindowEvent(WPARAM, LPARAM);

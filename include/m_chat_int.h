@@ -247,6 +247,7 @@ struct CHAT_MANAGER_INITDATA
 	int cbModuleInfo, cbSession;
 	wchar_t *szFontGroup;
 	int iFontMode;
+	HPLUGIN pPlugin;
 };
 
 typedef BOOL (*pfnDoTrayIcon)(SESSION_INFO *si, GCEVENT *gce);
@@ -359,11 +360,9 @@ struct CHAT_MANAGER
 	void (*OnFlashHighlight)(SESSION_INFO*, int bInactive);
 };
 
-#ifndef MIR_APP_EXPORTS
-extern CHAT_MANAGER *pci;
-#endif
+extern MIR_APP_EXPORT CHAT_MANAGER g_chatApi;
 
-EXTERN_C MIR_APP_DLL(CHAT_MANAGER*) Chat_GetInterface(CHAT_MANAGER_INITDATA *pData = nullptr, int = hLangpack);
+EXTERN_C MIR_APP_DLL(CHAT_MANAGER*) Chat_CustomizeApi(const CHAT_MANAGER_INITDATA *pData);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -404,12 +403,12 @@ class MIR_APP_EXPORT CSrmmBaseDialog : public CDlgBase
 	CSrmmBaseDialog& operator=(const CSrmmBaseDialog&) = delete;
 
 protected:
-	CSrmmBaseDialog(HINSTANCE hInst, int idDialog, SESSION_INFO *si = nullptr);
+	CSrmmBaseDialog(CMPluginBase&, int idDialog, SESSION_INFO *si = nullptr);
 
-	virtual void OnInitDialog() override;
-	virtual void OnDestroy() override;
+	bool OnInitDialog() override;
+	void OnDestroy() override;
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
 
 	int  NotifyEvent(int code);
 	bool ProcessHotkeys(int key, bool bShift, bool bCtrl, bool bAlt);

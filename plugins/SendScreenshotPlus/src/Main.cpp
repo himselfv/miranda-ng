@@ -27,14 +27,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
 #include "stdafx.h"
-#include "Main.h"
 
 // Prototypes ///////////////////////////////////////////////////////////////////////////
-CHAT_MANAGER    *pci;
-HINSTANCE g_hSendSS;
+
+CMPlugin g_plugin;
+HGENMENU g_hMenu1, g_hMenu2;
+
+ATOM g_clsTargetHighlighter = 0;
 MGLOBAL g_myGlobals;
-HNETLIBUSER g_hNetlibUser=nullptr;//!< Netlib Register User
-int hLangpack;//Miranda NG langpack used by translate functions, filled by mir_getLP()
+HNETLIBUSER g_hNetlibUser;
 
 IconItem ICONS[ICO_END_] =
 {
@@ -57,12 +58,11 @@ IconItem ICONS_BTN[ICO_BTN_END_] =
 	{ LPGEN("Update"), "update", IDI_UPDATE },
 	{ LPGEN("OK"), "ok", IDI_OK },
 	{ LPGEN("Cancel"), "cancel", IDI_CANCEL },
-	//		{LPGEN("Apply"),"apply",IDI_APPLY},
 	{ LPGEN("Edit"), "edit", IDI_EDIT },
 	{ LPGEN("Edit on"), "editon", IDI_EDITON },
 	{ LPGEN("Copy"), "copy", IDI_COPY },
-	{ LPGEN("BBC"), "bbc", IDI_BBC },
-	{ LPGEN("BBC link"), "bbclnk", IDI_BBC2 },
+	{ LPGEN("BBCode"), "bbc", IDI_BBC },
+	{ LPGEN("BBCode link"), "bbclnk", IDI_BBC2 },
 	{ LPGEN("Down arrow"), "downarrow", IDI_DOWNARROW },
 };
 
@@ -90,11 +90,6 @@ wchar_t* GetCustomPath()
 	}
 	return pszPath;
 }
-/// services
-static HANDLE m_hOpenCaptureDialog = nullptr;
-static HANDLE m_hSendDesktop = nullptr;
-static HANDLE m_hEditBitmap = nullptr;
-static HANDLE m_hSend2ImageShack = nullptr;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Callback function of service for contact menu and main menu
@@ -207,13 +202,10 @@ INT_PTR service_Send2ImageShack(WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)result;
 }
 
-// Functions ////////////////////////////////////////////////////////////////////////////
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static PLUGININFOEX pluginInfoEx =
 {
-	g_hSendSS = hinstDLL;
-	return TRUE;
-}
-static const PLUGININFOEX pluginInfo = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -225,11 +217,14 @@ static const PLUGININFOEX pluginInfo = {
 	// {ED39AF7C-BECD-404E-9499-4D04F711B9CB}
 	{ 0xed39af7c, 0xbecd, 0x404e, { 0x94, 0x99, 0x4d, 0x04, 0xf7, 0x11, 0xb9, 0xcb } }
 };
-DLL_EXPORT PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return const_cast<PLUGININFOEX*>(&pluginInfo);
-}
-/// hooks
+
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// hooks
+
 int hook_ModulesLoaded(WPARAM, LPARAM)
 {
 	g_myGlobals.PopupExist = ServiceExists(MS_POPUP_ADDPOPUPT);
@@ -237,56 +232,89 @@ int hook_ModulesLoaded(WPARAM, LPARAM)
 	g_myGlobals.PluginHTTPExist = ServiceExists(MS_HTTP_ACCEPT_CONNECTIONS);
 	g_myGlobals.PluginFTPExist = ServiceExists(MS_FTPFILE_UPLOAD);
 	g_myGlobals.PluginCloudFileExist = ServiceExists(MS_CLOUDFILE_UPLOAD);
+	
 	// Netlib register
 	NETLIBUSER nlu = {};
 	nlu.szSettingsModule = __PLUGIN_NAME;
 	nlu.szDescriptiveName.w = TranslateT("SendSS HTTP connections");
 	nlu.flags = NUF_OUTGOING | NUF_HTTPCONNS | NUF_UNICODE;			//|NUF_NOHTTPSOPTION;
 	g_hNetlibUser = Netlib_RegisterUser(&nlu);
+	
 	// load my button class / or use UInfoEx
 	CtrlButtonLoadModule();
+	
 	// Folders plugin support
 	m_hFolderScreenshot = FoldersRegisterCustomPathT(LPGEN("SendSS"), LPGEN("Screenshots"),
 		PROFILE_PATHW L"\\" CURRENT_PROFILEW L"\\Screenshots");
 	return 0;
 }
+
 int hook_SystemPreShutdown(WPARAM, LPARAM)
 {
-	TfrmAbout::Unload();//crashes if done from "Unload" because of dependencies
-	TfrmMain::Unload();// "
+	TfrmMain::Unload();
+	
 	// Netlib unregister
 	Netlib_CloseHandle(g_hNetlibUser);
+	
 	// uninitialize classes
 	CtrlButtonUnloadModule();
 	return 0;
 }
 
-ATOM g_clsTargetHighlighter = 0;
-DLL_EXPORT int Load(void)
+int hook_PrebuildContactMenu(WPARAM hContact, LPARAM)
 {
-	mir_getLP(&pluginInfo);
-	pci = Chat_GetInterface();
+	INT_PTR flags = CallProtoService(GetContactProto(hContact), PS_GETCAPS, PFLAGNUM_1, 0);
+	bool bEnabled = (flags != CALLSERVICE_NOTFOUND) && (flags & PF1_FILE) != 0;
+	Menu_ShowItem(g_hMenu1, bEnabled);
+	Menu_ShowItem(g_hMenu2, bEnabled);
+	return 0;
+}
 
-	/// hook events
+static int TabsrmmButtonsInit(WPARAM, LPARAM)
+{
+	// SRMM toolbar button
+	BBButton bbd = {};
+	bbd.pszModuleName = MODULENAME;
+	bbd.dwButtonID = 1;
+	bbd.bbbFlags = BBBF_ISIMBUTTON | BBBF_ISCHATBUTTON;
+	bbd.dwDefPos = 201;
+	bbd.hIcon = GetIconHandle(ICO_MAINXS);
+	Srmm_AddButton(&bbd, &g_plugin);
+	return 0;
+}
+
+static int TabsrmmButtonPressed(WPARAM hContact, LPARAM lParam)
+{
+	CustomButtonClickData *cbcd = (CustomButtonClickData *)lParam;
+	if (!mir_strcmp(cbcd->pszModule, MODULENAME) && cbcd->dwButtonId == 1)
+		CallService(MS_SENDSS_OPENDIALOG, hContact, 0);
+
+	return 0;
+}
+
+int CMPlugin::Load()
+{
+	// hook events
 	HookEvent(ME_SYSTEM_MODULESLOADED, hook_ModulesLoaded);
 	HookEvent(ME_SYSTEM_PRESHUTDOWN, hook_SystemPreShutdown);
+	HookEvent(ME_CLIST_PREBUILDCONTACTMENU, hook_PrebuildContactMenu);
+
+	HookEvent(ME_MSG_BUTTONPRESSED, TabsrmmButtonPressed);
+	HookTemporaryEvent(ME_MSG_TOOLBARLOADED, TabsrmmButtonsInit);
+
+	// icons
+	g_plugin.registerIcon(MODULENAME, ICONS, MODULENAME);
+	g_plugin.registerIcon(MODULENAME "/" LPGEN("Buttons"), ICONS_BTN, MODULENAME);
 	
-	/// icons
-	Icon_Register(g_hSendSS, SZ_SENDSS, ICONS, sizeof(ICONS) / sizeof(IconItem), SZ_SENDSS);
-	Icon_Register(g_hSendSS, SZ_SENDSS "/" LPGEN("Buttons"), ICONS_BTN, sizeof(ICONS_BTN) / sizeof(IconItem), SZ_SENDSS);
-	
-	/// services
-#define srv_reg(name) do{\
-		m_h##name=CreateServiceFunction(SZ_SENDSS "/" #name, service_##name);\
-		if(!m_h##name) MessageBoxA(NULL,Translate("Could not register Miranda service."),SZ_SENDSS "/" #name,MB_OK|MB_ICONERROR|MB_APPLMODAL);\
-		}while(0)
+	// services
+	#define srv_reg(name) CreateServiceFunction(MODULENAME "/" #name, service_##name);
 	srv_reg(OpenCaptureDialog);
 	srv_reg(SendDesktop);
 	srv_reg(EditBitmap);
 	srv_reg(Send2ImageShack);
 
 	// menu items
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.flags = CMIF_UNICODE;
 	mi.hIcolibItem = GetIconHandle(ICO_MAINXS);
 
@@ -300,15 +328,15 @@ DLL_EXPORT int Load(void)
 	mi.name.w = LPGENW("Send screenshot");
 	mi.pszService = MS_SENDSS_OPENDIALOG;
 	mi.position = 1000000;
-	Menu_AddContactMenuItem(&mi);
+	g_hMenu1 = Menu_AddContactMenuItem(&mi);
 
 	SET_UID(mi, 0x8d5b0d9a, 0x68d4, 0x4594, 0x9f, 0x41, 0x0, 0x64, 0x20, 0xe7, 0xf8, 0x9f);
 	mi.name.w = LPGENW("Send desktop screenshot");
 	mi.pszService = MS_SENDSS_SENDDESKTOP;
 	mi.position = 1000001;
-	Menu_AddContactMenuItem(&mi);
+	g_hMenu2 = Menu_AddContactMenuItem(&mi);
 
-	/// hotkey's
+	// hotkey's
 	HOTKEYDESC hkd = {};
 	hkd.pszName = "Open SendSS+";
 	hkd.szDescription.w = LPGENW("Open SendSS+");
@@ -316,21 +344,21 @@ DLL_EXPORT int Load(void)
 	hkd.pszService = MS_SENDSS_OPENDIALOG;
 	hkd.lParam = 0xFFFF;
 	hkd.dwFlags = HKD_UNICODE;
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
-	/// register highlighter window class
-	HBRUSH brush = CreateSolidBrush(0x0000FF00);//owned by class
-	WNDCLASS wndclass = { CS_HREDRAW | CS_VREDRAW, DefWindowProc, 0, 0, g_hSendSS, nullptr, nullptr, brush, nullptr, L"SendSSHighlighter" };
+	// register highlighter window class
+	HBRUSH brush = CreateSolidBrush(0x0000FF00); // owned by class
+	WNDCLASS wndclass = { CS_HREDRAW | CS_VREDRAW, DefWindowProc, 0, 0, g_plugin.getInst(), nullptr, nullptr, brush, nullptr, L"SendSSHighlighter" };
 	g_clsTargetHighlighter = RegisterClass(&wndclass);
 	return 0;
 }
-/*---------------------------------------------------------------------------
-* Prepare the plugin to stop
-* Called by Miranda when it will exit or when the plugin gets deselected
-*/
-DLL_EXPORT int Unload(void)
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// Prepare the plugin to stop
+
+int CMPlugin::Unload()
 {
 	if (g_clsTargetHighlighter)
-		UnregisterClass((wchar_t*)g_clsTargetHighlighter, g_hSendSS), g_clsTargetHighlighter = 0;
+		UnregisterClass((wchar_t*)g_clsTargetHighlighter, g_plugin.getInst()), g_clsTargetHighlighter = 0;
 	return 0;
 }

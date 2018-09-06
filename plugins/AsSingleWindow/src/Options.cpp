@@ -1,22 +1,14 @@
 #include "stdafx.h"
-#include "AsSingleWindow.h"
-#include "Options.h"
-#include "resource.h"
 
 int InitOptions(WPARAM wParam, LPARAM)
 {
 	OPTIONSDIALOGPAGE Opts = { 0 };
-
 	Opts.szTitle.a = LPGEN("AsSingleWindow");
 	Opts.szGroup.a = LPGEN("Customize");
-
 	Opts.pfnDlgProc = cbOptionsDialog;
 	Opts.pszTemplate = MAKEINTRESOURCEA(IDD_ASW_OPTIONSPAGE);
-	Opts.hInstance = pluginVars.hInst;
 	Opts.flags = ODPF_BOLDGROUPS;
-
-	Options_AddPage(wParam, &Opts);
-
+	g_plugin.addOptions(wParam, &Opts);
 	return 0;
 }
 
@@ -106,8 +98,8 @@ void dlgUpdateControls(HWND hWnd)
 
 void optionsLoad()
 {
-	pluginVars.Options.DrivenWindowPos = db_get_b(0, SETTINGSNAME, "DrivenWindowPosition", ASW_CLWINDOWPOS_RIGHT);
-	pluginVars.Options.WindowsMerging = db_get_b(0, SETTINGSNAME, "WindowsMerging", ASW_WINDOWS_MERGEONE);
+	pluginVars.Options.DrivenWindowPos = db_get_b(0, MODULENAME, "DrivenWindowPosition", ASW_CLWINDOWPOS_RIGHT);
+	pluginVars.Options.WindowsMerging = db_get_b(0, MODULENAME, "WindowsMerging", ASW_WINDOWS_MERGEONE);
 }
 
 void optionsUpdate(HWND hWnd)
@@ -125,6 +117,6 @@ void optionsUpdate(HWND hWnd)
 
 void optionsSave()
 {
-	db_set_b(0, SETTINGSNAME, "DrivenWindowPosition", pluginVars.Options.DrivenWindowPos);
-	db_set_b(0, SETTINGSNAME, "WindowsMerging", pluginVars.Options.WindowsMerging);
+	db_set_b(0, MODULENAME, "DrivenWindowPosition", pluginVars.Options.DrivenWindowPos);
+	db_set_b(0, MODULENAME, "WindowsMerging", pluginVars.Options.WindowsMerging);
 }

@@ -57,7 +57,7 @@ static void OptDlgChanged(HWND hwndDlg)
 
 static INT_PTR CALLBACK DlgProcIcqOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	CIcqProto *ppro = (CIcqProto*)GetWindowLongPtr( hwndDlg, GWLP_USERDATA );
+	CIcqProto *ppro = (CIcqProto*)GetWindowLongPtr(hwndDlg, GWLP_USERDATA);
 
 	switch (msg) {
 	case WM_INITDIALOG:
@@ -75,7 +75,7 @@ static INT_PTR CALLBACK DlgProcIcqOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			SendDlgItemMessage(hwndDlg, IDC_PASSWORD, EM_LIMITTEXT, PASSWORDMAXLEN, 0);
 
 			// bit of a security hole here, since it's easy to extract a password from an edit box
-			char pszPwd[PASSWORDMAXLEN+1];
+			char pszPwd[PASSWORDMAXLEN + 1];
 			if (ppro->GetUserStoredPassword(pszPwd))
 				SetDlgItemTextA(hwndDlg, IDC_PASSWORD, pszPwd);
 
@@ -133,7 +133,7 @@ static INT_PTR CALLBACK DlgProcIcqOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 		}
 
 		if ((LOWORD(wParam) == IDC_ICQNUM || LOWORD(wParam) == IDC_PASSWORD || LOWORD(wParam) == IDC_ICQSERVER || LOWORD(wParam) == IDC_ICQPORT) &&
-			 (HIWORD(wParam) != EN_CHANGE || (HWND)lParam != GetFocus())) {
+			(HIWORD(wParam) != EN_CHANGE || (HWND)lParam != GetFocus())) {
 			return 0;
 		}
 
@@ -295,7 +295,8 @@ static INT_PTR CALLBACK DlgProcIcqPrivacyOpts(HWND hwndDlg, UINT msg, WPARAM wPa
 
 static HWND hCpCombo;
 
-struct CPTABLE {
+struct CPTABLE
+{
 	int cpId;
 	char *cpName;
 };
@@ -504,9 +505,8 @@ INT_PTR CALLBACK DlgProcIcqPopupOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
 
 int CIcqProto::OnOptionsInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -800000000;
-	odp.hInstance = g_plugin.getInst();
 	odp.szGroup.w = LPGENW("Network");
 	odp.dwInitParam = LPARAM(this);
 	odp.szTitle.w = m_tszUserName;
@@ -515,22 +515,22 @@ int CIcqProto::OnOptionsInit(WPARAM wParam, LPARAM)
 	odp.szTab.w = LPGENW("Account");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_ICQ);
 	odp.pfnDlgProc = DlgProcIcqOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.w = LPGENW("Contacts");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_ICQCONTACTS);
 	odp.pfnDlgProc = DlgProcIcqContactsOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.w = LPGENW("Features");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_ICQFEATURES);
 	odp.pfnDlgProc = DlgProcIcqFeaturesOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.w = LPGENW("Privacy");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_ICQPRIVACY);
 	odp.pfnDlgProc = DlgProcIcqPrivacyOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	if (bPopupService) {
 		odp.position = 100000000;
@@ -538,7 +538,7 @@ int CIcqProto::OnOptionsInit(WPARAM wParam, LPARAM)
 		odp.pfnDlgProc = DlgProcIcqPopupOpts;
 		odp.szGroup.w = LPGENW("Popups");
 		odp.szTab.w = nullptr;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }

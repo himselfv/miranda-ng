@@ -22,8 +22,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "HistoryWindow.h"
 
 // Sorry for plain C implementation
-#define MODULE				"BasicHistory"
-extern HANDLE  g_hMainThread;
+#define MODULENAME "BasicHistory"
+
 bool bPopupsEnabled;
 bool DoTask(TaskOptions& to);
 bool IsValidTask(TaskOptions& to, std::list<TaskOptions>* top = nullptr, std::wstring* err = nullptr, std::wstring* errDescr = nullptr);
@@ -71,11 +71,11 @@ void InitScheduler()
 	bPopupsEnabled = ServiceExists(MS_POPUP_ADDPOPUPT) || ServiceExists(MS_POPUP_ADDPOPUPCLASS);
 
 	POPUPCLASS test = { sizeof(test) };
-	test.flags = PCF_TCHAR;
+	test.flags = PCF_UNICODE;
 	test.hIcon = Skin_LoadIcon(SKINICON_OTHER_HISTORY);
 	test.iSeconds = 10;
-	test.pwszDescription = TranslateT("History task");
-	test.pszName = MODULE;
+	test.pszDescription.w = TranslateT("History task");
+	test.pszName = MODULENAME;
 	if (hPopupClass = Popup_RegisterClass(&test))
 		HookEvent(ME_SYSTEM_SHUTDOWN, OnShutdown);
 
@@ -217,7 +217,7 @@ bool IsValidTask(TaskOptions& to, std::list<TaskOptions>* top, std::wstring* err
 	return true;
 }
 
-static void CALLBACK DoRebuildEventsInMainAPCFunc(ULONG_PTR dwParam)
+static INT_PTR CALLBACK DoRebuildEventsInMainAPCFunc(void *dwParam)
 {
 	MCONTACT *contacts = (MCONTACT*)dwParam;
 	size_t size = (size_t)contacts[0];
@@ -225,6 +225,7 @@ static void CALLBACK DoRebuildEventsInMainAPCFunc(ULONG_PTR dwParam)
 		HistoryWindow::RebuildEvents(contacts[i]);
 
 	delete[] contacts;
+	return 0;
 }
 
 bool DoTask(TaskOptions& to)
@@ -416,7 +417,7 @@ bool DoTask(TaskOptions& to)
 				for (std::list<MCONTACT>::iterator it = contactList.begin(); it != contactList.end(); ++it)
 					pContacts[i++] = *it;
 
-				QueueUserAPC(DoRebuildEventsInMainAPCFunc, g_hMainThread, (ULONG_PTR)pContacts);
+				CallFunctionSync(DoRebuildEventsInMainAPCFunc, pContacts);
 			}
 		}
 
@@ -788,11 +789,12 @@ bool GetNextExportTime(bool init, time_t now)
 	return isExport;
 }
 
-static void CALLBACK DoTaskFinishInMainAPCFunc(ULONG_PTR dwParam)
+static INT_PTR CALLBACK DoTaskFinishInMainAPCFunc(void *param)
 {
-	wchar_t *item = (wchar_t*)dwParam;
+	wchar_t *item = (wchar_t*)param;
 	MessageBox(nullptr, item, TranslateT("Task finished"), MB_OK | MB_ICONINFORMATION);
 	delete[] item;
+	return 0;
 }
 
 bool ExecuteCurrentTask(time_t now)
@@ -843,7 +845,7 @@ bool ExecuteCurrentTask(time_t now)
 					mir_snwprintf(name, size, TranslateT("Task '%s' execution failed"), to.taskName.c_str());
 				else
 					mir_snwprintf(name, size, TranslateT("Task '%s' finished successfully"), to.taskName.c_str());
-				QueueUserAPC(DoTaskFinishInMainAPCFunc, g_hMainThread, (ULONG_PTR)name);
+				CallFunctionSync(DoTaskFinishInMainAPCFunc, name);
 			}
 		}
 	}
@@ -1281,7 +1283,7 @@ void DoError(const TaskOptions& to, const std::wstring _error)
 		error += _error;
 
 		DBEVENTINFO dbei = {};
-		dbei.szModule = MODULE;
+		dbei.szModule = MODULENAME;
 		dbei.flags = DBEF_UTF | DBEF_READ;
 		dbei.timestamp = time(0);
 		// For now I do not convert event data from string to blob, and event type must be message to handle it properly
@@ -1299,7 +1301,7 @@ void DoError(const TaskOptions& to, const std::wstring _error)
 			return;
 
 		if (ServiceExists(MS_POPUP_ADDPOPUPCLASS))
-			ShowClassPopupT(MODULE, msg, (wchar_t*)_error.c_str());
+			ShowClassPopupT(MODULENAME, msg, (wchar_t*)_error.c_str());
 		else if (ServiceExists(MS_POPUP_ADDPOPUPT)) {
 			POPUPDATAT ppd = { 0 };
 			ppd.lchIcon = Skin_LoadIcon(SKINICON_OTHER_HISTORY);

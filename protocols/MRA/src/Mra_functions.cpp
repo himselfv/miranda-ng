@@ -662,7 +662,7 @@ void CMraProto::MraUpdateEmailStatus(const CMStringA &pszFrom, const CMStringA &
 				memcpy(pszServiceFunctionName, MRA_GOTO_INBOX, sizeof(MRA_GOTO_INBOX));
 				cle.pszService = szServiceFunction;
 			}
-			pcli->pfnAddEvent(&cle);
+			g_clistApi.pfnAddEvent(&cle);
 		}
 
 		Skin_PlaySound(szNewMailSound);
@@ -675,7 +675,7 @@ void CMraProto::MraUpdateEmailStatus(const CMStringA &pszFrom, const CMStringA &
 	else {
 		if (!force_display && getByte("IncrementalNewMailNotify", MRA_DEFAULT_INC_NEW_MAIL_NOTIFY)) {
 			if (bTrayIconNewMailNotify)
-				pcli->pfnRemoveEvent(0, (LPARAM)m_szModuleName);
+				g_clistApi.pfnRemoveEvent(0, (LPARAM)m_szModuleName);
 			PUDeletePopup(hWndEMailPopupStatus);
 			hWndEMailPopupStatus = nullptr;
 		}
@@ -867,6 +867,7 @@ void CMraProto::ShowFormattedErrorMessage(LPWSTR lpwszErrText, DWORD dwErrorCode
 		szErrDescription[dwErrDescriptionSize] = 0;
 		mir_snwprintf(szErrorText, L"%s %lu: %s", TranslateW(lpwszErrText), dwErrorCode, szErrDescription);
 	}
+	debugLogA("Error happened: %S", szErrorText);
 	MraPopupShowFromAgentW(MRA_POPUP_TYPE_ERROR, szErrorText);
 }
 
@@ -1140,7 +1141,7 @@ INT_PTR CALLBACK SendReplyBlogStatusDlgProc(HWND hWndDlg, UINT message, WPARAM w
 					dbv.type = DBVT_BLOB;
 					dbv.pbVal = (PBYTE)&dwBlogStatusID;
 					dbv.cpbVal = sizeof(DWORDLONG);
-					db_get(dat->hContact, dat->ppro->m_szModuleName, DBSETTING_BLOGSTATUSID, &dbv);
+					db_set(dat->hContact, dat->ppro->m_szModuleName, DBSETTING_BLOGSTATUSID, &dbv);
 				}
 				else {
 					dwFlags = MRIM_BLOG_STATUS_UPDATE;

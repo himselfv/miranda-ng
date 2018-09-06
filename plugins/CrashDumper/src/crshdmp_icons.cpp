@@ -30,7 +30,7 @@ static IconItem iconList[] =
 
 void InitIcons(void)
 {
-	Icon_Register(hInst, LPGEN("Crash Dumper"), iconList, _countof(iconList), PluginName);
+	g_plugin.registerIcon(LPGEN("Crash Dumper"), iconList, MODULENAME);
 }
 
 HICON LoadIconEx(int iconId, bool big)

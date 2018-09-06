@@ -36,7 +36,7 @@ class COptGpgMainDlg : public CDlgBase
 	CCtrlButton btn_DELETE_KEY_BUTTON, btn_SELECT_KEY, btn_SAVE_KEY_BUTTON, btn_COPY_KEY, btn_LOG_FILE_SET;
 
 public:
-	COptGpgMainDlg() : CDlgBase(globals.hInst, IDD_OPT_GPG),
+	COptGpgMainDlg() : CDlgBase(g_plugin, IDD_OPT_GPG),
 		list_USERLIST(this, IDC_USERLIST), lbl_CURRENT_KEY(this, IDC_CURRENT_KEY), edit_LOG_FILE_EDIT(this, IDC_LOG_FILE_EDIT),
 		check_DEBUG_LOG(this, IDC_DEBUG_LOG), check_JABBER_API(this, IDC_JABBER_API), check_AUTO_EXCHANGE(this, IDC_AUTO_EXCHANGE), check_FILE_TRANSFERS(this, IDC_FILE_TRANSFERS),
 		btn_DELETE_KEY_BUTTON(this, IDC_DELETE_KEY_BUTTON), btn_SELECT_KEY(this, IDC_SELECT_KEY), btn_SAVE_KEY_BUTTON(this, IDC_SAVE_KEY_BUTTON), btn_COPY_KEY(this, IDC_COPY_KEY), btn_LOG_FILE_SET(this, IDC_LOG_FILE_SET)
@@ -50,7 +50,7 @@ public:
 		check_JABBER_API.OnChange = Callback(this, &COptGpgMainDlg::onChange_JABBER_API);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		list_USERLIST.AddColumn(0, TranslateT("Contact"), 60);
 		list_USERLIST.AddColumn(1, TranslateT("Key ID"), 50);
@@ -70,32 +70,32 @@ public:
 				list_USERLIST.SetItemText(row, 4, tmp);
 				mir_free(tmp);
 
-				char *tmp2 = UniGetContactSettingUtf(hContact, szGPGModuleName, "KeyID", "");
+				char *tmp2 = UniGetContactSettingUtf(hContact, MODULENAME, "KeyID", "");
 				tmp = mir_a2u(tmp2);
 				mir_free(tmp2);
 				list_USERLIST.SetItemText(row, 1, (mir_wstrlen(tmp) > 1) ? tmp : L"not set");
 				mir_free(tmp);
 
-				tmp2 = UniGetContactSettingUtf(hContact, szGPGModuleName, "KeyMainName", "");
+				tmp2 = UniGetContactSettingUtf(hContact, MODULENAME, "KeyMainName", "");
 				if (!toUTF16(tmp2).empty())
 					tmp = mir_wstrdup(toUTF16(tmp2).c_str());
 				else
-					tmp = UniGetContactSettingUtf(hContact, szGPGModuleName, "KeyMainName", L"");
+					tmp = UniGetContactSettingUtf(hContact, MODULENAME, "KeyMainName", L"");
 				mir_free(tmp2);
 				list_USERLIST.SetItemText(row, 2, (mir_wstrlen(tmp) > 1) ? tmp : L"not set");
 				mir_free(tmp);
 
-				tmp2 = UniGetContactSettingUtf(hContact, szGPGModuleName, "KeyMainEmail", "");
+				tmp2 = UniGetContactSettingUtf(hContact, MODULENAME, "KeyMainEmail", "");
 				if (!toUTF16(tmp2).empty())
 					tmp = mir_wstrdup(toUTF16(tmp2).c_str());
 				else
-					tmp = UniGetContactSettingUtf(hContact, szGPGModuleName, "KeyMainEmail", L"");
+					tmp = UniGetContactSettingUtf(hContact, MODULENAME, "KeyMainEmail", L"");
 				mir_free(tmp2);
 				list_USERLIST.SetItemText(row, 3, (mir_wstrlen(tmp) > 1) ? tmp : L"not set");
 				mir_free(tmp);
 
 				
-				if (db_get_b(hContact, szGPGModuleName, "GPGEncryption", 0))
+				if (db_get_b(hContact, MODULENAME, "GPGEncryption", 0))
 					list_USERLIST.SetCheckState(row, 1);
 				user_data[i] = hContact;
 				list_USERLIST.SetColumnWidth(0, LVSCW_AUTOSIZE);
@@ -106,23 +106,23 @@ public:
 				i++;
 			}
 		}
-		edit_LOG_FILE_EDIT.SetText(ptrW(UniGetContactSettingUtf(NULL, szGPGModuleName, "szLogFilePath", L"")));
+		edit_LOG_FILE_EDIT.SetText(ptrW(UniGetContactSettingUtf(NULL, MODULENAME, "szLogFilePath", L"")));
 
-		check_DEBUG_LOG.SetState(db_get_b(NULL, szGPGModuleName, "bDebugLog", 0));
+		check_DEBUG_LOG.SetState(db_get_b(NULL, MODULENAME, "bDebugLog", 0));
 		check_JABBER_API.Enable();
 		check_AUTO_EXCHANGE.Enable(globals.bJabberAPI);
 
 		{
 			string keyinfo = Translate("Default private key ID");
 			keyinfo += ": ";
-			char *keyid = UniGetContactSettingUtf(NULL, szGPGModuleName, "KeyID", "");
+			char *keyid = UniGetContactSettingUtf(NULL, MODULENAME, "KeyID", "");
 			keyinfo += (mir_strlen(keyid) > 0) ? keyid : Translate("not set");
 			mir_free(keyid);
 			lbl_CURRENT_KEY.SetTextA(keyinfo.c_str());
 		}
-		check_JABBER_API.SetState(db_get_b(NULL, szGPGModuleName, "bJabberAPI", 1));
-		check_FILE_TRANSFERS.SetState(db_get_b(NULL, szGPGModuleName, "bFileTransfers", 0));
-		check_AUTO_EXCHANGE.SetState(db_get_b(NULL, szGPGModuleName, "bAutoExchange", 0));
+		check_JABBER_API.SetState(db_get_b(NULL, MODULENAME, "bJabberAPI", 1));
+		check_FILE_TRANSFERS.SetState(db_get_b(NULL, MODULENAME, "bFileTransfers", 0));
+		check_AUTO_EXCHANGE.SetState(db_get_b(NULL, MODULENAME, "bAutoExchange", 0));
 
 		//TODO: get rid of following s..t
 		////////////////
@@ -131,23 +131,25 @@ public:
 		////////////////
 
 		list_USERLIST.OnItemChanged = Callback(this, &COptGpgMainDlg::onItemChanged_USERLIST);
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
-		db_set_b(NULL, szGPGModuleName, "bDebugLog", globals.bDebugLog = check_DEBUG_LOG.GetState());
+		db_set_b(NULL, MODULENAME, "bDebugLog", globals.bDebugLog = check_DEBUG_LOG.GetState());
 
 		if (globals.bDebugLog)
 			globals.debuglog.init();
-		db_set_b(NULL, szGPGModuleName, "bJabberAPI", globals.bJabberAPI = check_JABBER_API.GetState());
-		bool old_bFileTransfers = db_get_b(NULL, szGPGModuleName, "bFileTransfers", 0) != 0;
-		db_set_b(NULL, szGPGModuleName, "bFileTransfers", globals.bFileTransfers = check_FILE_TRANSFERS.GetState());
+		db_set_b(NULL, MODULENAME, "bJabberAPI", globals.bJabberAPI = check_JABBER_API.GetState());
+		bool old_bFileTransfers = db_get_b(NULL, MODULENAME, "bFileTransfers", 0) != 0;
+		db_set_b(NULL, MODULENAME, "bFileTransfers", globals.bFileTransfers = check_FILE_TRANSFERS.GetState());
 		if (globals.bFileTransfers != old_bFileTransfers) {
-			db_set_b(NULL, szGPGModuleName, "bSameAction", 0);
+			db_set_b(NULL, MODULENAME, "bSameAction", 0);
 			globals.bSameAction = false;
 		}
-		db_set_b(NULL, szGPGModuleName, "bAutoExchange", globals.bAutoExchange = check_AUTO_EXCHANGE.GetState());
-		db_set_ws(NULL, szGPGModuleName, "szLogFilePath", ptrW(edit_LOG_FILE_EDIT.GetText()));
+		db_set_b(NULL, MODULENAME, "bAutoExchange", globals.bAutoExchange = check_AUTO_EXCHANGE.GetState());
+		db_set_ws(NULL, MODULENAME, "szLogFilePath", ptrW(edit_LOG_FILE_EDIT.GetText()));
+		return true;
 	}
 
 	void onClick_DELETE_KEY_BUTTON(CCtrlButton*)
@@ -170,10 +172,10 @@ public:
 				hContact = metaGetMostOnline(meta);
 				ismetacontact = true;
 			}
-			tmp = UniGetContactSettingUtf(hContact, szGPGModuleName, "KeyID", "");
+			tmp = UniGetContactSettingUtf(hContact, MODULENAME, "KeyID", "");
 			for (auto &hcnttmp : Contacts()) {
 				if (hcnttmp != hContact) {
-					char *tmp2 = UniGetContactSettingUtf(hcnttmp, szGPGModuleName, "KeyID", "");
+					char *tmp2 = UniGetContactSettingUtf(hcnttmp, MODULENAME, "KeyID", "");
 					if (!mir_strcmp(tmp, tmp2)) {
 						mir_free(tmp2);
 						keep = true;
@@ -219,35 +221,35 @@ public:
 					for (int i = 0; i < count; i++) {
 						hcnt = db_mc_getSub(meta, i);
 						if (hcnt) {
-							db_unset(hcnt, szGPGModuleName, "KeyID");
-							db_unset(hcnt, szGPGModuleName, "GPGPubKey");
-							db_unset(hcnt, szGPGModuleName, "KeyMainName");
-							db_unset(hcnt, szGPGModuleName, "KeyType");
-							db_unset(hcnt, szGPGModuleName, "KeyMainEmail");
-							db_unset(hcnt, szGPGModuleName, "KeyComment");
+							db_unset(hcnt, MODULENAME, "KeyID");
+							db_unset(hcnt, MODULENAME, "GPGPubKey");
+							db_unset(hcnt, MODULENAME, "KeyMainName");
+							db_unset(hcnt, MODULENAME, "KeyType");
+							db_unset(hcnt, MODULENAME, "KeyMainEmail");
+							db_unset(hcnt, MODULENAME, "KeyComment");
 							setClistIcon(hcnt);
 							setSrmmIcon(hcnt);
 						}
 					}
 				}
 				else {
-					db_unset(hContact, szGPGModuleName, "KeyID");
-					db_unset(hContact, szGPGModuleName, "GPGPubKey");
-					db_unset(hContact, szGPGModuleName, "KeyMainName");
-					db_unset(hContact, szGPGModuleName, "KeyType");
-					db_unset(hContact, szGPGModuleName, "KeyMainEmail");
-					db_unset(hContact, szGPGModuleName, "KeyComment");
+					db_unset(hContact, MODULENAME, "KeyID");
+					db_unset(hContact, MODULENAME, "GPGPubKey");
+					db_unset(hContact, MODULENAME, "KeyMainName");
+					db_unset(hContact, MODULENAME, "KeyType");
+					db_unset(hContact, MODULENAME, "KeyMainEmail");
+					db_unset(hContact, MODULENAME, "KeyComment");
 					setClistIcon(hContact);
 					setSrmmIcon(hContact);
 				}
 			}
 			else {
-				db_unset(user_data[item_num + 1], szGPGModuleName, "KeyID");
-				db_unset(user_data[item_num + 1], szGPGModuleName, "GPGPubKey");
-				db_unset(user_data[item_num + 1], szGPGModuleName, "KeyMainName");
-				db_unset(user_data[item_num + 1], szGPGModuleName, "KeyType");
-				db_unset(user_data[item_num + 1], szGPGModuleName, "KeyMainEmail");
-				db_unset(user_data[item_num + 1], szGPGModuleName, "KeyComment");
+				db_unset(user_data[item_num + 1], MODULENAME, "KeyID");
+				db_unset(user_data[item_num + 1], MODULENAME, "GPGPubKey");
+				db_unset(user_data[item_num + 1], MODULENAME, "KeyMainName");
+				db_unset(user_data[item_num + 1], MODULENAME, "KeyType");
+				db_unset(user_data[item_num + 1], MODULENAME, "KeyMainEmail");
+				db_unset(user_data[item_num + 1], MODULENAME, "KeyComment");
 				setClistIcon(user_data[item_num + 1]);
 				setSrmmIcon(user_data[item_num + 1]);
 			}
@@ -267,7 +269,7 @@ public:
 	{
 		wchar_t *tmp = GetFilePath(TranslateT("Export public key"), L"*", TranslateT(".asc pubkey file"), true);
 		if (tmp) {
-			wstring str(ptrW(UniGetContactSettingUtf(user_data[item_num + 1], szGPGModuleName, "GPGPubKey", L"")));
+			wstring str(ptrW(UniGetContactSettingUtf(user_data[item_num + 1], MODULENAME, "GPGPubKey", L"")));
 			wstring::size_type s = 0;
 			while ((s = str.find(L"\r", s)) != wstring::npos)
 				str.erase(s, 1);
@@ -282,7 +284,7 @@ public:
 	void onClick_COPY_KEY(CCtrlButton*)
 	{
 		if (OpenClipboard(m_hwnd)) {
-			char *szKey = UniGetContactSettingUtf(NULL, szGPGModuleName, "GPGPubKey", "");
+			char *szKey = UniGetContactSettingUtf(NULL, MODULENAME, "GPGPubKey", "");
 			std::string str = szKey;
 			mir_free(szKey);
 			boost::algorithm::replace_all(str, "\n", "\r\n");
@@ -343,9 +345,9 @@ public:
 			void setSrmmIcon(MCONTACT hContact);
 			item_num = hdr->iItem;
 			if (list_USERLIST.GetCheckState(hdr->iItem))
-				db_set_b(user_data[item_num + 1], szGPGModuleName, "GPGEncryption", 1);
+				db_set_b(user_data[item_num + 1], MODULENAME, "GPGEncryption", 1);
 			else
-				db_set_b(user_data[item_num + 1], szGPGModuleName, "GPGEncryption", 0);
+				db_set_b(user_data[item_num + 1], MODULENAME, "GPGEncryption", 0);
 			setClistIcon(user_data[item_num + 1]);
 			setSrmmIcon(user_data[item_num + 1]);
 		}
@@ -373,7 +375,7 @@ class COptGpgBinDlg : public CDlgBase
 	CCtrlButton btn_SET_BIN_PATH, btn_SET_HOME_DIR;
 
 public:
-	COptGpgBinDlg() : CDlgBase(globals.hInst, IDD_OPT_GPG_BIN),
+	COptGpgBinDlg() : CDlgBase(g_plugin, IDD_OPT_GPG_BIN),
 		edit_BIN_PATH(this, IDC_BIN_PATH), edit_HOME_DIR(this, IDC_HOME_DIR),
 		btn_SET_BIN_PATH(this, IDC_SET_BIN_PATH), btn_SET_HOME_DIR(this, IDC_SET_HOME_DIR)
 	{
@@ -382,26 +384,28 @@ public:
 
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
-		edit_BIN_PATH.SetText(ptrW(UniGetContactSettingUtf(NULL, szGPGModuleName, "szGpgBinPath", L"gpg.exe")));
-		edit_HOME_DIR.SetText(ptrW(UniGetContactSettingUtf(NULL, szGPGModuleName, "szHomePath", L"gpg")));
+		edit_BIN_PATH.SetText(ptrW(UniGetContactSettingUtf(NULL, MODULENAME, "szGpgBinPath", L"gpg.exe")));
+		edit_HOME_DIR.SetText(ptrW(UniGetContactSettingUtf(NULL, MODULENAME, "szHomePath", L"gpg")));
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		wchar_t tmp[8192];
-		db_set_ws(NULL, szGPGModuleName, "szGpgBinPath", edit_BIN_PATH.GetText());
+		db_set_ws(NULL, MODULENAME, "szGpgBinPath", edit_BIN_PATH.GetText());
 		mir_wstrncpy(tmp, edit_HOME_DIR.GetText(), 8191);
 		while (tmp[mir_wstrlen(tmp) - 1] == '\\')
 			tmp[mir_wstrlen(tmp) - 1] = '\0';
-		db_set_ws(NULL, szGPGModuleName, "szHomePath", tmp);
+		db_set_ws(NULL, MODULENAME, "szHomePath", tmp);
+		return true;
 	}
 
 	void onClick_SET_BIN_PATH(CCtrlButton*)
 	{
 		GetFilePath(TranslateT("Choose gpg.exe"), "szGpgBinPath", L"*.exe", TranslateT("EXE Executables"));
-		CMStringW tmp(ptrW(UniGetContactSettingUtf(NULL, szGPGModuleName, "szGpgBinPath", L"gpg.exe")));
+		CMStringW tmp(ptrW(UniGetContactSettingUtf(NULL, MODULENAME, "szGpgBinPath", L"gpg.exe")));
 		edit_BIN_PATH.SetText(tmp);
 		bool gpg_exists = false;
 		{
@@ -409,8 +413,8 @@ public:
 				gpg_exists = true;
 			if (gpg_exists) {
 				bool bad_version = false;
-				wchar_t *tmp_path = UniGetContactSettingUtf(NULL, szGPGModuleName, "szGpgBinPath", L"");
-				db_set_ws(NULL, szGPGModuleName, "szGpgBinPath", tmp);
+				wchar_t *tmp_path = UniGetContactSettingUtf(NULL, MODULENAME, "szGpgBinPath", L"");
+				db_set_ws(NULL, MODULENAME, "szGpgBinPath", tmp);
 				string out;
 				DWORD code;
 				std::vector<wstring> cmd;
@@ -424,7 +428,7 @@ public:
 				globals.gpg_valid = true;
 				gpg_launcher(params);
 				globals.gpg_valid = old_gpg_state;
-				db_set_ws(NULL, szGPGModuleName, "szGpgBinPath", tmp_path);
+				db_set_ws(NULL, MODULENAME, "szGpgBinPath", tmp_path);
 				mir_free(tmp_path);
 				string::size_type p1 = out.find("(GnuPG) ");
 				if (p1 != string::npos) {
@@ -451,7 +455,7 @@ public:
 	void onClick_SET_HOME_DIR(CCtrlButton*)
 	{
 		GetFolderPath(TranslateT("Set home directory"), "szHomePath");
-		CMStringW tmp(ptrW(UniGetContactSettingUtf(NULL, szGPGModuleName, "szHomePath", L"")));
+		CMStringW tmp(ptrW(UniGetContactSettingUtf(NULL, MODULENAME, "szHomePath", L"")));
 		edit_HOME_DIR.SetText(tmp);
 		wchar_t mir_path[MAX_PATH];
 		PathToAbsoluteW(L"\\", mir_path);
@@ -468,43 +472,45 @@ class COptGpgMsgDlg : public CDlgBase
 	CCtrlEdit edit_IN_OPEN_TAG, edit_IN_CLOSE_TAG, edit_OUT_OPEN_TAG, edit_OUT_CLOSE_TAG;
 
 public:
-	COptGpgMsgDlg() : CDlgBase(globals.hInst, IDD_OPT_GPG_MESSAGES),
+	COptGpgMsgDlg() : CDlgBase(g_plugin, IDD_OPT_GPG_MESSAGES),
 		check_APPEND_TAGS(this, IDC_APPEND_TAGS), check_STRIP_TAGS(this, IDC_STRIP_TAGS),
 		edit_IN_OPEN_TAG(this, IDC_IN_OPEN_TAG), edit_IN_CLOSE_TAG(this, IDC_IN_CLOSE_TAG), edit_OUT_OPEN_TAG(this, IDC_OUT_OPEN_TAG), edit_OUT_CLOSE_TAG(this, IDC_OUT_CLOSE_TAG)
 	{}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
-		check_APPEND_TAGS.SetState(db_get_b(NULL, szGPGModuleName, "bAppendTags", 0));
-		check_STRIP_TAGS.SetState(db_get_b(NULL, szGPGModuleName, "bStripTags", 0));
-		edit_IN_OPEN_TAG.SetText(ptrW(UniGetContactSettingUtf(NULL, szGPGModuleName, "szInOpenTag", L"<GPGdec>")));
-		edit_IN_CLOSE_TAG.SetText(ptrW(UniGetContactSettingUtf(NULL, szGPGModuleName, "szInCloseTag", L"</GPGdec>")));
-		edit_OUT_OPEN_TAG.SetText(ptrW(UniGetContactSettingUtf(NULL, szGPGModuleName, "szOutOpenTag", L"<GPGenc>")));
-		edit_OUT_CLOSE_TAG.SetText(ptrW(UniGetContactSettingUtf(NULL, szGPGModuleName, "szOutCloseTag", L"</GPGenc>")));
+		check_APPEND_TAGS.SetState(db_get_b(NULL, MODULENAME, "bAppendTags", 0));
+		check_STRIP_TAGS.SetState(db_get_b(NULL, MODULENAME, "bStripTags", 0));
+		edit_IN_OPEN_TAG.SetText(ptrW(UniGetContactSettingUtf(NULL, MODULENAME, "szInOpenTag", L"<GPGdec>")));
+		edit_IN_CLOSE_TAG.SetText(ptrW(UniGetContactSettingUtf(NULL, MODULENAME, "szInCloseTag", L"</GPGdec>")));
+		edit_OUT_OPEN_TAG.SetText(ptrW(UniGetContactSettingUtf(NULL, MODULENAME, "szOutOpenTag", L"<GPGenc>")));
+		edit_OUT_CLOSE_TAG.SetText(ptrW(UniGetContactSettingUtf(NULL, MODULENAME, "szOutCloseTag", L"</GPGenc>")));
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
-		db_set_b(NULL, szGPGModuleName, "bAppendTags", globals.bAppendTags = check_APPEND_TAGS.GetState());
-		db_set_b(NULL, szGPGModuleName, "bStripTags", globals.bStripTags = check_STRIP_TAGS.GetState());
+		db_set_b(NULL, MODULENAME, "bAppendTags", globals.bAppendTags = check_APPEND_TAGS.GetState());
+		db_set_b(NULL, MODULENAME, "bStripTags", globals.bStripTags = check_STRIP_TAGS.GetState());
 		{
 			wchar_t *tmp = mir_wstrdup(edit_IN_OPEN_TAG.GetText());
-			db_set_ws(NULL, szGPGModuleName, "szInOpenTag", tmp);
+			db_set_ws(NULL, MODULENAME, "szInOpenTag", tmp);
 			mir_free(globals.inopentag);
 			globals.inopentag = tmp;
 			tmp = mir_wstrdup(edit_IN_CLOSE_TAG.GetText());
-			db_set_ws(NULL, szGPGModuleName, "szInCloseTag", tmp);
+			db_set_ws(NULL, MODULENAME, "szInCloseTag", tmp);
 			mir_free(globals.inclosetag);
 			globals.inclosetag = tmp;
 			tmp = mir_wstrdup(edit_OUT_OPEN_TAG.GetText());
-			db_set_ws(NULL, szGPGModuleName, "szOutOpenTag", tmp);
+			db_set_ws(NULL, MODULENAME, "szOutOpenTag", tmp);
 			mir_free(globals.outopentag);
 			globals.outopentag = tmp;
 			tmp = mir_wstrdup(edit_OUT_CLOSE_TAG.GetText());
-			db_set_ws(NULL, szGPGModuleName, "szOutCloseTag", tmp);
+			db_set_ws(NULL, MODULENAME, "szOutCloseTag", tmp);
 			mir_free(globals.outclosetag);
 			globals.outclosetag = tmp;
 		}
+		return true;
 	}
 };
 
@@ -514,7 +520,7 @@ class COptGpgAdvDlg : public CDlgBase
 	CCtrlCheck check_PRESCENSE_SUBSCRIPTION;
 
 public:
-	COptGpgAdvDlg() : CDlgBase(globals.hInst, IDD_OPT_GPG_ADVANCED),
+	COptGpgAdvDlg() : CDlgBase(g_plugin, IDD_OPT_GPG_ADVANCED),
 		btn_EXPORT(this, IDC_EXPORT), btn_IMPORT(this, IDC_IMPORT),
 		check_PRESCENSE_SUBSCRIPTION(this, IDC_PRESCENSE_SUBSCRIPTION)
 	{
@@ -522,15 +528,17 @@ public:
 		btn_IMPORT.OnClick = Callback(this, &COptGpgAdvDlg::onClick_IMPORT);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
-		check_PRESCENSE_SUBSCRIPTION.SetState(db_get_b(NULL, szGPGModuleName, "bPresenceSigning", 0));
+		check_PRESCENSE_SUBSCRIPTION.SetState(db_get_b(NULL, MODULENAME, "bPresenceSigning", 0));
 		check_PRESCENSE_SUBSCRIPTION.Enable(globals.bJabberAPI);
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
-		db_set_b(NULL, szGPGModuleName, "bPresenceSigning", globals.bPresenceSigning = check_PRESCENSE_SUBSCRIPTION.GetState());
+		db_set_b(NULL, MODULENAME, "bPresenceSigning", globals.bPresenceSigning = check_PRESCENSE_SUBSCRIPTION.GetState());
+		return true;
 	}
 
 	void onClick_EXPORT(CCtrlButton*)
@@ -570,7 +578,7 @@ class CDlgLoadPubKeyDlg : public CDlgBase
 	CCtrlEdit edit_PUBLIC_KEY_EDIT;
 
 public:
-	CDlgLoadPubKeyDlg() : CDlgBase(globals.hInst, IDD_LOAD_PUBLIC_KEY),
+	CDlgLoadPubKeyDlg() : CDlgBase(g_plugin, IDD_LOAD_PUBLIC_KEY),
 		chk_ENABLE_ENCRYPTION(this, IDC_ENABLE_ENCRYPTION),
 		btn_SELECT_EXISTING(this, IDC_SELECT_EXISTING), btn_OK(this, ID_OK), btn_LOAD_FROM_FILE(this, ID_LOAD_FROM_FILE), btn_IMPORT(this, IDC_IMPORT),
 		edit_PUBLIC_KEY_EDIT(this, IDC_PUBLIC_KEY_EDIT)
@@ -581,7 +589,7 @@ public:
 		btn_IMPORT.OnClick = Callback(this, &CDlgLoadPubKeyDlg::onClick_IMPORT);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		hContact = user_data[1];
 		SetWindowPos(m_hwnd, nullptr, globals.load_key_rect.left, globals.load_key_rect.top, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
@@ -603,7 +611,7 @@ public:
 			chk_ENABLE_ENCRYPTION.SetState(1);
 		}
 		if (hcnt) {
-			wchar_t *tmp = UniGetContactSettingUtf(hcnt, szGPGModuleName, "GPGPubKey", L"");
+			wchar_t *tmp = UniGetContactSettingUtf(hcnt, MODULENAME, "GPGPubKey", L"");
 			wstring str = tmp;
 			mir_free(tmp); tmp = nullptr;
 			if (!str.empty()) {
@@ -618,9 +626,9 @@ public:
 					}
 				}
 			}
-			//			char *tmp = UniGetContactSettingUtf(hcnt, szGPGModuleName, "KeyID_Prescense", "");
+			//			char *tmp = UniGetContactSettingUtf(hcnt, MODULENAME, "KeyID_Prescense", "");
 			if (!globals.hcontact_data[hcnt].key_in_prescense.empty()) {
-				char *tmp2 = UniGetContactSettingUtf(hcnt, szGPGModuleName, "KeyID", "");
+				char *tmp2 = UniGetContactSettingUtf(hcnt, MODULENAME, "KeyID", "");
 				if (!tmp2[0]) {
 					string out;
 					DWORD code;
@@ -663,13 +671,14 @@ public:
 			edit_PUBLIC_KEY_EDIT.SetText(!str.empty() ? str.c_str() : L"");
 		}
 		edit_p_PubKeyEdit = &edit_PUBLIC_KEY_EDIT;
+		return true;
 	}
 
 	virtual void OnDestroy() override
 	{
 		GetWindowRect(m_hwnd, &globals.load_key_rect);
-		db_set_dw(NULL, szGPGModuleName, "LoadKeyWindowX", globals.load_key_rect.left);
-		db_set_dw(NULL, szGPGModuleName, "LoadKeyWindowY", globals.load_key_rect.top);
+		db_set_dw(NULL, MODULENAME, "LoadKeyWindowX", globals.load_key_rect.left);
+		db_set_dw(NULL, MODULENAME, "LoadKeyWindowY", globals.load_key_rect.top);
 		edit_p_PubKeyEdit = nullptr;
 	}
 
@@ -716,12 +725,12 @@ public:
 					for (int i = 0; i < count; i++) {
 						MCONTACT hcnt = db_mc_getSub(hContact, i);
 						if (hcnt)
-							db_set_ws(hcnt, szGPGModuleName, "GPGPubKey", key_buf.substr(ws1, ws2 - ws1).c_str());
+							db_set_ws(hcnt, MODULENAME, "GPGPubKey", key_buf.substr(ws1, ws2 - ws1).c_str());
 					}
 				}
-				else db_set_ws(metaGetMostOnline(hContact), szGPGModuleName, "GPGPubKey", key_buf.substr(ws1, ws2 - ws1).c_str());
+				else db_set_ws(metaGetMostOnline(hContact), MODULENAME, "GPGPubKey", key_buf.substr(ws1, ws2 - ws1).c_str());
 			}
-			else db_set_ws(hContact, szGPGModuleName, "GPGPubKey", key_buf.substr(ws1, ws2 - ws1).c_str());
+			else db_set_ws(hContact, MODULENAME, "GPGPubKey", key_buf.substr(ws1, ws2 - ws1).c_str());
 		}
 		tmp = (wchar_t*)mir_alloc(sizeof(wchar_t) * (key_buf.length() + 1));
 		mir_wstrcpy(tmp, key_buf.substr(ws1, ws2 - ws1).c_str());
@@ -733,14 +742,14 @@ public:
 			DWORD exitcode;
 			{
 				MCONTACT hcnt = db_mc_tryMeta(hContact);
-				ptmp = UniGetContactSettingUtf(NULL, szGPGModuleName, "szHomePath", L"");
+				ptmp = UniGetContactSettingUtf(NULL, MODULENAME, "szHomePath", L"");
 				wcsncpy(tmp2, ptmp, MAX_PATH - 1);
 				mir_free(ptmp);
 				mir_wstrncat(tmp2, L"\\", _countof(tmp2) - mir_wstrlen(tmp2));
 				mir_wstrncat(tmp2, L"temporary_exported.asc", _countof(tmp2) - mir_wstrlen(tmp2));
 				boost::filesystem::remove(tmp2);
 				wfstream f(tmp2, std::ios::out);
-				ptmp = UniGetContactSettingUtf(hcnt, szGPGModuleName, "GPGPubKey", L"");
+				ptmp = UniGetContactSettingUtf(hcnt, MODULENAME, "GPGPubKey", L"");
 				wstring str = ptmp;
 				mir_free(ptmp);
 				wstring::size_type s = 0;
@@ -771,12 +780,12 @@ public:
 						for (int i = 0; i < count; i++) {
 							MCONTACT hcnt = db_mc_getSub(hContact, i);
 							if (hcnt)
-								db_unset(hcnt, szGPGModuleName, "bAlwatsTrust");
+								db_unset(hcnt, MODULENAME, "bAlwatsTrust");
 						}
 					}
-					else db_unset(metaGetMostOnline(hContact), szGPGModuleName, "bAlwatsTrust");
+					else db_unset(metaGetMostOnline(hContact), MODULENAME, "bAlwatsTrust");
 				}
-				else db_unset(hContact, szGPGModuleName, "bAlwatsTrust");
+				else db_unset(hContact, MODULENAME, "bAlwatsTrust");
 			}
 			{
 				if (output.find("already in secret keyring") != string::npos) {
@@ -797,14 +806,14 @@ public:
 								for (int i = 0; i < count; i++) {
 									MCONTACT hcnt = db_mc_getSub(hContact, i);
 									if (hcnt)
-										db_set_s(hcnt, szGPGModuleName, "KeyID", tmp3);
+										db_set_s(hcnt, MODULENAME, "KeyID", tmp3);
 								}
 							}
 							else
-								db_set_s(metaGetMostOnline(hContact), szGPGModuleName, "KeyID", tmp3);
+								db_set_s(metaGetMostOnline(hContact), MODULENAME, "KeyID", tmp3);
 						}
 						else
-							db_set_s(hContact, szGPGModuleName, "KeyID", tmp3);
+							db_set_s(hContact, MODULENAME, "KeyID", tmp3);
 					}
 					mir_free(tmp3);
 				}
@@ -840,12 +849,12 @@ public:
 									for (int i = 0; i < count; i++) {
 										MCONTACT hcnt = db_mc_getSub(hContact, i);
 										if (hcnt)
-											db_set_s(hcnt, szGPGModuleName, "KeyMainName", output.substr(s, s2 - s - 1).c_str());
+											db_set_s(hcnt, MODULENAME, "KeyMainName", output.substr(s, s2 - s - 1).c_str());
 									}
 								}
-								else db_set_s(metaGetMostOnline(hContact), szGPGModuleName, "KeyMainName", output.substr(s, s2 - s - 1).c_str());
+								else db_set_s(metaGetMostOnline(hContact), MODULENAME, "KeyMainName", output.substr(s, s2 - s - 1).c_str());
 							}
-							else db_set_s(hContact, szGPGModuleName, "KeyMainName", output.substr(s, s2 - s - 1).c_str());
+							else db_set_s(hContact, MODULENAME, "KeyMainName", output.substr(s, s2 - s - 1).c_str());
 						}
 						mir_free(tmp3);
 					}
@@ -870,12 +879,12 @@ public:
 										for (int i = 0; i < count; i++) {
 											MCONTACT hcnt = db_mc_getSub(hContact, i);
 											if (hcnt)
-												db_set_s(hcnt, szGPGModuleName, "KeyComment", output.substr(s2, s - s2).c_str());
+												db_set_s(hcnt, MODULENAME, "KeyComment", output.substr(s2, s - s2).c_str());
 										}
 									}
-									else db_set_s(metaGetMostOnline(hContact), szGPGModuleName, "KeyComment", output.substr(s2, s - s2).c_str());
+									else db_set_s(metaGetMostOnline(hContact), MODULENAME, "KeyComment", output.substr(s2, s - s2).c_str());
 								}
-								else db_set_s(hContact, szGPGModuleName, "KeyComment", output.substr(s2, s - s2).c_str());
+								else db_set_s(hContact, MODULENAME, "KeyComment", output.substr(s2, s - s2).c_str());
 							}
 							mir_free(tmp3);
 							s += 3;
@@ -890,12 +899,12 @@ public:
 										for (int i = 0; i < count; i++) {
 											MCONTACT hcnt = db_mc_getSub(hContact, i);
 											if (hcnt)
-												db_set_s(hcnt, szGPGModuleName, "KeyMainEmail", output.substr(s, s2 - s).c_str());
+												db_set_s(hcnt, MODULENAME, "KeyMainEmail", output.substr(s, s2 - s).c_str());
 										}
 									}
-									else db_set_s(metaGetMostOnline(hContact), szGPGModuleName, "KeyMainEmail", output.substr(s, s2 - s).c_str());
+									else db_set_s(metaGetMostOnline(hContact), MODULENAME, "KeyMainEmail", output.substr(s, s2 - s).c_str());
 								}
-								else db_set_s(hContact, szGPGModuleName, "KeyMainEmail", output.substr(s, s2 - s).c_str());
+								else db_set_s(hContact, MODULENAME, "KeyMainEmail", output.substr(s, s2 - s).c_str());
 							}
 							mir_free(tmp3);
 							tmp = mir_wstrdup(toUTF16(output.substr(s, s2 - s)).c_str());
@@ -914,12 +923,12 @@ public:
 										for (int i = 0; i < count; i++) {
 											MCONTACT hcnt = db_mc_getSub(hContact, i);
 											if (hcnt)
-												db_set_s(hcnt, szGPGModuleName, "KeyMainEmail", output.substr(s2, s - s2).c_str());
+												db_set_s(hcnt, MODULENAME, "KeyMainEmail", output.substr(s2, s - s2).c_str());
 										}
 									}
-									else db_set_s(metaGetMostOnline(hContact), szGPGModuleName, "KeyMainEmail", output.substr(s2, s - s2).c_str());
+									else db_set_s(metaGetMostOnline(hContact), MODULENAME, "KeyMainEmail", output.substr(s2, s - s2).c_str());
 								}
-								else db_set_s(hContact, szGPGModuleName, "KeyMainEmail", output.substr(s2, s - s2).c_str());
+								else db_set_s(hContact, MODULENAME, "KeyMainEmail", output.substr(s2, s - s2).c_str());
 							}
 							mir_free(tmp3);
 							tmp = mir_wstrdup(toUTF16(output.substr(s2, s - s2)).c_str());
@@ -938,7 +947,7 @@ public:
 				}
 			}
 			if (!hContact) {
-				wchar_t *fp = UniGetContactSettingUtf(hContact, szGPGModuleName, "KeyID", L"");
+				wchar_t *fp = UniGetContactSettingUtf(hContact, MODULENAME, "KeyID", L"");
 				{
 					string out;
 					DWORD code;
@@ -961,7 +970,7 @@ public:
 					while ((s = out.find("\r", s)) != string::npos) {
 						out.erase(s, 1);
 					}
-					db_set_s(hContact, szGPGModuleName, "GPGPubKey", out.c_str());
+					db_set_s(hContact, MODULENAME, "GPGPubKey", out.c_str());
 				}
 			}
 			tmp = mir_wstrdup(toUTF16(output).c_str());
@@ -979,23 +988,23 @@ public:
 							MCONTACT hcnt = db_mc_getSub(hContact, i);
 							if (hcnt) {
 								if (!isContactSecured(hcnt))
-									db_set_b(hcnt, szGPGModuleName, "GPGEncryption", 1);
+									db_set_b(hcnt, MODULENAME, "GPGEncryption", 1);
 								else
-									db_set_b(hcnt, szGPGModuleName, "GPGEncryption", 0);
+									db_set_b(hcnt, MODULENAME, "GPGEncryption", 0);
 								setSrmmIcon(hContact);
 								setClistIcon(hContact);
 							}
 						}
 					}
 					else if (!isContactSecured(hContact))
-						db_set_b(metaGetMostOnline(hContact), szGPGModuleName, "GPGEncryption", 1);
+						db_set_b(metaGetMostOnline(hContact), MODULENAME, "GPGEncryption", 1);
 					else
-						db_set_b(metaGetMostOnline(hContact), szGPGModuleName, "GPGEncryption", 0);
+						db_set_b(metaGetMostOnline(hContact), MODULENAME, "GPGEncryption", 0);
 				}
 				else if (!isContactSecured(hContact))
-					db_set_b(hContact, szGPGModuleName, "GPGEncryption", 1);
+					db_set_b(hContact, MODULENAME, "GPGEncryption", 1);
 				else
-					db_set_b(hContact, szGPGModuleName, "GPGEncryption", 0);
+					db_set_b(hContact, MODULENAME, "GPGEncryption", 0);
 			}
 		}
 		this->Close();
@@ -1064,23 +1073,23 @@ int GpgOptInit(WPARAM wParam, LPARAM)
 {
 	OPTIONSDIALOGPAGE odp = {};
 	odp.szGroup.w = LPGENW("Services");
-	odp.szTitle.w = _T(szGPGModuleName);
+	odp.szTitle.w = _T(MODULENAME);
 
 	odp.szTab.w = LPGENW("Main");
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
 	odp.pDialog = new COptGpgMainDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.w = LPGENW("GnuPG Variables");
 	odp.pDialog = new COptGpgBinDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.w = LPGENW("Messages");
 	odp.pDialog = new COptGpgMsgDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.w = LPGENW("Advanced");
 	odp.pDialog = new COptGpgAdvDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

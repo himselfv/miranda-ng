@@ -34,7 +34,7 @@ void CSkypeProto::InitGroupChatModule()
 
 MCONTACT CSkypeProto::FindChatRoom(const char *chatname)
 {
-	SESSION_INFO *si = pci->SM_FindSession(_A2T(chatname), m_szModuleName);
+	SESSION_INFO *si = g_chatApi.SM_FindSession(_A2T(chatname), m_szModuleName);
 	return si ? si->hContact : 0;
 }
 
@@ -577,7 +577,7 @@ int CSkypeProto::OnGroupChatMenuHook(WPARAM, LPARAM lParam)
 			{ LPGENW("&Leave chat session"), 20, MENU_ITEM, FALSE },
 			{ LPGENW("&Change topic..."),    30, MENU_ITEM, FALSE }
 		};
-		Chat_AddMenuItems(gcmi->hMenu, _countof(Items), Items);
+		Chat_AddMenuItems(gcmi->hMenu, _countof(Items), Items, &g_plugin);
 	}
 	else if (gcmi->Type == MENU_ON_NICKLIST) {
 		static const struct gc_item Items[] =
@@ -589,7 +589,7 @@ int CSkypeProto::OnGroupChatMenuHook(WPARAM, LPARAM lParam)
 			{ LPGENW("&User"),          40, MENU_POPUPITEM },
 			{ LPGENW("Change nick..."), 50, MENU_ITEM },
 		};
-		Chat_AddMenuItems(gcmi->hMenu, _countof(Items), Items);
+		Chat_AddMenuItems(gcmi->hMenu, _countof(Items), Items, &g_plugin);
 	}
 
 	return 0;

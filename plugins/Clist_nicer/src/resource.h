@@ -7,7 +7,6 @@
 #define IDD_QUICKIGNORE                 5
 #define IDD_OPT                         6
 #define IDD_EXCEPTION                   20
-#define IDD_OPTIONSDIALOG               101
 #define IDD_OPT_CLIST                   126
 #define IDI_CLIST                       146
 #define IDI_OPTIONS                     163
@@ -15,7 +14,6 @@
 #define IDI_CLVM_OPTIONS                176
 #define IDI_CLVM_SELECT                 177
 #define IDC_DROP                        183
-#define IDR_CLISTMENU                   199
 #define IDI_BLANK                       200
 #define IDI_ADDCONTACT                  210
 #define IDC_HYPERLINKHAND               214
@@ -284,7 +282,6 @@
 #define IDC_GROUPALIGN                  25499
 #define IDC_BORDERSTYLE                 25501
 #define IDC_CURVIEWMODE2                25503
-#define ID_ICQ_EXIT                     40001
 #define IDC_STATIC7                     40002
 #define POPUP_HIDEEMPTYGROUPS           40003
 #define POPUP_HIDEOFFLINE               40005

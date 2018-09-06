@@ -68,13 +68,14 @@ struct TRoleOrAffiliationInfo
 		if (me->m_affiliation == AFFILIATION_OWNER) return TRUE;
 		if (me == him) return FALSE;
 		if (me->m_affiliation <= him->m_affiliation) return FALSE;
-		if (me->m_role < this->min_role) return FALSE;
-		if (me->m_affiliation < this->min_affiliation) return FALSE;
+		if (me->m_role < min_role) return FALSE;
+		if (me->m_affiliation < min_affiliation) return FALSE;
 		return TRUE;
 	}
+	
 	void translate()
 	{
-		this->title = TranslateW(this->title_en);
+		title = TranslateW(title_en);
 	}
 };
 
@@ -540,7 +541,7 @@ int CJabberProto::JabberGcMenuHook(WPARAM, LPARAM lParam)
 			if (m_ThreadInfo->jabberServerCaps & JABBER_CAPS_PRIVATE_STORAGE)
 				sttSetupGcMenuItem(_countof(sttLogListItems), sttLogListItems, IDM_BOOKMARKS, FALSE);
 		}
-		Chat_AddMenuItems(gcmi->hMenu, _countof(sttLogListItems), sttLogListItems);
+		Chat_AddMenuItems(gcmi->hMenu, _countof(sttLogListItems), sttLogListItems, &g_plugin);
 	}
 	else if (gcmi->Type == MENU_ON_NICKLIST) {
 		static DWORD sttRJidItems[] = { IDM_RJID_VCARD, IDM_RJID_ADD, IDM_RJID_COPY, 0 };
@@ -615,7 +616,7 @@ int CJabberProto::JabberGcMenuHook(WPARAM, LPARAM lParam)
 			sttListItems[2].uType = 0;
 			sttShowGcMenuItems(_countof(sttListItems), sttListItems, sttRJidItems, 0);
 		}
-		Chat_AddMenuItems(gcmi->hMenu, _countof(sttListItems), sttListItems);
+		Chat_AddMenuItems(gcmi->hMenu, _countof(sttListItems), sttListItems, &g_plugin);
 	}
 
 	return 0;
@@ -712,7 +713,7 @@ public:
 		mir_free(m_room);
 	}
 
-	void OnInitDialog()
+	bool OnInitDialog() override
 	{
 		CSuper::OnInitDialog();
 
@@ -724,6 +725,7 @@ public:
 		SendDlgItemMessage(m_hwnd, IDC_CLIST, CLM_SETEXSTYLE, CLS_EX_DISABLEDRAGDROP | CLS_EX_TRACKSELECT, 0);
 		ResetListOptions(&m_clc);
 		FilterList(&m_clc);
+		return true;
 	}
 
 	void OnCommand_AddJid(CCtrlButton*)
@@ -1172,17 +1174,17 @@ static void sttNickListHook(CJabberProto *ppro, JABBER_LIST_ITEM *item, GCHOOK* 
 		break;
 
 	case IDM_CPY_NICK:
-		JabberCopyText(pcli->hwndContactList, him->m_tszResourceName);
+		JabberCopyText(g_clistApi.hwndContactList, him->m_tszResourceName);
 		break;
 
 	case IDM_RJID_COPY:
 	case IDM_CPY_RJID:
-		JabberCopyText(pcli->hwndContactList, him->m_tszRealJid);
+		JabberCopyText(g_clistApi.hwndContactList, him->m_tszRealJid);
 		break;
 
 	case IDM_CPY_INROOMJID:
 		szBuffer.Format(L"%s/%s", item->jid, him->m_tszResourceName);
-		JabberCopyText(pcli->hwndContactList, szBuffer);
+		JabberCopyText(g_clistApi.hwndContactList, szBuffer);
 		break;
 
 	case IDM_RJID_VCARD:
@@ -1208,7 +1210,7 @@ static void sttNickListHook(CJabberProto *ppro, JABBER_LIST_ITEM *item, GCHOOK* 
 			if (wchar_t *tmp = wcschr(psr.id.w, '/'))
 				*tmp = 0;
 			psr.nick.w = psr.id.w;
-			Contact_AddBySearch(ppro->m_szModuleName, &psr, pcli->hwndContactList);
+			Contact_AddBySearch(ppro->m_szModuleName, &psr, g_clistApi.hwndContactList);
 		}
 		break;
 	}
@@ -1329,11 +1331,11 @@ static void sttLogListHook(CJabberProto *ppro, JABBER_LIST_ITEM *item, GCHOOK* g
 		break;
 
 	case IDM_CPY_RJID:
-		JabberCopyText(pcli->hwndContactList, item->jid);
+		JabberCopyText(g_clistApi.hwndContactList, item->jid);
 		break;
 
 	case IDM_CPY_TOPIC:
-		JabberCopyText(pcli->hwndContactList, item->getTemp()->m_tszStatusMessage);
+		JabberCopyText(g_clistApi.hwndContactList, item->getTemp()->m_tszStatusMessage);
 		break;
 	}
 }

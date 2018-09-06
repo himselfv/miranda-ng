@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-int hLangpack;
+CMPlugin g_plugin;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // returns plugin's extended information
@@ -18,25 +18,14 @@ PLUGININFOEX pluginInfoEx = {
 	{ 0x553811ee, 0xdeb6, 0x48b8, { 0x89, 0x2, 0xa8, 0xa0, 0xc, 0x1f, 0xd6, 0x79 } }
 };
 
-CLIST_INTERFACE *pcli;
-HINSTANCE hInst;
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Load()
 {
-	return &pluginInfoEx;
-}
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
-
-extern "C" int __declspec(dllexport) Load(void)
-{
-	mir_getLP(&pluginInfoEx);
-	pcli = Clist_GetInterface();
-
 	CreateServiceFunction(MS_STOPSPAM_CONTACTPASSED, IsContactPassed);
 
 	HookEvent(ME_SYSTEM_MODULESLOADED, OnSystemModulesLoaded);
@@ -46,7 +35,7 @@ extern "C" int __declspec(dllexport) Load(void)
 	HookEvent(ME_DB_CONTACT_SETTINGCHANGED, OnDbContactSettingchanged);
 	
 	// Add deleting temporary contacts
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0xf2164e17, 0xa4c1, 0x4b07, 0xae, 0x81, 0x9e, 0xae, 0x7f, 0xa2, 0x55, 0x13);
 	mi.position = -0x7FFFFFFF;
 	mi.flags = CMIF_UNICODE;
@@ -55,10 +44,5 @@ extern "C" int __declspec(dllexport) Load(void)
 	mi.pszService = "StopSpam/RemoveTempContacts";
 	Menu_AddMainMenuItem(&mi);
 	CreateServiceFunction(mi.pszService, RemoveTempContacts);
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

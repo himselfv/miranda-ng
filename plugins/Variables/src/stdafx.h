@@ -1,20 +1,20 @@
 /*
-    Variables Plugin for Miranda-IM (www.miranda-im.org)
-    Copyright 2003-2006 P. Boon
+Variables Plugin for Miranda-IM (www.miranda-im.org)
+Copyright 2003-2006 P. Boon
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #pragma once
@@ -69,6 +69,14 @@
 #include "parse_variables.h"
 
 #define MODULENAME "Variables"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 #define SETTING_STARTUPTEXT    "StartupText"
 #define SETTING_STRIPCRLF      "StripCRLF"
@@ -132,25 +140,13 @@ The contact function will return either a unique contact according to the argume
 // if a different struct internally is used, we can use TOKENREGISTEREX
 #define TOKENREGISTEREX TOKENREGISTER
 
-// old struct
-typedef struct {
-	int cbSize;
-	char *szFormat;
-	char *szSource;
-	MCONTACT hContact;
-	int pCount;  // number of succesful parses
-	int eCount;	 // number of failures
-} FORMATINFOV1;
-
 struct ParseOptions {
 	BOOL bStripEOL;
 	BOOL bStripWS;
 	BOOL bStripAll;
 };
 
-extern HINSTANCE hInst;
-extern struct ParseOptions gParseOpts;
-extern int hLangpack;
+extern ParseOptions gParseOpts;
 
 // variables.c
 //int isValidTokenChar(char c);
@@ -166,8 +162,7 @@ TOKENREGISTEREX *searchRegister(wchar_t *var, int type);
 wchar_t *parseFromRegister(ARGUMENTSINFO *ai);
 TOKENREGISTEREX *getTokenRegister(int i);
 int  getTokenRegisterCount();
-TOKENREGISTER *getTokenRegisterByIndex(int i);
-void deRegisterTemporaryVariables();
+
 int  initTokenRegister();
 int  deinitTokenRegister();
 // contact.c

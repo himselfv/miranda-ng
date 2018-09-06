@@ -23,10 +23,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 int LoadSendRecvEMailModule(void);
 
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	MIRANDA_VERSION_DWORD,
@@ -39,28 +40,18 @@ PLUGININFOEX pluginInfo = {
 	{0xb774d10a, 0xc761, 0x11e1, {0x84, 0x05, 0x27, 0xe7, 0x61, 0x88, 0x70, 0x9b }}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_SREMAIL, MIID_LAST };
 
-extern "C" int __declspec(dllexport) Load(void)
-{
-	mir_getLP(&pluginInfo);
+/////////////////////////////////////////////////////////////////////////////////////////
 
+int CMPlugin::Load()
+{
 	LoadSendRecvEMailModule();
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

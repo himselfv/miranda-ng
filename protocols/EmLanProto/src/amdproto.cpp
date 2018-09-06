@@ -5,13 +5,10 @@
 
 CMPlugin	g_plugin;
 
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
-
 //////////////////////////////////////////////////////////////////////////
 
 CMLan* g_lan = nullptr;
 
-int hLangpack;
 bool g_InitOptions = false;
 
 #ifdef VERBOSE
@@ -20,7 +17,7 @@ std::fstream emlanLog("EmLanLog.txt", std::ios::out|std::ios::app);
 
 //////////////////////////////////////////////////////////////////////////
 
-PLUGININFOEX pluginInfo = {
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -33,9 +30,11 @@ PLUGININFOEX pluginInfo = {
 	{ 0xe08ce7c4, 0x9eeb, 0x4272, { 0xb5, 0x44, 0xd, 0x32, 0xe1, 0x8d, 0x90, 0xde } }
 };
 
-extern "C" __declspec(dllexport)  PLUGININFOEX* __cdecl MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(PROTONAME, pluginInfoEx)
 {
-	return &pluginInfo;
+	RegisterProtocol(PROTOTYPE_PROTOCOL);
+	SetUniqueId("Nick");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +70,7 @@ static INT_PTR __cdecl EMPGetCaps(WPARAM wParam, LPARAM)
 	case PFLAGNUM_3:
 		return PF2_SHORTAWAY | PF2_LONGAWAY | PF2_LIGHTDND | PF2_HEAVYDND | PF2_FREECHAT;
 	case PFLAG_UNIQUEIDTEXT:
-		return (INT_PTR)Translate("User name or '*'");
+		return (INT_PTR)Translate("User name, IP address or '*'");
 	default:
 		return 0;
 	}
@@ -274,15 +273,14 @@ INT_PTR CALLBACK EMPDlgProcMainOpts(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPAR
 
 int __cdecl EMPCreateOptionsDlg(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 100000000;
-	odp.hInstance = g_plugin.getInst();
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_EMP_FORM_OPT);
 	odp.szTitle.a = LPGEN("E-mage LAN protocol");
 	odp.szGroup.a = LPGEN("Network");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = EMPDlgProcMainOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -328,9 +326,8 @@ INT_PTR CALLBACK EMPDlgProcMessage(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARA
 	return FALSE;
 }
 
-extern "C" int __declspec(dllexport) __cdecl Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
 	g_lan = new CMLan();
 
 	CreateProtoServiceFunction(PROTONAME, PS_GETCAPS, EMPGetCaps);
@@ -358,7 +355,7 @@ extern "C" int __declspec(dllexport) __cdecl Load()
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) __cdecl Unload()
+int CMPlugin::Unload()
 {
 	delete g_lan;
 	return 0;

@@ -146,7 +146,7 @@ class CProtocolOrderOpts : public CDlgBase
 
 public:
 	CProtocolOrderOpts() :
-		CDlgBase(g_hInst, IDD_OPT_PROTOCOLORDER),
+		CDlgBase(g_plugin, IDD_OPT_PROTOCOLORDER),
 		m_order(this, IDC_PROTOCOLORDER),
 		m_btnReset(this, IDC_RESETPROTOCOLDATA),
 		m_bDragging(false),
@@ -158,12 +158,13 @@ public:
 		m_order.OnDeleteItem = Callback(this, &CProtocolOrderOpts::onOrder_DeleteItem);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		FillTree();
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		// assume all accounts are disabled
 		for (auto &it : accounts)
@@ -201,6 +202,7 @@ public:
 		Clist_TrayIconIconsChanged();
 		Clist_Broadcast(INTM_RELOADOPTIONS, 0, 0);
 		Clist_Broadcast(INTM_INVALIDATE, 0, 0);
+		return true;
 	}
 
 	void onReset_Click(CCtrlButton*)
@@ -222,12 +224,12 @@ public:
 
 int ProtocolOrderOptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -10000000;
 	odp.szTitle.a = LPGEN("Accounts");
 	odp.szGroup.a = LPGEN("Contact list");
 	odp.pDialog = new CProtocolOrderOpts();
 	odp.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

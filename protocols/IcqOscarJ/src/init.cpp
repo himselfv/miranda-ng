@@ -28,13 +28,13 @@
 #include "m_extraicons.h"
 #include "m_icolib.h"
 
-int hLangpack;
-
 BOOL bPopupService = FALSE;
 
 HANDLE hExtraXStatus;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -46,9 +46,10 @@ PLUGININFOEX pluginInfo = {
 	{ 0x73a9615c, 0x7d4e, 0x4555, { 0xba, 0xdb, 0xee, 0x5, 0xdc, 0x92, 0x8e, 0xff } } // {73A9615C-7D4E-4555-BADB-EE05DC928EFF}
 };
 
-extern "C" PLUGININFOEX __declspec(dllexport) *MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	ACCPROTOPLUGIN<CIcqProto>(ICQ_PROTOCOL_NAME, pluginInfoEx)
 {
-	return &pluginInfo;
+	SetUniqueId(UNIQUEIDSETTING);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -58,8 +59,6 @@ extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_PROTOC
 /////////////////////////////////////////////////////////////////////////////////////////
 
 CMPlugin g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -74,10 +73,8 @@ IconItem iconList[] =
 	{ LPGEN("Expand string edit"), "ICO_EXPANDSTRINGEDIT", IDI_EXPANDSTRINGEDIT }
 };
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	srand(time(0));
 	_tzset();
 
@@ -96,13 +93,13 @@ extern "C" int __declspec(dllexport) Load(void)
 
 	hExtraXStatus = ExtraIcon_RegisterIcolib("xstatus", LPGEN("ICQ xStatus"), "icq_xstatus13");
 
-	Icon_Register(g_plugin.getInst(), "ICQ", iconList, _countof(iconList));
+	g_plugin.registerIcon("Protocols/ICQ", iconList);
 
 	g_MenuInit();
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	// destroying contact menu
 	g_MenuUninit();

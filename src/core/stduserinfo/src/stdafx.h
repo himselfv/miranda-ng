@@ -42,7 +42,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h>
 
 #include <win2k.h>
-
 #include <m_system.h>
 #include <m_core.h>
 #include <newpluginapi.h>
@@ -62,9 +61,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <m_findadd.h>
 #include <m_icolib.h>
 #include <m_timezones.h>
+#include <m_toptoolbar.h>
 
 #include "version.h"
 
 #include "../../mir_app/src/resource.h"
 
-extern HINSTANCE hInst;
+#define MODULENAME "UserInfo"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};

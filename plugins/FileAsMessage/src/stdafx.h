@@ -27,11 +27,19 @@
 
 #define MAXBUFSIZE 4096
 #define SERVICE_TITLE LPGEN("File As Message")
-#define SERVICE_NAME "FileAsMessage"
+#define MODULENAME "FileAsMessage"
 
 #define SERVICE_PREFIX "<%fAM-0023%>"
 
 #define NOPLUGIN_MESSAGE "If you see this \"garbage\", probably you have no \"fileAsMessage\" plugin installed, see https://miranda-ng.org/p/FileAsMessage/ for more information and download."
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 extern char *szServiceTitle;
 extern char *szServicePrefix;
@@ -41,7 +49,6 @@ extern const ulong INITCRC;
 #define WM_FE_STATUSCHANGE	WM_USER+101
 #define WM_FE_SKINCHANGE	WM_USER+102
 
-extern HINSTANCE hInst;
 extern MWindowList hFileList;
 extern HANDLE hEventNewFile;
 

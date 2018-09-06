@@ -19,8 +19,9 @@
 
 #include "stdafx.h"
 
-HINSTANCE hInst;
-int hLangpack = 0;
+CMPlugin g_plugin;
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx={
 	sizeof(PLUGININFOEX),
@@ -34,37 +35,14 @@ PLUGININFOEX pluginInfoEx={
 	{0xbcec0bd7, 0xca59, 0x44b2, {0x9a, 0x14, 0x3a, 0x14, 0x98, 0x0f, 0x52, 0x4a}}
 };
 
-//------------------------------------------------------------------------------
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>("CyrTranslit", pluginInfoEx)
+{}
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Load()
 {
-	hInst = hinstDLL;
-	return TRUE;
-}
-
-//------------------------------------------------------------------------------
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
-
-
-//------------------------------------------------------------------------------
-
-extern "C" __declspec(dllexport) int Load(void)
-{
-	mir_getLP(&pluginInfoEx);
-
-	//plugin inits: PLACE IT ONLY AFTER THIS LINE
-
 	CyrTranslit::MirandaContact::initialize();
-	return 0;
-}
-
-//------------------------------------------------------------------------------
-
-extern "C" __declspec(dllexport) int Unload(void)
-{
 	return 0;
 }

@@ -13,7 +13,5 @@
 [%s (%i):\nCould not add a share to the FTP File plugin.]
 [%s (%i):\nCould not add a share to the HTTP Server plugin.]
 [Edit on]
-[BBC]
-[BBC link]
-[Could not register Miranda service.]
+[BBCode link]
 [Fill description textbox.]

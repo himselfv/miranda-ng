@@ -352,8 +352,6 @@ Ignorieren
 Bitte den Grund angeben
 [Ban'n Kick]
 Bann und Kick
-[Jerk]
-Sie sind hier nicht erwünscht!
 [*Disconnected*]
 *Getrennt*
 [The usage of /AWAY in your perform buffer is restricted\n as IRC sends this command automatically.]
@@ -771,8 +769,8 @@ Channel
 Modus
 [%s - Filtered - %d items]
 %s - gefilterte - %d Elemente
-[---- Not listed server ----]
---- nicht aufgeführter Server ---
+[Not listed server]
+nicht aufgeführter Server
 [Type new server address here]
 Neue Serveradresse hier eingeben
 [Add ban/invite/exception]

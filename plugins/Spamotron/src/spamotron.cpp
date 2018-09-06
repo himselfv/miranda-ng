@@ -1,11 +1,13 @@
 #include "stdafx.h"
 
-HINSTANCE hInst;
 HANDLE hOptInitialize, hModulesLoaded, hDBContactAdded, hDBEventAdded, hDBEventFilterAdd;
 time_t last_queue_check = 0;
-int hLangpack;
 
-PLUGININFOEX pluginInfo = {
+CMPlugin g_plugin;
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -18,18 +20,17 @@ PLUGININFOEX pluginInfo = {
 	{0x14331048, 0x5a73, 0x4fdb, {0xb9, 0x09, 0x2d, 0x7e, 0x18, 0x25, 0xa0, 0x12}}
 };
 
-extern int OnOptInitialize(WPARAM wParam, LPARAM lParam);
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
+
+extern int OnOptInitialize(WPARAM wParam, LPARAM lParam);
 
 int OnModulesLoaded(WPARAM, LPARAM)
 {
 	hOptInitialize = HookEvent(ME_OPT_INITIALISE, OnOptInitialize);
-
 	return 0;
 }
 
@@ -232,7 +233,7 @@ int OnDBEventFilterAdd(WPARAM wParam, LPARAM lParam)
 			DBVARIANT _dbv;
 			wchar_t AuthEventModule[100];
 			char* szAuthEventModule;
-			if (db_get(hContact, PLUGIN_NAME, "AuthEvent", &_dbv) == 0) {
+			if (db_get(hContact, MODULENAME, "AuthEvent", &_dbv) == 0) {
 				DBEVENTINFO *_dbei = (DBEVENTINFO *)malloc(sizeof(DBEVENTINFO));
 				if (_dbei != nullptr) {
 					memcpy(&_dbei->cbBlob, _dbv.pbVal, sizeof(DWORD));
@@ -244,9 +245,9 @@ int OnDBEventFilterAdd(WPARAM wParam, LPARAM lParam)
 					_dbei->flags = 0;
 					_dbei->pBlob = _dbv.pbVal + sizeof(DWORD);
 					db_event_add(hContact,_dbei);
-					db_unset(hContact, PLUGIN_NAME, "AuthEvent");
-					db_unset(hContact, PLUGIN_NAME, "AuthEventPending");
-					db_unset(hContact, PLUGIN_NAME, "AuthEventModule");
+					db_unset(hContact, MODULENAME, "AuthEvent");
+					db_unset(hContact, MODULENAME, "AuthEventPending");
+					db_unset(hContact, MODULENAME, "AuthEventModule");
 					mir_free(szAuthEventModule);
 					free(_dbei);
 				}
@@ -438,7 +439,7 @@ int OnDBEventFilterAdd(WPARAM wParam, LPARAM lParam)
 			if (eventdata != nullptr && dbei->cbBlob > 0) {
 				memcpy(eventdata, &dbei->cbBlob, sizeof(DWORD));
 				memcpy(eventdata + sizeof(DWORD), dbei->pBlob, dbei->cbBlob);
-				db_set_blob(hContact, PLUGIN_NAME, "AuthEvent", eventdata, sizeof(DWORD) + dbei->cbBlob);
+				db_set_blob(hContact, MODULENAME, "AuthEvent", eventdata, sizeof(DWORD) + dbei->cbBlob);
 				_setCOptS(hContact, "AuthEventModule", dbei->szModule);
 				_setCOptB(hContact, "AuthEventPending", TRUE);
 				free(eventdata);
@@ -451,7 +452,7 @@ int OnDBEventFilterAdd(WPARAM wParam, LPARAM lParam)
 				PBYTE eventdata = (PBYTE)malloc(dbei_size);
 				PBYTE pos = eventdata;
 				if (eventdata != nullptr && dbei->cbBlob > 0) {
-					if (db_get(hContact, PLUGIN_NAME, "LastMsgEvents", &_dbv) == 0) {
+					if (db_get(hContact, MODULENAME, "LastMsgEvents", &_dbv) == 0) {
 						eventdata = (PBYTE)realloc(eventdata, dbei_size + _dbv.cpbVal);
 						pos = eventdata;
 						memcpy(eventdata, _dbv.pbVal, _dbv.cpbVal);
@@ -464,7 +465,7 @@ int OnDBEventFilterAdd(WPARAM wParam, LPARAM lParam)
 					memcpy(pos + sizeof(WORD) + sizeof(DWORD) * 2, dbei->szModule, mir_strlen(dbei->szModule) + 1);
 					memcpy(pos + sizeof(WORD) + sizeof(DWORD) * 2 + mir_strlen(dbei->szModule) + 1, &dbei->cbBlob, sizeof(DWORD));
 					memcpy(pos + sizeof(WORD) + sizeof(DWORD) * 3 + mir_strlen(dbei->szModule) + 1, dbei->pBlob, dbei->cbBlob);
-					db_set_blob(hContact, PLUGIN_NAME, "LastMsgEvents", eventdata, (pos - eventdata) + dbei_size);
+					db_set_blob(hContact, MODULENAME, "LastMsgEvents", eventdata, (pos - eventdata) + dbei_size);
 					free(eventdata);
 				}
 
@@ -498,15 +499,10 @@ void RemoveNotOnListSettings()
 	}
 }
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	srand((unsigned)time(0));
 	bayesdb = nullptr;
 	if (_getOptB("BayesEnabled", defaultBayesEnabled)) {
@@ -524,7 +520,9 @@ extern "C" __declspec(dllexport) int Load()
 	return 0;
 }
 
-extern "C" _declspec(dllexport) int Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	RemoveNotOnListSettings();
 	UnhookEvent(hOptInitialize);

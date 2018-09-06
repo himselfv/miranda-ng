@@ -74,23 +74,23 @@ INT_PTR CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lP
 		case 0:
 			switch (((LPNMHDR)lParam)->code) {
 			case PSN_APPLY:
-				{
-					DWORD flags = 0;
-					TVITEM tvi;
-					tvi.mask = TVIF_HANDLE | TBIF_LPARAM;
-					tvi.hItem = TreeView_GetRoot(hTree); //check ignore all
-					while (tvi.hItem) {
-						TreeView_GetItem(hTree, &tvi);
-						if (TreeView_GetCheckState(hTree, tvi.hItem)) flags |= 1 << (tvi.lParam - 1);
-						tvi.hItem = TreeView_GetNextSibling(hTree, tvi.hItem);
-					}
-					db_set_dw(NULL, MODULENAME, "Filter", flags);
-
-					bUseMirandaSettings = IsDlgButtonChecked(hwndDlg, IDC_IGNORE_IGNOREALL) ? 1 : 0;
-					db_set_b(NULL, MODULENAME, "UseMirandaSettings", bUseMirandaSettings);
-
-					fill_filter();
+			{
+				DWORD flags = 0;
+				TVITEM tvi;
+				tvi.mask = TVIF_HANDLE | TBIF_LPARAM;
+				tvi.hItem = TreeView_GetRoot(hTree); //check ignore all
+				while (tvi.hItem) {
+					TreeView_GetItem(hTree, &tvi);
+					if (TreeView_GetCheckState(hTree, tvi.hItem)) flags |= 1 << (tvi.lParam - 1);
+					tvi.hItem = TreeView_GetNextSibling(hTree, tvi.hItem);
 				}
+				db_set_dw(NULL, MODULENAME, "Filter", flags);
+
+				bUseMirandaSettings = IsDlgButtonChecked(hwndDlg, IDC_IGNORE_IGNOREALL) ? 1 : 0;
+				db_set_b(NULL, MODULENAME, "UseMirandaSettings", bUseMirandaSettings);
+
+				fill_filter();
+			}
 			}
 		case IDC_FILTER:
 			if (((LPNMHDR)lParam)->code == NM_CLICK)
@@ -103,13 +103,12 @@ INT_PTR CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lP
 
 int onOptInitialise(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.szGroup.a = LPGEN("Icons");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_IGNORE_OPT);
 	odp.szTitle.a = LPGEN("Ignore State");
 	odp.pfnDlgProc = DlgProcOptions;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

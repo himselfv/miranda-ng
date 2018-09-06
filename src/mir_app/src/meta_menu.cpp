@@ -191,7 +191,7 @@ INT_PTR Meta_Delete(WPARAM hContact, LPARAM bSkipQuestion)
 	if (cc->IsMeta()) {
 		// check from recursion - see second half of this function
 		if (!bSkipQuestion && IDYES != 
-			MessageBox(cli.hwndContactList,
+			MessageBox(g_clistApi.hwndContactList,
 				TranslateT("This will remove the metacontact permanently.\n\nProceed anyway?"),
 				TranslateT("Are you sure?"), MB_ICONQUESTION | MB_YESNO | MB_DEFBUTTON2))
 			return 0;
@@ -356,7 +356,7 @@ INT_PTR Meta_OnOff(WPARAM, LPARAM)
 
 void InitMenus()
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 
 	// main menu item
 	SET_UID(mi, 0x8999a6ca, 0x9c66, 0x49c1, 0xad, 0xe1, 0x48, 0x17, 0x28, 0xb, 0x94, 0x86);

@@ -35,11 +35,17 @@ Boston, MA 02111-1307, USA.
 #include "version.h"
 #include "resource.h"
 
-#define MODULE "QuickReplies"
+#define MODULENAME "QuickReplies"
 
-#define MS_QUICKREPLIES_SERVICE MODULE"/Service"
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
 
-extern HINSTANCE hInstance;
+	int Load() override;
+};
+
+#define MS_QUICKREPLIES_SERVICE MODULENAME"/Service"
+
 extern int iNumber;
 
 int OnModulesLoaded(WPARAM wParam, LPARAM lParam);

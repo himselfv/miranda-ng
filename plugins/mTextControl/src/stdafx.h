@@ -47,13 +47,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "fancy_rtf.h"
 #include "textcontrol.h"
 
-#define MODULNAME "MTextControl" // DB module for this plugin
+#define MODULENAME "MTextControl" // DB module for this plugin
 #define MODULNAMEW L"MTextControl" // DB module for this plugin
 
 #define MODULTITLE "Text Display"
 
 // globals
-extern HINSTANCE		hInst;
-extern PLUGININFOEX		pluginInfoEx;
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 #endif // __headers_h__

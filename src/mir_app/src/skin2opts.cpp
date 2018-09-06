@@ -165,7 +165,7 @@ class CIconImportDlg : public CDlgBase
 
 public:
 	CIconImportDlg(CIcoLibOptsDlg *_parent) :
-		CDlgBase(g_hInst, IDD_ICOLIB_IMPORT),
+		CDlgBase(g_plugin, IDD_ICOLIB_IMPORT),
 		m_pParent(_parent),
 		m_preview(this, IDC_PREVIEW),
 		m_iconSet(this, IDC_ICONSET),
@@ -177,8 +177,8 @@ public:
 		m_preview.OnBeginDrag = Callback(this, &CIconImportDlg::OnBeginDragPreview);
 	}
 
-	virtual void OnInitDialog() override;
-	virtual void OnClose() override;
+	bool OnInitDialog() override;
+	bool OnClose() override;
 
 	virtual int Resizer(UTILRESIZECONTROL *urc) override
 	{
@@ -270,7 +270,7 @@ public:
 		MySetCursor(IDC_ARROW);
 	}
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override; // forward declaration
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override; // forward declaration
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -439,7 +439,7 @@ class CIcoLibOptsDlg : public CDlgBase
 	{
 		POINT pt;
 		GetCursorPos(&pt);
-		HMENU hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_ICOLIB_CONTEXT));
+		HMENU hMenu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_ICOLIB_CONTEXT));
 		HMENU hPopup = GetSubMenu(hMenu, 0);
 		TranslateMenu(hPopup);
 		int cmd = TrackPopupMenu(hPopup, TPM_RIGHTBUTTON | TPM_RETURNCMD, pt.x, pt.y, 0, m_hwnd, nullptr);
@@ -545,7 +545,7 @@ class CIcoLibOptsDlg : public CDlgBase
 
 public:
 	CIcoLibOptsDlg() :
-		CDlgBase(g_hInst, IDD_OPT_ICOLIB),
+		CDlgBase(g_plugin, IDD_OPT_ICOLIB),
 		m_preview(this, IDC_PREVIEW),
 		m_btnImport(this, IDC_IMPORT),
 		m_urlGetMore(this, IDC_GETMORE, "https://miranda-ng.org/"),
@@ -563,7 +563,7 @@ public:
 		m_categoryList.OnBuildMenu = Callback(this, &CIcoLibOptsDlg::OnTreeMenu);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		// Reset temporary data & upload sections list
 		{
@@ -584,9 +584,10 @@ public:
 		m_preview.SetIconSpacing(56, 67);
 
 		RebuildTree();
+		return true;
 	}
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (msg) {
 		case WM_NOTIFY:
@@ -623,7 +624,7 @@ public:
 		}
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		{
 			mir_cslock lck(csIconList);
@@ -646,9 +647,10 @@ public:
 		}
 
 		DoIconsChanged();
+		return true;
 	}
 
-	virtual void OnDestroy() override
+	void OnDestroy() override
 	{
 		HTREEITEM hti = m_categoryList.GetRoot();
 		while (hti != nullptr) {
@@ -821,7 +823,7 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-void CIconImportDlg::OnInitDialog()
+bool CIconImportDlg::OnInitDialog()
 {
 	m_preview.SetImageList(ImageList_Create(g_iIconSX, g_iIconSY, ILC_COLOR32 | ILC_MASK, 0, 100), LVSIL_NORMAL);
 	m_preview.SetIconSpacing(56, 67);
@@ -845,11 +847,13 @@ void CIconImportDlg::OnInitDialog()
 
 	SHAutoComplete(m_iconSet.GetHwnd(), 1);
 	m_iconSet.SetText(L"icons.dll");
+	return true;
 }
 
-void CIconImportDlg::OnClose()
+bool CIconImportDlg::OnClose()
 {
 	m_pParent->m_btnImport.Enable();
+	return true;
 }
 
 INT_PTR CIconImportDlg::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
@@ -935,11 +939,11 @@ INT_PTR CIconImportDlg::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 
 int SkinOptionsInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.position = -180000000;
 	odp.pDialog = new CIcoLibOptsDlg();
 	odp.szTitle.a = LPGEN("Icons");
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

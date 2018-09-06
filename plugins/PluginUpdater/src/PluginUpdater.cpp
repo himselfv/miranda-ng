@@ -19,10 +19,11 @@ Boston, MA 02111-1307, USA.
 
 #include "stdafx.h"
 
-HINSTANCE hInst = nullptr;
+CMPlugin g_plugin;
+
 wchar_t g_tszRoot[MAX_PATH] = {0}, g_tszTempPath[MAX_PATH];
-int hLangpack;
-DWORD g_mirandaVersion;
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
@@ -33,43 +34,21 @@ PLUGININFOEX pluginInfoEx = {
 	__COPYRIGHT,
 	__AUTHORWEB,
 	UNICODE_AWARE,
-#if MIRANDA_VER < 0x0A00
-	0,
-#endif
 	// {968DEF4A-BC60-4266-AC08-754CE721DB5F}
 	{0x968def4a, 0xbc60, 0x4266, {0xac, 0x8, 0x75, 0x4c, 0xe7, 0x21, 0xdb, 0x5f}} 
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD mirandaVersion)
-{
-	g_mirandaVersion = mirandaVersion;
-	return &pluginInfoEx;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
-
-#if MIRANDA_VER < 0x0A00
-extern "C" __declspec(dllexport) int Load(PLUGINLINK *link)
+int CMPlugin::Load()
 {
-	pluginLink = link;
-	mir_getMMI(&mmi);
-	li.cbSize = LIST_INTERFACE_V2_SIZE;
-	CallService(MS_SYSTEM_GET_LI, 0, (LPARAM)&li);
-	mir_getMD5I(&md5i);
-	mir_getUTFI(&utfi);
-#else
-extern "C" __declspec(dllexport) int Load(void)
-{
-	mir_getLP(&pluginInfoEx);
-
 	InitServices();
-#endif
-	db_set_b(NULL, MODNAME, DB_SETTING_NEED_RESTART, 0);
+
+	db_set_b(NULL, MODULENAME, DB_SETTING_NEED_RESTART, 0);
 
 	DWORD dwLen = GetTempPath(_countof(g_tszTempPath), g_tszTempPath);
 	if (g_tszTempPath[dwLen-1] == '\\')
@@ -83,23 +62,15 @@ extern "C" __declspec(dllexport) int Load(void)
 	// Add cheking update menu item
 	InitCheck();
 
-#if MIRANDA_VER >= 0x0A00
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 
 	SET_UID(mi, 0xfa2cbe01, 0x3b37, 0x4a4c, 0xa6, 0x97, 0xe4, 0x6f, 0x31, 0xa9, 0xfc, 0x33);
 	mi.name.a = LPGEN("Check for updates");
 	mi.hIcolibItem = iconList[0].hIcolib;
-#else
-	CLISTMENUITEM mi = { 0 };
-	mi.cbSize = sizeof(mi);
-	mi.icolibItem = IcoLib_GetIconHandle("check_update");
-	mi.pszName = LPGEN("Check for updates");
-#endif
 	mi.position = 400010000;
 	mi.pszService = MS_PU_CHECKUPDATES;
 	Menu_AddMainMenuItem(&mi);
 
-#if MIRANDA_VER >= 0x0A00
 	InitListNew();
 
 	SET_UID(mi, 0xafe94fad, 0xea83, 0x41aa, 0xa4, 0x26, 0xcb, 0x4a, 0x1c, 0x37, 0xc1, 0xd3);
@@ -109,7 +80,8 @@ extern "C" __declspec(dllexport) int Load(void)
 	mi.pszService = MS_PU_SHOWLIST;
 	Menu_AddMainMenuItem(&mi);
 
-	InitOptions();
+	// initialize options
+	HookEvent(ME_OPT_INITIALISE, OptInit);
 
 	// Add hotkey
 	HOTKEYDESC hkd = {};
@@ -119,45 +91,43 @@ extern "C" __declspec(dllexport) int Load(void)
 	hkd.pszService = MS_PU_CHECKUPDATES;
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL, VK_F10) | HKF_MIRANDA_LOCAL;
 	hkd.lParam = FALSE;
-	Hotkey_Register(&hkd);
-#endif
+	g_plugin.addHotkey(&hkd);
 
 	InitEvents();
 
-#if MIRANDA_VER >= 0x0A00
 	// add sounds
-	Skin_AddSound("updatecompleted", LPGENW("Plugin Updater"), LPGENW("Update completed"));
-	Skin_AddSound("updatefailed",    LPGENW("Plugin Updater"), LPGENW("Update failed"));
+	g_plugin.addSound("updatecompleted", LPGENW("Plugin Updater"), LPGENW("Update completed"));
+	g_plugin.addSound("updatefailed",    LPGENW("Plugin Updater"), LPGENW("Update failed"));
 
 	// Upgrade old settings
-	if (-1 == db_get_b(0, MODNAME, DB_SETTING_UPDATE_MODE, -1)) {
-		ptrW dbvUpdateURL(db_get_wsa(0, MODNAME, DB_SETTING_UPDATE_URL));
+	if (-1 == db_get_b(0, MODULENAME, DB_SETTING_UPDATE_MODE, -1)) {
+		ptrW dbvUpdateURL(db_get_wsa(0, MODULENAME, DB_SETTING_UPDATE_URL));
 		if (dbvUpdateURL) {
 			if (!wcscmp(dbvUpdateURL, _A2W(DEFAULT_UPDATE_URL_OLD))) {
-				db_set_b(0, MODNAME, DB_SETTING_UPDATE_MODE, UPDATE_MODE_STABLE);
-				db_unset(0, MODNAME, DB_SETTING_UPDATE_URL);
+				db_set_b(0, MODULENAME, DB_SETTING_UPDATE_MODE, UPDATE_MODE_STABLE);
+				db_unset(0, MODULENAME, DB_SETTING_UPDATE_URL);
 			}
 			else if (!wcscmp(dbvUpdateURL, _A2W(DEFAULT_UPDATE_URL_TRUNK_OLD))) {
-				db_set_b(0, MODNAME, DB_SETTING_UPDATE_MODE, UPDATE_MODE_TRUNK);
-				db_unset(0, MODNAME, DB_SETTING_UPDATE_URL);
+				db_set_b(0, MODULENAME, DB_SETTING_UPDATE_MODE, UPDATE_MODE_TRUNK);
+				db_unset(0, MODULENAME, DB_SETTING_UPDATE_URL);
 			}
 			else if (!wcscmp(dbvUpdateURL, _A2W(DEFAULT_UPDATE_URL_TRUNK_SYMBOLS_OLD) L"/")) {
-				db_set_b(0, MODNAME, DB_SETTING_UPDATE_MODE, UPDATE_MODE_TRUNK_SYMBOLS);
-				db_unset(0, MODNAME, DB_SETTING_UPDATE_URL);
+				db_set_b(0, MODULENAME, DB_SETTING_UPDATE_MODE, UPDATE_MODE_TRUNK_SYMBOLS);
+				db_unset(0, MODULENAME, DB_SETTING_UPDATE_URL);
 			}
-			else db_set_b(0, MODNAME, DB_SETTING_UPDATE_MODE, UPDATE_MODE_CUSTOM);
+			else db_set_b(0, MODULENAME, DB_SETTING_UPDATE_MODE, UPDATE_MODE_CUSTOM);
 		}
 	}
-#endif
+
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	UnloadCheck();
-	#if MIRANDA_VER >= 0x0A00
-		UnloadListNew();
-	#endif
+	UnloadListNew();
 	UnloadNetlib();
 	return 0;
 }

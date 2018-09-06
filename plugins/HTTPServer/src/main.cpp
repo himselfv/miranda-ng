@@ -48,9 +48,6 @@ int PreShutdown(WPARAM /*wparam*/, LPARAM /*lparam*/);
 HNETLIBUSER hNetlibUser;
 HANDLE hDirectBoundPort;
 
-HINSTANCE hInstance = nullptr;
-CLIST_INTERFACE *pcli;
-
 string sLogFilePath;
 
 // static so they can not be used from other modules ( sourcefiles )
@@ -83,11 +80,13 @@ bool bLimitOnlyWhenOnline = true;
 
 bool bShutdownInProgress = false;
 
-int hLangpack = 0;
+CMPlugin g_plugin;
 
 extern HWND hwndStatsticView;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -100,7 +99,9 @@ PLUGININFOEX pluginInfo = {
 	{0x67848b07, 0x83d2, 0x49e9, {0x88, 0x44, 0x7e, 0x3d, 0xe2, 0x68, 0xe3, 0x4}}
 };
 
-
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////
 // Member Function : bOpenLogFile
@@ -154,12 +155,10 @@ bool bWriteToFile(HANDLE hFile, const char * pszSrc, int nLen = -1)
 void LogEvent(const char * pszTitle, const char * pszLog)
 {
 	HANDLE hFile = CreateFile(sLogFilePath.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (hFile == INVALID_HANDLE_VALUE) {
-		MessageBox(nullptr, Translate("Failed to open or create log file"), MSG_BOX_TITEL, MB_OK);
+	if (hFile == INVALID_HANDLE_VALUE)
 		return;
-	}
+
 	if (SetFilePointer(hFile, 0, nullptr, FILE_END) == INVALID_SET_FILE_POINTER) {
-		MessageBox(nullptr, Translate("Failed to move to the end of the log file"), MSG_BOX_TITEL, MB_OK);
 		CloseHandle(hFile);
 		return;
 	}
@@ -173,17 +172,13 @@ void LogEvent(const char * pszTitle, const char * pszLog)
 	while (nLogLen > 0 && (pszLog[nLogLen - 1] == '\r' || pszLog[nLogLen - 1] == '\n'))
 		nLogLen--;
 
-	if (!bWriteToFile(hFile, szTmp, nLen) ||
-		!bWriteToFile(hFile, pszTitle) ||
-		!bWriteToFile(hFile, " : ") ||
-		!bWriteToFile(hFile, pszLog, nLogLen) ||
-		!bWriteToFile(hFile, "\r\n")) {
-		MessageBox(nullptr, Translate("Failed to write some part of the log file"), MSG_BOX_TITEL, MB_OK);
-	}
+	bWriteToFile(hFile, szTmp, nLen);
+	bWriteToFile(hFile, pszTitle);
+	bWriteToFile(hFile, " : ");
+	bWriteToFile(hFile, pszLog, nLogLen);
+	bWriteToFile(hFile, "\r\n");
 	CloseHandle(hFile);
 }
-
-
 
 /////////////////////////////////////////////////////////////////////
 // Member Function : dwReadIPAddress
@@ -339,18 +334,11 @@ bool bWriteConfigurationFile()
 	mir_strcpy(szBuf, szPluginPath);
 	mir_strcat(szBuf, szConfigFile);
 	HANDLE hFile = CreateFile(szBuf, GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (hFile == INVALID_HANDLE_VALUE) {
-		mir_snprintf(temp, "%s%s", Translate("Failed to open or create file "), szConfigFile);
-		MessageBox(nullptr, temp, MSG_BOX_TITEL, MB_OK);
+	if (hFile == INVALID_HANDLE_VALUE)
 		return false;
-	}
 
 	DWORD dwBytesWriten = 0;
-	if (!WriteFile(hFile, szXmlHeader, sizeof(szXmlHeader) - 1, &dwBytesWriten, nullptr)) {
-		mir_snprintf(temp, "%s%s", TranslateT("Failed to write xml header to file "), szConfigFile);
-		MessageBox(nullptr, temp, MSG_BOX_TITEL, MB_OK);
-	}
-	else {
+	if (WriteFile(hFile, szXmlHeader, sizeof(szXmlHeader) - 1, &dwBytesWriten, nullptr)) {
 		CLFileShareNode *pclCur = pclFirstNode;
 		while (pclCur) {
 			DWORD dwBytesToWrite = mir_snprintf(szBuf, szXmlData,
@@ -360,18 +348,11 @@ bool bWriteConfigurationFile()
 				SplitIpAddress(pclCur->st.dwAllowedIP),
 				SplitIpAddress(pclCur->st.dwAllowedMask));
 
-			if (!WriteFile(hFile, szBuf, dwBytesToWrite, &dwBytesWriten, nullptr)) {
-				mir_snprintf(temp, "%s%s", Translate("Failed to write xml data to file "), szConfigFile);
-				MessageBox(nullptr, temp, MSG_BOX_TITEL, MB_OK);
-				break;
-			}
+			WriteFile(hFile, szBuf, dwBytesToWrite, &dwBytesWriten, nullptr);
 			pclCur = pclCur->pclNext;
 		}
 
-		if (!WriteFile(hFile, szXmlTail, sizeof(szXmlTail) - 1, &dwBytesWriten, nullptr)) {
-			mir_snprintf(temp, "%s%s", Translate("Failed to write xml tail to file "), szConfigFile);
-			MessageBox(nullptr, temp, MSG_BOX_TITEL, MB_OK);
-		}
+		WriteFile(hFile, szXmlTail, sizeof(szXmlTail) - 1, &dwBytesWriten, nullptr);
 	}
 	SetEndOfFile(hFile);
 	CloseHandle(hFile);
@@ -654,40 +635,19 @@ INT_PTR nToggelAcceptConnections(WPARAM wparam, LPARAM /*lparam*/)
 		dwLocalPortUsed = nlb.wPort;
 		dwLocalIpAddress = nlb.dwInternalIP;
 
-		Menu_ModifyItem(hAcceptConnectionsMenuItem, LPGENW("Disable HTTP server"), LoadIcon(hInstance, MAKEINTRESOURCE(IDI_DISABLE_SERVER)));
+		Menu_ModifyItem(hAcceptConnectionsMenuItem, LPGENW("Disable HTTP server"), LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_DISABLE_SERVER)));
 	}
 	else if (hDirectBoundPort && wparam == 0) {
 		Netlib_CloseHandle(hDirectBoundPort);
 		hDirectBoundPort = nullptr;
-		Menu_ModifyItem(hAcceptConnectionsMenuItem, LPGENW("Enable HTTP server"), LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SHARE_NEW_FILE)));
+		Menu_ModifyItem(hAcceptConnectionsMenuItem, LPGENW("Enable HTTP server"), LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_SHARE_NEW_FILE)));
 	}
 	else return 0; // no changes;
 
 	if (!bShutdownInProgress)
-		db_set_b(NULL, MODULE, "AcceptConnections", hDirectBoundPort != nullptr);
+		db_set_b(NULL, MODULENAME, "AcceptConnections", hDirectBoundPort != nullptr);
 
 	return 0;
-}
-
-/////////////////////////////////////////////////////////////////////
-// Member Function : DllMain
-// Type            : Global
-// Parameters      : hinst       - ?
-//                   fdwReason   - ?
-//                   lpvReserved - ?
-// Returns         : BOOL WINAPI
-// Description     :
-//
-// References      : -
-// Remarks         : -
-// Created         : 020422, 22 April 2002
-// Developer       : KN
-/////////////////////////////////////////////////////////////////////
-
-BOOL WINAPI DllMain(HINSTANCE hinst, DWORD /*fdwReason*/, LPVOID /*lpvReserved*/)
-{
-	hInstance = hinst;
-	return 1;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -738,15 +698,11 @@ int MainInit(WPARAM /*wparam*/, LPARAM /*lparam*/)
 
 	NETLIBUSER nlu = {};
 	nlu.flags = NUF_OUTGOING | NUF_INCOMING;
-	nlu.szSettingsModule = MODULE;
+	nlu.szSettingsModule = MODULENAME;
 	nlu.szDescriptiveName.a = Translate("HTTP Server");
-	hNetlibUser = Netlib_RegisterUser(& nlu);
-	if (!hNetlibUser) {
-		MessageBox(nullptr, "Failed to register NetLib user", MSG_BOX_TITEL, MB_OK);
-		return 0;
-	}
+	hNetlibUser = Netlib_RegisterUser(&nlu);
 
-	if (db_get_b(NULL, MODULE, "AcceptConnections", 1))
+	if (db_get_b(NULL, MODULENAME, "AcceptConnections", 1))
 		nToggelAcceptConnections(0, 0);
 
 	InitGuiElements();
@@ -810,30 +766,9 @@ int nSystemShutdown(WPARAM /*wparam*/, LPARAM /*lparam*/)
 	}
 	pclFirstNode = nullptr;
 
-	UnInitGuiElements();
-
-	db_set_b(NULL, MODULE, "IndexCreationMode", (BYTE)indexCreationMode);
+	db_set_b(NULL, MODULENAME, "IndexCreationMode", (BYTE)indexCreationMode);
 	FreeIndexHTMLTemplate();
-
 	return 0;
-}
-
-/////////////////////////////////////////////////////////////////////
-// Member Function : MirandaPluginInfoEx
-// Type            : Global
-// Parameters      : mirandaVersion - ?
-// Returns         :
-// Description     :
-//
-// References      : -
-// Remarks         : -
-// Created         : 020422, 22 April 2002
-// Developer       : KN, Houdini
-/////////////////////////////////////////////////////////////////////
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD /*mirandaVersion*/)
-{
-	return &pluginInfo;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -849,52 +784,17 @@ extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD /*miran
 // Developer       : KN
 /////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
 	hHttpAcceptConnectionsService = CreateServiceFunction(MS_HTTP_ACCEPT_CONNECTIONS, nToggelAcceptConnections);
-	if (!hHttpAcceptConnectionsService) {
-		MessageBox(nullptr, "Failed to CreateServiceFunction MS_HTTP_ACCEPT_CONNECTIONS", MSG_BOX_TITEL, MB_OK);
-		return 1;
-	}
-
 	hHttpAddChangeRemoveService = CreateServiceFunction(MS_HTTP_ADD_CHANGE_REMOVE, nAddChangeRemoveShare);
-	if (!hHttpAddChangeRemoveService) {
-		MessageBox(nullptr, "Failed to CreateServiceFunction MS_HTTP_ADD_CHANGE_REMOVE", MSG_BOX_TITEL, MB_OK);
-		return 1;
-	}
-
 	hHttpGetShareService = CreateServiceFunction(MS_HTTP_GET_SHARE, nGetShare);
-	if (!hHttpGetShareService) {
-		MessageBox(nullptr, "Failed to CreateServiceFunction MS_HTTP_GET_SHARE", MSG_BOX_TITEL, MB_OK);
-		return 1;
-	}
-
 	hHttpGetAllShares = CreateServiceFunction(MS_HTTP_GET_ALL_SHARES, nHttpGetAllShares);
-	if (!hHttpGetAllShares) {
-		MessageBox(nullptr, "Failed to CreateServiceFunction MS_HTTP_GET_ALL_SHARES", MSG_BOX_TITEL, MB_OK);
-		return 1;
-	}
-
 
 	hEventSystemInit = HookEvent(ME_SYSTEM_MODULESLOADED, MainInit);
-	if (!hEventSystemInit) {
-		MessageBox(nullptr, "Failed to HookEvent ME_SYSTEM_MODULESLOADED", MSG_BOX_TITEL, MB_OK);
-		return 1;
-	}
-
 	hPreShutdown = HookEvent(ME_SYSTEM_PRESHUTDOWN, PreShutdown);
-	if (!hPreShutdown) {
-		MessageBox(nullptr, "Failed to HookEvent ME_SYSTEM_PRESHUTDOWN", MSG_BOX_TITEL, MB_OK);
-		return 1;
-	}
 
-	if (Profile_GetPathA(MAX_PATH, szPluginPath)) {
-		MessageBox(nullptr, "Failed to retrieve plugin path.", MSG_BOX_TITEL, MB_OK);
-		return 1;
-	}
+	Profile_GetPathA(MAX_PATH, szPluginPath);
 	mir_strncat(szPluginPath, "\\HTTPServer\\", _countof(szPluginPath) - mir_strlen(szPluginPath));
 	int err = CreateDirectoryTree(szPluginPath);
 	if ((err != 0) && (err != ERROR_ALREADY_EXISTS)) {
@@ -910,17 +810,17 @@ extern "C" __declspec(dllexport) int Load()
 	if (!bInitMimeHandling())
 		MessageBox(nullptr, "Failed to read configuration file : " szMimeTypeConfigFile, MSG_BOX_TITEL, MB_OK);
 
-	nMaxUploadSpeed = db_get_dw(NULL, MODULE, "MaxUploadSpeed", nMaxUploadSpeed);
-	nMaxConnectionsTotal = db_get_dw(NULL, MODULE, "MaxConnectionsTotal", nMaxConnectionsTotal);
-	nMaxConnectionsPerUser = db_get_dw(NULL, MODULE, "MaxConnectionsPerUser", nMaxConnectionsPerUser);
-	bLimitOnlyWhenOnline = db_get_b(NULL, MODULE, "LimitOnlyWhenOnline", bLimitOnlyWhenOnline) != 0;
-	indexCreationMode = (eIndexCreationMode)db_get_b(NULL, MODULE, "IndexCreationMode", 2);
+	nMaxUploadSpeed = db_get_dw(NULL, MODULENAME, "MaxUploadSpeed", nMaxUploadSpeed);
+	nMaxConnectionsTotal = db_get_dw(NULL, MODULENAME, "MaxConnectionsTotal", nMaxConnectionsTotal);
+	nMaxConnectionsPerUser = db_get_dw(NULL, MODULENAME, "MaxConnectionsPerUser", nMaxConnectionsPerUser);
+	bLimitOnlyWhenOnline = db_get_b(NULL, MODULENAME, "LimitOnlyWhenOnline", bLimitOnlyWhenOnline) != 0;
+	indexCreationMode = (eIndexCreationMode)db_get_b(NULL, MODULENAME, "IndexCreationMode", 2);
 
-	if (db_get_b(NULL, MODULE, "AddAcceptConMenuItem", 1)) {
-		CMenuItem mi;
+	if (db_get_b(NULL, MODULENAME, "AddAcceptConMenuItem", 1)) {
+		CMenuItem mi(&g_plugin);
 		SET_UID(mi, 0xf0a68784, 0xc30e, 0x4245, 0xb6, 0x2b, 0xb8, 0x71, 0x7e, 0xe6, 0xe1, 0x73);
 		mi.flags = CMIF_UNICODE;
-		mi.hIcolibItem = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SHARE_NEW_FILE));
+		mi.hIcolibItem = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_SHARE_NEW_FILE));
 		mi.position = 1000085000;
 		mi.name.a = LPGEN("Enable HTTP server");
 		mi.pszService = MS_HTTP_ACCEPT_CONNECTIONS;
@@ -930,7 +830,7 @@ extern "C" __declspec(dllexport) int Load()
 	if (indexCreationMode == INDEX_CREATION_HTML || indexCreationMode == INDEX_CREATION_DETECT)
 		if (!LoadIndexHTMLTemplate()) {
 			indexCreationMode = INDEX_CREATION_DISABLE;
-			db_set_b(NULL, MODULE, "IndexCreationMode", (BYTE)indexCreationMode);
+			db_set_b(NULL, MODULENAME, "IndexCreationMode", (BYTE)indexCreationMode);
 		}
 
 	hEventProtoAck = HookEvent(ME_PROTO_ACK, nProtoAck);
@@ -950,7 +850,7 @@ extern "C" __declspec(dllexport) int Load()
 // Developer       : KN
 /////////////////////////////////////////////////////////////////////
 
-extern "C"  __declspec(dllexport) int Unload()
+int CMPlugin::Unload()
 {
 	nSystemShutdown(0, 0);
 	if (hwndStatsticView)

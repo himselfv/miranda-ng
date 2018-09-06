@@ -20,11 +20,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 
-CLIST_INTERFACE *pcli;
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
-PLUGININFOEX pluginInfo = {
+IconItem iconList[] =
+{
+	{ LPGEN("Header"), "AutoShutdown_Header", IDI_HEADER },
+	{ LPGEN("Active"), "AutoShutdown_Active", IDI_ACTIVE },
+	{ LPGEN("Inactive"), "AutoShutdown_Inactive", IDI_INACTIVE },
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -37,18 +44,11 @@ PLUGININFOEX pluginInfo = {
 	{0x9de24579, 0x5c5c, 0x49aa, {0x80, 0xe8, 0x4d, 0x38, 0xe4, 0x34, 0x4e, 0x63}}
 };
 
-IconItem iconList[] =
-{
-	{ LPGEN("Header"), "AutoShutdown_Header", IDI_HEADER },
-	{ LPGEN("Active"), "AutoShutdown_Active", IDI_ACTIVE },
-	{ LPGEN("Inactive"), "AutoShutdown_Inactive", IDI_INACTIVE },
-};
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, VOID*)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 static int ShutdownModulesLoaded(WPARAM, LPARAM)
 {
@@ -59,16 +59,8 @@ static int ShutdownModulesLoaded(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) const PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+int CMPlugin::Load()
 {
-	return &pluginInfo;
-}
-
-extern "C" __declspec(dllexport) int Load(void)
-{
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
 	INITCOMMONCONTROLSEX icc;
 	icc.dwSize = sizeof(icc);
 	icc.dwICC = ICC_DATE_CLASSES | ICC_UPDOWN_CLASS | ICC_PROGRESS_CLASS;
@@ -77,7 +69,7 @@ extern "C" __declspec(dllexport) int Load(void)
 	if (InitFrame()) return 1; /* before icons */
 
 	/* shared */
-	Icon_Register(hInst, "Automatic Shutdown", iconList, _countof(iconList));
+	g_plugin.registerIcon("Automatic Shutdown", iconList);
 
 	InitShutdownSvc();
 	InitWatcher(); /* before InitSettingsDlg() */
@@ -88,7 +80,7 @@ extern "C" __declspec(dllexport) int Load(void)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	UninitOptions();
 	UninitWatcher(); /* before UninitFrame() */

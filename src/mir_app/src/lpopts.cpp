@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static void CALLBACK OpenOptions(void*)
 {
-	Options_Open(L"Customize", L"Languages");
+	g_plugin.openOptions(L"Customize", L"Languages");
 }
 
 static void ReloadOptions(void *hWnd)
@@ -57,9 +57,9 @@ class CLangpackDlg : public CDlgBase
 	void DisplayPackInfo(const LANGPACK_INFO *pack);
 
 protected:
-	void OnInitDialog();
-	void OnApply();
-	void OnDestroy();
+	bool OnInitDialog() override;
+	bool OnApply() override;
+	void OnDestroy() override;
 
 	void Languages_OnChange(CCtrlBase*);
 	void Reload_OnClick(CCtrlBase*);
@@ -69,7 +69,7 @@ public:
 };
 
 CLangpackDlg::CLangpackDlg()
-	: CDlgBase(g_hInst, IDD_OPT_LANGUAGES),
+	: CDlgBase(g_plugin, IDD_OPT_LANGUAGES),
 	m_languages(this, IDC_LANGUAGES), m_infoFrame(this, IDC_LANGINFOFRAME),
 	m_authors(this, IDC_LANGAUTHORS),
 	m_locale(this, IDC_LANGLOCALE), m_lastModUsing(this, IDC_LANGMODUSING),
@@ -80,10 +80,11 @@ CLangpackDlg::CLangpackDlg()
 	m_reload.OnClick = Callback(this, &CLangpackDlg::Reload_OnClick);
 }
 
-void CLangpackDlg::OnInitDialog()
+bool CLangpackDlg::OnInitDialog()
 {
 	m_languages.ResetContent();
 	LoadLangpacks();
+	return true;
 }
 
 void CLangpackDlg::LoadLangpacks()
@@ -147,14 +148,11 @@ void CLangpackDlg::LoadLangpack(LANGPACK_INFO *pack)
 	LANGPACK_INFO *pack2 = new LANGPACK_INFO();
 	*pack2 = *pack;
 
-	wchar_t tszName[512];
-	mir_snwprintf(tszName, L"%s [%s]",
-		TranslateW(pack->tszLanguage),
-		pack->flags & LPF_DEFAULT ? TranslateT("built-in") : pack->tszFileName);
+	CMStringW wszName(FORMAT, L"%s [%s]", pack->tszLanguage, (pack->flags & LPF_DEFAULT) ? TranslateT("built-in") : pack->tszFileName);
 
 	int idx = (pack->flags & LPF_DEFAULT)
-		? m_languages.InsertString(tszName, 0, (LPARAM)pack2)
-		: m_languages.AddString(tszName, (LPARAM)pack2);
+		? m_languages.InsertString(wszName, 0, (LPARAM)pack2)
+		: m_languages.AddString(wszName, (LPARAM)pack2);
 	if (pack->flags & LPF_ENABLED) {
 		m_languages.SetCurSel(idx);
 		DisplayPackInfo(pack);
@@ -217,7 +215,7 @@ void CLangpackDlg::Reload_OnClick(CCtrlBase*)
 	m_reload.Enable(TRUE);
 }
 
-void CLangpackDlg::OnApply()
+bool CLangpackDlg::OnApply()
 {
 	wchar_t tszPath[MAX_PATH]; tszPath[0] = 0;
 	int idx = m_languages.GetCurSel();
@@ -241,6 +239,7 @@ void CLangpackDlg::OnApply()
 			mir_forkthread(ReloadOptions, hwndParent);
 		}
 	}
+	return true;
 }
 
 void CLangpackDlg::OnDestroy()
@@ -255,12 +254,12 @@ void CLangpackDlg::OnDestroy()
 
 int LangpackOptionsInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -1300000000;
 	odp.szTitle.a = LPGEN("Languages");
 	odp.szGroup.a = LPGEN("Customize");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pDialog = new CLangpackDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

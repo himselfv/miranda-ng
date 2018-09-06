@@ -20,11 +20,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "stdafx.h"
 
-HINSTANCE hInstance;
-CLIST_INTERFACE *pcli;
-
 char *workingDirUtf8;
-int hLangpack;
+CMPlugin g_plugin;
+
+IconItem iconList[] =
+{
+	{ LPGEN("RTL On"), "RTL_ON", IDI_RTL_ON },
+	{ LPGEN("RTL Off"), "RTL_OFF", IDI_RTL_OFF },
+	{ LPGEN("Group On"), "GROUP_ON", IDI_GROUP_ON },
+	{ LPGEN("Group Off"), "GROUP_OFF", IDI_GROUP_OFF }
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
@@ -39,16 +46,11 @@ PLUGININFOEX pluginInfoEx = {
 	{ 0x0495171b, 0x7137, 0x4ded, { 0x97, 0xf8, 0xce, 0x6f, 0xed, 0x67, 0xd6, 0x91 } }
 };
 
-BOOL WINAPI DllMain(HINSTANCE hModule, DWORD, LPVOID)
-{
-	hInstance = hModule;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(ieviewModuleName, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 static int ModulesLoaded(WPARAM, LPARAM)
 {
@@ -56,15 +58,7 @@ static int ModulesLoaded(WPARAM, LPARAM)
 	return 0;
 }
 
-IconItem iconList[] =
-{
-	{ LPGEN("RTL On"), "RTL_ON", IDI_RTL_ON },
-	{ LPGEN("RTL Off"), "RTL_OFF", IDI_RTL_OFF },
-	{ LPGEN("Group On"), "GROUP_ON", IDI_GROUP_ON },
-	{ LPGEN("Group Off"), "GROUP_OFF", IDI_GROUP_OFF }
-};
-
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
 	int wdsize = GetCurrentDirectory(0, nullptr);
 	wchar_t *workingDir = new wchar_t[wdsize];
@@ -72,9 +66,6 @@ extern "C" int __declspec(dllexport) Load(void)
 	Utils::convertPath(workingDir);
 	workingDirUtf8 = mir_utf8encodeW(workingDir);
 	delete[] workingDir;
-
-	mir_getLP(&pluginInfoEx);
-	pcli = Clist_GetInterface();
 
 	HookEvent(ME_OPT_INITIALISE, IEViewOptInit);
 	HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoaded);
@@ -84,11 +75,13 @@ extern "C" int __declspec(dllexport) Load(void)
 	CreateServiceFunction(MS_IEVIEW_NAVIGATE, HandleIENavigate);
 	CreateServiceFunction("IEView/ReloadOptions", ReloadOptions);
 	hHookOptionsChanged = CreateHookableEvent(ME_IEVIEW_OPTIONSCHANGED);
-	Icon_Register(hInstance, ieviewModuleName, iconList, _countof(iconList), ieviewModuleName);
+	g_plugin.registerIcon("IEView", iconList, ieviewModuleName);
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	Options::uninit();
 	DestroyHookableEvent(hHookOptionsChanged);

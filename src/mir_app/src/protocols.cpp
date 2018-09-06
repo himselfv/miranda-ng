@@ -106,8 +106,7 @@ MIR_APP_DLL(PROTOCOLDESCRIPTOR*) Proto_RegisterModule(int type, const char *szNa
 	bool bTryActivate = false;
 	MBaseProto *pd = Proto_GetProto(szName);
 	if (pd == nullptr) {
-		pd = (MBaseProto*)mir_calloc(sizeof(MBaseProto));
-		pd->szName = mir_strdup(szName);
+		pd = new MBaseProto(szName);
 		g_arProtos.insert(pd);
 	}
 	else bTryActivate = true;
@@ -121,14 +120,11 @@ MIR_APP_DLL(PROTOCOLDESCRIPTOR*) Proto_RegisterModule(int type, const char *szNa
 			ppi->m_iVersion = 1;
 			PROTOACCOUNT *pa = Proto_GetAccount(pd->szName);
 			if (pa == nullptr) {
-				pa = (PROTOACCOUNT*)mir_calloc(sizeof(PROTOACCOUNT));
-				pa->szModuleName = mir_strdup(szName);
+				pa = new PROTOACCOUNT(szName);
 				pa->szProtoName = mir_strdup(szName);
 				pa->tszAccountName = mir_a2u(szName);
 				pa->bIsVisible = pa->bIsEnabled = true;
 				pa->iOrder = accounts.getCount();
-				pa->iIconBase = -1;
-				pa->iRealStatus = ID_STATUS_OFFLINE;
 				accounts.insert(pa);
 			}
 			pa->bOldProto = true;
@@ -148,20 +144,12 @@ MIR_APP_DLL(PROTOCOLDESCRIPTOR*) Proto_RegisterModule(int type, const char *szNa
 
 MIR_APP_DLL(void) Proto_SetUniqueId(const char *szModuleName, const char *pszUniqueId)
 {
-	if (szModuleName == nullptr || pszUniqueId == nullptr)
+	if (pszUniqueId == nullptr)
 		return;
 
 	PROTOACCOUNT *pa = Proto_GetAccount(szModuleName);
-	if (pa != nullptr) {
+	if (pa != nullptr)
 		pa->szUniqueId = mir_strdup(pszUniqueId);
-		return;
-	}
-	
-	MBaseProto tmp;
-	tmp.szName = (char*)szModuleName;
-	MBaseProto *pd = g_arProtos.find(&tmp);
-	if (pd != nullptr)
-		pd->szUniqueId = mir_strdup(pszUniqueId);
 }
 
 MIR_APP_DLL(const char*) Proto_GetUniqueId(const char *szModuleName)
@@ -169,17 +157,17 @@ MIR_APP_DLL(const char*) Proto_GetUniqueId(const char *szModuleName)
 	if (szModuleName == nullptr)
 		return nullptr;
 
-	MBaseProto tmp;
+	const char *szProto;
 	PROTOACCOUNT *pa = Proto_GetAccount(szModuleName);
 	if (pa != nullptr) {
 		if (pa->szUniqueId != nullptr)
 			return pa->szUniqueId;
 
-		tmp.szName = pa->szProtoName;
+		szProto = pa->szProtoName;
 	}
-	else tmp.szName = (char*)szModuleName;
+	else szProto = szModuleName;
 
-	MBaseProto *pd = g_arProtos.find(&tmp);
+	MBaseProto *pd = g_arProtos.find((MBaseProto*)&szProto);
 	return (pd != nullptr) ? pd->szUniqueId : nullptr;
 }
 
@@ -335,6 +323,22 @@ MIR_APP_DLL(LIST<PROTOACCOUNT>&) Accounts(void)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
+PROTOACCOUNT::PROTOACCOUNT(const char *szProto) :
+	szModuleName(mir_strdup(szProto)),
+	iIconBase(-1),
+	iRealStatus(ID_STATUS_OFFLINE)
+{
+	bIsLocked = db_get_b(0, szProto, "LockMainStatus", 0) != 0;
+}
+
+PROTOACCOUNT::~PROTOACCOUNT()
+{
+	mir_free(szModuleName);
+	mir_free(szProtoName);
+	mir_free(szUniqueId);
+	mir_free(tszAccountName);
+}
+
 bool PROTOACCOUNT::IsEnabled() const
 {
 	return (this != nullptr) && ((bIsEnabled && !bDynDisabled) || bOldProto);
@@ -342,7 +346,7 @@ bool PROTOACCOUNT::IsEnabled() const
 
 bool PROTOACCOUNT::IsLocked() const
 {
-	return (this != nullptr) && db_get_b(0, szModuleName, "LockMainStatus", 0) != 0;
+	return (this != nullptr) && bIsLocked;
 }
 
 bool PROTOACCOUNT::IsVisible() const
@@ -485,13 +489,9 @@ int LoadProtocolsModule(void)
 
 void UnloadProtocolsModule()
 {
-	if (!bModuleInitialized) return;
+	if (!bModuleInitialized)
+		return;
 
-	for (auto &p : g_arProtos) {
-		mir_free(p->szUniqueId);
-		mir_free(p->szName);
-		mir_free(p);
-	}
 	g_arProtos.destroy();
 
 	if (hAckEvent) {

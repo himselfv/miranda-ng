@@ -8,7 +8,6 @@ There is no warranty.
 */
 
 #include "stdafx.h"
-#include "alarms.h"
 
 #define SERVICENAME L"mp"
 #define COMMANDPREFIX L"/" SERVICENAME
@@ -18,13 +17,13 @@ There is no warranty.
 
 wchar_t szGamePrefix[] = COMMANDPREFIX;
 
-CLIST_INTERFACE *pcli;
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
 HANDLE hTopToolbarButton;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -37,16 +36,11 @@ PLUGININFOEX pluginInfo = {
 	{0x4dd7762b, 0xd612, 0x4f84, {0xaa, 0x86, 0x6, 0x8f, 0x17, 0x85, 0x9b, 0x6d}}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 static LRESULT CALLBACK PopupDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -87,7 +81,7 @@ void ShowPopup(MCONTACT hContact, const wchar_t *msg)
 
 HBITMAP LoadBmpFromIcon(int IdRes)
 {
-	HICON hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IdRes));
+	HICON hIcon = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IdRes));
 
 	BITMAPINFOHEADER bih = { 0 };
 	bih.biSize = sizeof(bih);
@@ -124,12 +118,12 @@ HBITMAP LoadBmpFromIcon(int IdRes)
 static int InitTopToolbarButton(WPARAM, LPARAM)
 {
 	TTBButton ttb = {};
-	ttb.hIconUp = LoadIcon(hInst, MAKEINTRESOURCE(IDI_TBUP));
-	ttb.hIconDn = LoadIcon(hInst, MAKEINTRESOURCE(IDI_TBDN));
-	ttb.pszService = MODULE "/NewAlarm";
+	ttb.hIconUp = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_TBUP));
+	ttb.hIconDn = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_TBDN));
+	ttb.pszService = MODULENAME "/NewAlarm";
 	ttb.dwFlags = TTBBF_VISIBLE;
 	ttb.name = ttb.pszTooltipUp = LPGEN("Set alarm");
-	hTopToolbarButton = TopToolbar_AddButton(&ttb);
+	hTopToolbarButton = g_plugin.addTTB(&ttb);
 	return 0;
 }
 
@@ -149,11 +143,8 @@ static int MainDeInit(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
 	// ensure datetime picker is loaded
 	INITCOMMONCONTROLSEX ccx;
 	ccx.dwSize = sizeof(ccx);
@@ -171,10 +162,5 @@ extern "C" int __declspec(dllexport) Load(void)
 
 	HookEvent(ME_OPT_INITIALISE, OptInit);
 
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

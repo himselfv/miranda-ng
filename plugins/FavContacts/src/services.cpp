@@ -117,7 +117,7 @@ int ProcessTBLoaded(WPARAM, LPARAM)
 	ttb.pszService = MS_FAVCONTACTS_SHOWMENU;
 	ttb.dwFlags = TTBBF_SHOWTOOLTIP | TTBBF_VISIBLE;
 	ttb.hIconHandleUp = iconList[0].hIcolib;
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 	return 0;
 }
 
@@ -151,14 +151,14 @@ int ProcessModulesLoaded(WPARAM, LPARAM)
 	sid.szTooltip = LPGEN("Favorite Contacts");
 	sid.hIcon = IcoLib_GetIconByHandle(iconList[0].hIcolib);
 	sid.hIconDisabled = IcoLib_GetIconByHandle(iconList[1].hIcolib);
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 
 	HookEvent(ME_MSG_ICONPRESSED, ProcessSrmmIconClick);
 	HookEvent(ME_MSG_WINDOWEVENT, ProcessSrmmEvent);
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
-	FontIDW fontid = { sizeof(fontid) };
+	FontIDW fontid = {};
 	wcsncpy_s(fontid.group, LPGENW("Favorite Contacts"), _TRUNCATE);
 	strncpy_s(fontid.dbSettingsGroup, "FavContacts", _TRUNCATE);
 	wcsncpy_s(fontid.backgroundGroup, LPGENW("Favorite Contacts"), _TRUNCATE);
@@ -171,46 +171,46 @@ int ProcessModulesLoaded(WPARAM, LPARAM)
 	wcsncpy_s(fontid.backgroundName, LPGENW("Background"), _TRUNCATE);
 
 	wcsncpy_s(fontid.name, LPGENW("Contact name"), _TRUNCATE);
-	strncpy_s(fontid.prefix, "fntName", _TRUNCATE);
+	strncpy_s(fontid.setting, "fntName", _TRUNCATE);
 	fontid.deffontsettings.colour = GetSysColor(COLOR_MENUTEXT);
 	fontid.deffontsettings.style = DBFONTF_BOLD;
-	Font_RegisterW(&fontid);
+	g_plugin.addFont(&fontid);
 
 	wcsncpy_s(fontid.name, LPGENW("Second line"), _TRUNCATE);
-	strncpy_s(fontid.prefix, "fntSecond", _TRUNCATE);
+	strncpy_s(fontid.setting, "fntSecond", _TRUNCATE);
 	fontid.deffontsettings.colour = sttShadeColor(GetSysColor(COLOR_MENUTEXT), GetSysColor(COLOR_MENU));
 	fontid.deffontsettings.style = 0;
-	Font_RegisterW(&fontid);
+	g_plugin.addFont(&fontid);
 
 	wcsncpy_s(fontid.backgroundName, LPGENW("Selected background"), _TRUNCATE);
 
 	wcsncpy_s(fontid.name, LPGENW("Selected contact name (color)"), _TRUNCATE);
-	strncpy_s(fontid.prefix, "fntNameSel", _TRUNCATE);
+	strncpy_s(fontid.setting, "fntNameSel", _TRUNCATE);
 	fontid.deffontsettings.colour = GetSysColor(COLOR_HIGHLIGHTTEXT);
 	fontid.deffontsettings.style = DBFONTF_BOLD;
-	Font_RegisterW(&fontid);
+	g_plugin.addFont(&fontid);
 
 	wcsncpy_s(fontid.name, LPGENW("Selected second line (color)"), _TRUNCATE);
-	strncpy_s(fontid.prefix, "fntSecondSel", _TRUNCATE);
+	strncpy_s(fontid.setting, "fntSecondSel", _TRUNCATE);
 	fontid.deffontsettings.colour = sttShadeColor(GetSysColor(COLOR_HIGHLIGHTTEXT), GetSysColor(COLOR_HIGHLIGHT));
 	fontid.deffontsettings.style = 0;
-	Font_RegisterW(&fontid);
+	g_plugin.addFont(&fontid);
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
-	ColourIDW colourid = { sizeof(colourid) };
+	ColourIDW colourid = {};
 	wcsncpy_s(colourid.group, LPGENW("Favorite Contacts"), _TRUNCATE);
 	strncpy_s(colourid.dbSettingsGroup, "FavContacts", _TRUNCATE);
 
 	wcsncpy_s(colourid.name, LPGENW("Background"), _TRUNCATE);
 	strncpy_s(colourid.setting, "BackColour", _TRUNCATE);
 	colourid.defcolour = GetSysColor(COLOR_MENU);
-	Colour_RegisterW(&colourid);
+	g_plugin.addColor(&colourid);
 
 	wcsncpy_s(colourid.name, LPGENW("Selected background"), _TRUNCATE);
 	strncpy_s(colourid.setting, "SelectedColour", _TRUNCATE);
 	colourid.defcolour = GetSysColor(COLOR_HIGHLIGHT);
-	Colour_RegisterW(&colourid);
+	g_plugin.addColor(&colourid);
 
 	HookEvent(ME_FONT_RELOAD, ProcessReloadFonts);
 	HookEvent(ME_COLOUR_RELOAD, ProcessReloadFonts);
@@ -224,7 +224,7 @@ int ProcessModulesLoaded(WPARAM, LPARAM)
 	hotkey.szSection.a = "Contacts";
 	hotkey.pszService = MS_FAVCONTACTS_SHOWMENU_CENTERED;
 	hotkey.DefHotKey = MAKEWORD('Q', HOTKEYF_EXT);
-	Hotkey_Register(&hotkey);
+	g_plugin.addHotkey(&hotkey);
 
 	if (ServiceExists(MS_AV_GETAVATARBITMAP)) {
 		for (auto &hContact : Contacts())

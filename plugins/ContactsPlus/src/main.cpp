@@ -23,11 +23,7 @@
 
 #include "stdafx.h"
 
-CLIST_INTERFACE *pcli;
-
-HINSTANCE hInst;
-
-int hLangpack;
+CMPlugin g_plugin;
 
 int g_Utf8EventsSupported = TRUE;
 
@@ -37,7 +33,9 @@ gAckList g_aAckData;
 
 HGENMENU hContactMenuItem;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -50,11 +48,11 @@ PLUGININFOEX pluginInfo = {
 	{ 0x0324785E, 0x74CE, 0x4600, { 0xB7, 0x81, 0x85, 0x17, 0x73, 0xB3, 0xEF, 0xC5 } }
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 static int HookDBEventAdded(WPARAM hContact, LPARAM hDbEvent)
 {
@@ -78,11 +76,11 @@ static int HookDBEventAdded(WPARAM hContact, LPARAM hDbEvent)
 		CLISTEVENT cle = {};
 		cle.hContact = hContact;
 		cle.hDbEvent = hDbEvent;
-		cle.hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_CONTACTS));
+		cle.hIcon = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_CONTACTS));
 		cle.pszService = MS_CONTACTS_RECEIVE;
 		cle.szTooltip.w = caToolTip;
 		cle.flags |= CLEF_UNICODE;
-		pcli->pfnAddEvent(&cle);
+		g_clistApi.pfnAddEvent(&cle);
 	}
 	return 0; //continue processing by other hooks
 }
@@ -134,12 +132,12 @@ static int HookModulesLoaded(WPARAM, LPARAM)
 	modules[0] = MODULENAME;
 	CallService("DBEditorpp/RegisterModule", (WPARAM)modules, 1);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x94a4ed39, 0xabd0, 0x4c70, 0x89, 0xeb, 0x1b, 0x2, 0xf0, 0xac, 0x6, 0x4c);
 	mi.name.a = LPGEN("Contacts");
 	mi.position = -2000009990;  //position in menu
 	mi.pszService = MS_CONTACTS_SEND;
-	mi.hIcolibItem = LoadIcon(hInst, MAKEINTRESOURCE(IDI_CONTACTS));
+	mi.hIcolibItem = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_CONTACTS));
 	hContactMenuItem = Menu_AddContactMenuItem(&mi);
 
 	HookEvent(ME_CLIST_PREBUILDCONTACTMENU, HookPreBuildContactMenu);
@@ -178,7 +176,7 @@ static INT_PTR ServiceSendCommand(WPARAM wParam, LPARAM)
 	//find window for hContact
 	HWND hWnd = WindowList_Find(g_hSendWindowList, wParam);
 	if (!hWnd)
-		CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_SEND), nullptr, SendDlgProc, wParam);
+		CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_SEND), nullptr, SendDlgProc, wParam);
 	else {
 		SetForegroundWindow(hWnd);
 		SetFocus(hWnd);
@@ -188,20 +186,12 @@ static INT_PTR ServiceSendCommand(WPARAM wParam, LPARAM)
 
 static INT_PTR ServiceReceiveCommand(WPARAM, LPARAM lParam)
 {
-	CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_RECEIVE), nullptr, RecvDlgProc, lParam);
+	CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_RECEIVE), nullptr, RecvDlgProc, lParam);
 	return 0;
 }
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+int CMPlugin::Load()
 {
-	return &pluginInfo;
-}
-
-extern "C" __declspec(dllexport) int Load(void)
-{
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
 	InitCommonControls();
 
 	g_hSendWindowList = WindowList_Create();
@@ -218,12 +208,12 @@ extern "C" __declspec(dllexport) int Load(void)
 	CreateServiceFunction(MS_CONTACTS_RECEIVE, ServiceReceiveCommand);
 
 	//define event sounds
-	Skin_AddSound("RecvContacts", LPGENW("Events"), LPGENW("Incoming Contacts"), L"contacts.wav");
-	Skin_AddSound("SentContacts", LPGENW("Events"), LPGENW("Outgoing Contacts"), L"ocontacts.wav");
+	g_plugin.addSound("RecvContacts", LPGENW("Events"), LPGENW("Incoming Contacts"), L"contacts.wav");
+	g_plugin.addSound("SentContacts", LPGENW("Events"), LPGENW("Outgoing Contacts"), L"ocontacts.wav");
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	WindowList_Destroy(g_hSendWindowList);
 	WindowList_Destroy(g_hRecvWindowList);

@@ -2,11 +2,14 @@
 ;============================================================
 ;  File: StatusManager.dll
 ;  Plugin: Status manager
-;  Version: 1.2.0.1
+;  Version: 1.2.0.4
 ;  Authors: P Boon
 ;============================================================
 [A connection checker and auto away module. Also allows you to define the status Miranda should set on startup, configurable per protocol.]
 Перевіряє наявність підключення до мережі і автоматично перепідключає при розриві. Розширений набір функцій для керування режимом очікування. Дозволяє встановлювати статус, який буде виставлений при запуску Miranda в кожного протоколу.
+;file \plugins\StatusManager\res\resource.rc
+[Available modules]
+
 [Keep status]
 Перепідключення
 [Automatically reconnects your accounts after protocol error or internet drop.]
@@ -15,6 +18,8 @@
 Початковий статус
 [Allows you to define the status Miranda should set on startup, configurable per account.]
 Дозволяє встановлювати статус, який буде виставлений при запуску Miranda в кожного протоколу.
+[Advanced auto away]
+
 [Improved auto away module with some more options than the built in, configurable per account.]
 Розширений набір функцій для керування режимом очікування.
 [Note: Miranda NG will have to be restarted for changes to take effect.]
@@ -51,8 +56,10 @@
 Профіль
 [Message]
 Повідомлення
-[Account]
-Обліковий запис
+[Account:]
+Обліковий запис:
+[Away mode]
+
 [Set]
 Вибрати
 [when full-screen mode is active]
@@ -61,10 +68,14 @@
 при запуску заставки
 [when workstation is locked]
 при блокуванні комп'ютера
+[when terminal session is disconnected]
+
 [after]
 через
 [minutes of inactivity]
 хвилин неактивності
+[After away]
+
 [minutes of level 1 mode]
 хвилин режиму 1
 [only set when inactive]
@@ -75,6 +86,8 @@
 Відновити статус при поверненні
 [Confirm resetting status]
 Підтвердити скидання статусу
+[Enter idle mode]
+
 [Only set if current status is]
 Тільки якщо статус:
 [Command line]
@@ -201,7 +214,7 @@
 Стежити за активністю клавіатури
 [Monitor mouse activity]
 Стежити за активністю миші
-[Ignore CTRL, ALT, SHIFT, TAB, ESC and Windows keys]
+[Ignore Ctrl, Alt, Shift, Tab, Esc and Windows keys]
 Ігнорувати клавіші Ctrl, Alt, Shift, Tab, Esc, Win
 [Ignore any key combination with above keys]
 Ігнорувати комбінації з зазначеними клавішами
@@ -213,6 +226,8 @@
 Вимкнути перевірку
 [Set status message]
 Встановити статусне повідомлення
+[Account]
+Обліковий запис
 [Status]
 Статус
 [Add...]
@@ -263,8 +278,32 @@
 невдалих пінгів
 [Continuously check interval (secs)]
 Інтервал перевірки (с)
+[Entering first auto-away status]
+
+[Entering second auto-away status]
+
+[Leaving first auto-away status]
+
 [Pre-conditions]
 Попередні умови
+[Status: The status the account will change to\r\nAccount: The account changing state]
+
+[TriggerData]
+
+[Becoming active without status change]
+
+[Leaving second auto-away status]
+
+;file \plugins\StatusManager\src\aaa_options.cpp
+[minutes of %s mode]
+хвилин режиму "%s"
+[Auto away]
+Відсутність
+[Rules]
+Правила
+[Status messages]
+Статусні повідомлення
+;file \plugins\StatusManager\src\confirmdialog.cpp
 [Set %s message for %s.]
 Встановити повідомлення %s для %s.
 [<last>]
@@ -277,14 +316,7 @@
 Протокол
 [Closing in %d]
 Закрити (%d)
-[minutes of %s mode]
-хвилин режиму "%s"
-[Auto away]
-Відсутність
-[Rules]
-Правила
-[Status messages]
-Статусні повідомлення
+;file \plugins\StatusManager\src\keepstatus.cpp
 [%s connected from another location]
 %s підключено з іншого місця
 [%s login error, cancel reconnecting]
@@ -309,6 +341,7 @@
 Статус встановлено
 [Giving up]
 Припиняю
+;file \plugins\StatusManager\src\ks_options.cpp
 [You broke the Internet!]
 З'єднання з Інтернет розірвано!
 [Basic]
@@ -317,8 +350,20 @@
 Додатково
 [Popups]
 Спливаючі вікна
+;file \plugins\StatusManager\src\options.cpp
+[Status manager]
+
+;file \plugins\StatusManager\src\ss_options.cpp
 [<unknown>]
 <невідомо>
+[default]
+за замовчанням
+[Hidden]
+Приховане
+[Minimized]
+Згорнуте
+[Normal]
+Нормальне
 [Right]
 Праворуч
 [None]
@@ -327,23 +372,19 @@
 розмір: %d x %d
 [loc: %d x %d]
 поз.: %d x %d
-[Hidden]
-Приховане
-[Minimized]
-Згорнуте
-[Normal]
-Нормальне
 [Create a status menu item]
 Створити пункт у меню
-[default]
-за замовчанням
 [unknown]
 невідомо
 [At least one profile must exist]
 Повинен існувати хоча б один профіль
 [Your default profile will be changed]
 Профіль за замовчанням буде змінено
+;file \plugins\StatusManager\src\ss_profiles.cpp
+;file \plugins\StatusManager\src\ss_toolbars.cpp
 [Pressed toolbar icon]
 Натиснутий значок панелі
 [Released toolbar icon]
 Відпущений значок панелі
+[Toolbar]
+Панель кнопок

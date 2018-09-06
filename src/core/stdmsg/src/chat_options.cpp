@@ -135,7 +135,7 @@ static INT CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM p
 
 // add icons to the skinning module
 
-static IconItem iconList[] =
+static IconItem iconList1[] =
 {
 	{ LPGEN("Window icon"), "chat_window", IDI_CHANMGR, 0 },
 	{ LPGEN("Text color"), "chat_fgcol", IDI_COLOR, 0 },
@@ -158,8 +158,11 @@ static IconItem iconList[] =
 	{ LPGEN("Status 3 (10x10)"), "chat_status2", IDI_STATUS2, 10 },
 	{ LPGEN("Status 4 (10x10)"), "chat_status3", IDI_STATUS3, 10 },
 	{ LPGEN("Status 5 (10x10)"), "chat_status4", IDI_STATUS4, 10 },
-	{ LPGEN("Status 6 (10x10)"), "chat_status5", IDI_STATUS5, 10 },
+	{ LPGEN("Status 6 (10x10)"), "chat_status5", IDI_STATUS5, 10 }
+};
 
+static IconItem iconList2[] =
+{
 	{ LPGEN("Message in (10x10)"), "chat_log_message_in", IDI_MESSAGE, 10 },
 	{ LPGEN("Message out (10x10)"), "chat_log_message_out", IDI_MESSAGEOUT, 10 },
 	{ LPGEN("Action (10x10)"), "chat_log_action", IDI_ACTION, 10 },
@@ -178,8 +181,8 @@ static IconItem iconList[] =
 
 void AddIcons(void)
 {
-	Icon_Register(g_hInst, LPGEN("Messaging") "/" LPGEN("Group chats"), iconList, 21);
-	Icon_Register(g_hInst, LPGEN("Messaging") "/" LPGEN("Group chats log"), iconList + 21, 14);
+	g_plugin.registerIcon(LPGEN("Messaging") "/" LPGEN("Group chats"), iconList1);
+	g_plugin.registerIcon(LPGEN("Messaging") "/" LPGEN("Group chats log"), iconList2);
 }
 
 // load icons from the skinning module if available
@@ -201,7 +204,7 @@ static void InitSetting(wchar_t** ppPointer, char* pszSetting, wchar_t* pszDefau
 {
 	DBVARIANT dbv;
 	if (!db_get_ws(0, CHAT_MODULE, pszSetting, &dbv)) {
-		replaceStrW(*ppPointer, dbv.ptszVal);
+		replaceStrW(*ppPointer, dbv.pwszVal);
 		db_free(&dbv);
 	}
 	else replaceStrW(*ppPointer, pszDefault);
@@ -333,13 +336,13 @@ class COptMainDlg : public CDlgBase
 
 public:
 	COptMainDlg()
-		: CDlgBase(g_hInst, IDD_OPTIONS1),
+		: CDlgBase(g_plugin, IDD_OPTIONS1),
 		checkBoxes(this, IDC_CHECKBOXES)
 	{
 		checkBoxes.OnItemChanged = Callback(this, &COptMainDlg::onChange_Tree);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		SetWindowLongPtr(checkBoxes.GetHwnd(), GWL_STYLE, GetWindowLongPtr(checkBoxes.GetHwnd(), GWL_STYLE) | TVS_NOHSCROLL | TVS_CHECKBOXES);
 
@@ -360,9 +363,10 @@ public:
 			FillBranch(hListHeading6, branch6, _countof(branch6), 0x0000);
 		}
 		FixHeadings();
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		SaveBranch(branch1, _countof(branch1));
 		SaveBranch(branch2, _countof(branch2));
@@ -372,11 +376,12 @@ public:
 		if (g_dat.bPopupInstalled)
 			SaveBranch(branch6, _countof(branch6));
 
-		pci->ReloadSettings();
+		g_chatApi.ReloadSettings();
 		Chat_UpdateOptions();
+		return true;
 	}
 
-	virtual void OnDestroy() override
+	void OnDestroy() override
 	{
 		BYTE b = checkBoxes.GetItemState(hListHeading1, TVIS_EXPANDED) & TVIS_EXPANDED ? 1 : 0;
 		db_set_b(0, CHAT_MODULE, "Branch1Exp", b);
@@ -436,7 +441,7 @@ class COptLogDlg : public CDlgBase
 
 public:
 	COptLogDlg() :
-		CDlgBase(g_hInst, IDD_OPTIONS2),
+		CDlgBase(g_plugin, IDD_OPTIONS2),
 		spin2(this, IDC_SPIN2),
 		spin3(this, IDC_SPIN3),
 		spin4(this, IDC_SPIN4),
@@ -461,7 +466,7 @@ public:
 		btnFontChoose.OnClick = Callback(this, &COptLogDlg::onClick_Font);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		spin2.SetRange(5000);
 		spin2.SetPosition(db_get_w(0, CHAT_MODULE, "LogLimit", 100));
@@ -490,9 +495,10 @@ public:
 
 		chkLogging.SetState(g_Settings.bLoggingEnabled);
 		onChange_Logging(nullptr);
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		ptrW pszText(rtrimw(edtHighlight.GetText()));
 		if (*pszText) {
@@ -507,7 +513,7 @@ public:
 			db_set_ws(0, CHAT_MODULE, "LogDirectory", pszText);
 		else
 			db_unset(0, CHAT_MODULE, "LogDirectory");
-		pci->SM_InvalidateLogDirectories();
+		g_chatApi.SM_InvalidateLogDirectories();
 
 		pszText = rtrimw(edtLogTimestamp.GetText());
 		if (*pszText)
@@ -550,8 +556,9 @@ public:
 		else
 			db_unset(0, CHAT_MODULE, "NicklistRowDist");
 
-		pci->ReloadSettings();
+		g_chatApi.ReloadSettings();
 		Chat_UpdateOptions();
+		return true;
 	}
 
 	void onChange_Logging(CCtrlCheck*)
@@ -599,7 +606,7 @@ class COptPopupDlg : public CDlgBase
 
 public:
 	COptPopupDlg()
-		: CDlgBase(g_hInst, IDD_OPTIONSPOPUP),
+		: CDlgBase(g_plugin, IDD_OPTIONSPOPUP),
 		chkRadio1(this, IDC_RADIO1),
 		chkRadio2(this, IDC_RADIO2),
 		chkRadio3(this, IDC_RADIO3)
@@ -607,7 +614,7 @@ public:
 		chkRadio1.OnChange = chkRadio2.OnChange = chkRadio3.OnChange = Callback(this, &COptPopupDlg::onChange_Radio);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		SendDlgItemMessage(m_hwnd, IDC_BKG, CPM_SETCOLOUR, 0, g_Settings.crPUBkgColour);
 		SendDlgItemMessage(m_hwnd, IDC_TEXT, CPM_SETCOLOUR, 0, g_Settings.crPUTextColour);
@@ -624,9 +631,10 @@ public:
 
 		SendDlgItemMessage(m_hwnd, IDC_SPIN1, UDM_SETRANGE, 0, MAKELONG(100, -1));
 		SendDlgItemMessage(m_hwnd, IDC_SPIN1, UDM_SETPOS, 0, MAKELONG(g_Settings.iPopupTimeout, 0));
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		int iLen;
 		if (IsDlgButtonChecked(m_hwnd, IDC_RADIO2) == BST_CHECKED)
@@ -646,6 +654,7 @@ public:
 		db_set_dw(0, CHAT_MODULE, "PopupColorBG", (DWORD)SendDlgItemMessage(m_hwnd, IDC_BKG, CPM_GETCOLOUR, 0, 0));
 		g_Settings.crPUTextColour = SendDlgItemMessage(m_hwnd, IDC_TEXT, CPM_GETCOLOUR, 0, 0);
 		db_set_dw(0, CHAT_MODULE, "PopupColorText", (DWORD)SendDlgItemMessage(m_hwnd, IDC_TEXT, CPM_GETCOLOUR, 0, 0));
+		return true;
 	}
 	
 	void onChange_Radio(CCtrlCheck*)
@@ -669,12 +678,12 @@ int ChatOptionsInitialize(WPARAM wParam)
 	odp.position = 910000000;
 	odp.szTab.a = LPGEN("General");
 	odp.pDialog = new COptMainDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.position = 910000001;
 	odp.szTab.a = LPGEN("Chat log");
 	odp.pDialog = new COptLogDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	if (g_dat.bPopupInstalled) {
 		odp.position = 910000002;
@@ -682,7 +691,7 @@ int ChatOptionsInitialize(WPARAM wParam)
 		odp.szGroup.a = LPGEN("Popups");
 		odp.szTab.a = nullptr;
 		odp.pDialog = new COptPopupDlg();
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }

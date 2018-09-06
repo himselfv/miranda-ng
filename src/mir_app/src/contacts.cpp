@@ -63,7 +63,7 @@ static wchar_t* ProcessDatabaseValueDefault(MCONTACT hContact, const char *szPro
 			if (!dbv.pszVal[0]) break;
 		case DBVT_WCHAR:
 			if (!dbv.pwszVal[0]) break;
-			return dbv.ptszVal;
+			return dbv.pwszVal;
 		}
 		db_free(&dbv);
 	}
@@ -143,7 +143,7 @@ MIR_APP_DLL(wchar_t*) Contact_GetInfo(int type, MCONTACT hContact, const char *s
 	case CNF_COUNTRY:
 	case CNF_COCOUNTRY:
 		if (!GetDatabaseString(hContact, szProto, type == CNF_COUNTRY ? "CountryName" : "CompanyCountryName", &dbv))
-			return dbv.ptszVal;
+			return dbv.pwszVal;
 
 		if (!db_get(hContact, szProto, type == CNF_COUNTRY ? "Country" : "CompanyCountry", &dbv)) {
 			if (dbv.type == DBVT_WORD) {
@@ -237,7 +237,7 @@ MIR_APP_DLL(wchar_t*) Contact_GetInfo(int type, MCONTACT hContact, const char *s
 							_ltow(value, buf, 10);
 							return mir_wstrdup(buf);
 						}
-						return dbv.ptszVal;
+						return dbv.pwszVal;
 					}
 				}
 				break;
@@ -307,14 +307,14 @@ class CContactOptsDlg : public CDlgBase
 
 public:
 	CContactOptsDlg() :
-		CDlgBase(g_hInst, IDD_OPT_CONTACT),
+		CDlgBase(g_plugin, IDD_OPT_CONTACT),
 		m_nameOrder(this, IDC_NAMEORDER)
 	{
 		m_nameOrder.SetFlags(MTREE_DND);
 		m_nameOrder.OnBeginDrag = Callback(this, &CContactOptsDlg::OnBeginDrag);
 	}
 
-	virtual void OnInitDialog()
+	bool OnInitDialog() override
 	{
 		TVINSERTSTRUCT tvis;
 		tvis.hParent = nullptr;
@@ -325,9 +325,10 @@ public:
 			tvis.item.pszText = TranslateW(nameOrderDescr[nameOrder[i]]);
 			m_nameOrder.InsertItem(&tvis);
 		}
+		return true;
 	}
 
-	virtual void OnApply()
+	bool OnApply() override
 	{
 		TVITEMEX tvi;
 		tvi.hItem = m_nameOrder.GetRoot();
@@ -339,7 +340,8 @@ public:
 			tvi.hItem = m_nameOrder.GetNextSibling(tvi.hItem);
 		}
 		db_set_blob(0, "Contact", "NameOrder", nameOrder, _countof(nameOrderDescr));
-		cli.pfnInvalidateDisplayNameCacheEntry(INVALID_CONTACT_ID);
+		g_clistApi.pfnInvalidateDisplayNameCacheEntry(INVALID_CONTACT_ID);
+		return true;
 	}
 
 	void OnBeginDrag(CCtrlTreeView::TEventInfo *evt)
@@ -352,13 +354,13 @@ public:
 
 static int ContactOptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -1000000000;
 	odp.szGroup.a = LPGEN("Contact list");
 	odp.szTitle.a = LPGEN("Contact names");
 	odp.pDialog = new CContactOptsDlg();
 	odp.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 

@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "options.h"
 
 Options options;
 
@@ -69,7 +68,7 @@ static INT_PTR CALLBACK DlgProcAddEdit(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 
 			delete param;
 
-			Utils_RestoreWindowPositionNoSize(hwndDlg, 0, MODULE, "AddEdit");
+			Utils_RestoreWindowPositionNoSize(hwndDlg, 0, MODULENAME, "AddEdit");
 
 			if (GetDlgCtrlID((HWND)wParam) != IDC_TITLE) {
 				SetFocus(GetDlgItem(hwndDlg, IDC_TITLE));
@@ -702,7 +701,7 @@ static INT_PTR CALLBACK DlgProcAddEdit(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 					}
 					else add_edit_alarm->sound_num = 0;
 
-					Utils_SaveWindowPosition(hwndDlg, 0, MODULE, "AddEdit");
+					Utils_SaveWindowPosition(hwndDlg, 0, MODULENAME, "AddEdit");
 
 					// self-add (setting stored in invisible checkbox - see comments in WM_INITDIALOG
 					if (IsDlgButtonChecked(hwndDlg, IDC_CHK_INVIS)) {
@@ -735,7 +734,7 @@ static INT_PTR CALLBACK DlgProcAddEdit(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 					delete add_edit_alarm;
 				}
 
-				Utils_SaveWindowPosition(hwndDlg, 0, MODULE, "AddEdit");
+				Utils_SaveWindowPosition(hwndDlg, 0, MODULENAME, "AddEdit");
 
 				// deal with modal and non-modal modes
 				PostMessage(hwndDlg, WMU_MYDESTROY, 0, 0);
@@ -764,13 +763,13 @@ BOOL Edit(HWND hwnd, ALARM &alarm, bool modal)
 
 	if (modal) {
 		param->self_add = FALSE;
-		if (DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_DIALOG2), hwnd, DlgProcAddEdit, (LPARAM)param) == IDOK) {
+		if (DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_DIALOG2), hwnd, DlgProcAddEdit, (LPARAM)param) == IDOK) {
 			return TRUE;
 		}
 	}
 	else {
 		param->self_add = TRUE;
-		HWND hwndDlg = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_DIALOG2), hwnd, DlgProcAddEdit, (LPARAM)param);
+		HWND hwndDlg = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_DIALOG2), hwnd, DlgProcAddEdit, (LPARAM)param);
 
 		//SetActiveWindow(hwndDlg);
 		//SetWindowPos(hwndDlg, 
@@ -788,12 +787,12 @@ BOOL New(HWND hwnd, ALARM &alarm, bool modal)
 
 	if (modal) {
 		param->self_add = FALSE;
-		if (DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_DIALOG2), hwnd, DlgProcAddEdit, (LPARAM)param) == IDOK)
+		if (DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_DIALOG2), hwnd, DlgProcAddEdit, (LPARAM)param) == IDOK)
 			return TRUE;
 	}
 	else {
 		param->self_add = TRUE;
-		HWND hwndDlg = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_DIALOG2), hwnd, DlgProcAddEdit, (LPARAM)param);
+		HWND hwndDlg = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_DIALOG2), hwnd, DlgProcAddEdit, (LPARAM)param);
 
 		//SetActiveWindow(hwndDlg);
 		//SetWindowPos(hwndDlg, 
@@ -812,16 +811,16 @@ void AddMenuItem()
 {
 	if (hMainMenuItem) return;
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	if (!ServiceExists(MS_CLIST_FRAMES_ADDFRAME)) {
-		mi.root = Menu_CreateRoot(MO_MAIN, LPGENW("Alarms"), mi.position);
+		mi.root = g_plugin.addRootMenu(MO_MAIN, LPGENW("Alarms"), mi.position);
 		Menu_ConfigureItem(mi.root, MCI_OPT_UID, "24F03563-01BE-4118-8297-E94375A783E7");
 	}
 
 	SET_UID(mi, 0xd50b94e4, 0x8edd, 0x4083, 0x91, 0x93, 0x7c, 0x6a, 0xb8, 0x1, 0x41, 0xb9);
 	mi.hIcolibItem = IcoLib_GetIconHandle("alarms_menu_set");
 	mi.name.a = "Set alarm";
-	mi.pszService = MODULE "/NewAlarm";
+	mi.pszService = MODULENAME "/NewAlarm";
 	mi.position = 500010000;
 	hMainMenuItem = Menu_AddMainMenuItem(&mi);
 }
@@ -831,7 +830,7 @@ void AddMenuItem()
 
 int OptionsModulesLoaded(WPARAM, LPARAM)
 {
-	CreateServiceFunction(MODULE "/NewAlarm", NewAlarmMenuFunc);
+	CreateServiceFunction(MODULENAME "/NewAlarm", NewAlarmMenuFunc);
 
 	AddMenuItem();
 
@@ -998,7 +997,7 @@ static INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			switch (LOWORD(wParam)) {
 			case IDC_BTN_PREVIEW:
 				{
-					HWND hwndDlgPrev = CreateDialog(hInst, MAKEINTRESOURCE(IDD_ALARM), GetDesktopWindow(), DlgProcAlarm);
+					HWND hwndDlgPrev = CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(IDD_ALARM), GetDesktopWindow(), DlgProcAlarm);
 					WindowList_Add(hAlarmWindowList, hwndDlgPrev, 0);
 					SendMessage(hwndDlgPrev, WMU_FAKEALARM, 0, 0);
 					SendMessage(hwndDlgPrev, WMU_SETOPT, 0, (LPARAM)&temp_options);
@@ -1211,50 +1210,49 @@ static INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 
 int OptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -790000000;
-	odp.hInstance = hInst;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT1);
 	odp.szTitle.a = LPGEN("Alarms");
 	odp.szGroup.a = LPGEN("Events");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = DlgProcOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
 void LoadOptions()
 {
-	options.use_popup_module = (db_get_b(0, MODULE, "UsePopupModule", 0) == 1);
-	options.snooze_minutes = (int)db_get_dw(0, MODULE, "SnoozeMinutes", 10);
-	options.row_height = (int)db_get_dw(0, MODULE, "RowHeight", 20);
-	options.indent = (int)db_get_dw(0, MODULE, "Indent", 5);
-	options.aw_trans = (int)db_get_b(0, MODULE, "Transparency", 0);
-	options.aw_roundcorners = (db_get_b(0, MODULE, "RoundCorners", 1) == 1);
-	options.aw_dontstealfocus = (db_get_b(0, MODULE, "DontStealFocus", 1) == 1);
-	options.auto_showhide = (db_get_b(0, MODULE, "AutoShowHide", 0) == 1);
-	options.hide_with_clist = (db_get_b(0, MODULE, "HideWithClist", 0) == 1);
-	options.loop_sound = (db_get_b(0, MODULE, "LoopSound", 1) == 1);
-	options.auto_size_vert = (db_get_b(0, MODULE, "AutoSize", 0) == 1);
-	options.reminder_period = (int)db_get_dw(0, MODULE, "ReminderPeriod", 8);
+	options.use_popup_module = (db_get_b(0, MODULENAME, "UsePopupModule", 0) == 1);
+	options.snooze_minutes = (int)db_get_dw(0, MODULENAME, "SnoozeMinutes", 10);
+	options.row_height = (int)db_get_dw(0, MODULENAME, "RowHeight", 20);
+	options.indent = (int)db_get_dw(0, MODULENAME, "Indent", 5);
+	options.aw_trans = (int)db_get_b(0, MODULENAME, "Transparency", 0);
+	options.aw_roundcorners = (db_get_b(0, MODULENAME, "RoundCorners", 1) == 1);
+	options.aw_dontstealfocus = (db_get_b(0, MODULENAME, "DontStealFocus", 1) == 1);
+	options.auto_showhide = (db_get_b(0, MODULENAME, "AutoShowHide", 0) == 1);
+	options.hide_with_clist = (db_get_b(0, MODULENAME, "HideWithClist", 0) == 1);
+	options.loop_sound = (db_get_b(0, MODULENAME, "LoopSound", 1) == 1);
+	options.auto_size_vert = (db_get_b(0, MODULENAME, "AutoSize", 0) == 1);
+	options.reminder_period = (int)db_get_dw(0, MODULENAME, "ReminderPeriod", 8);
 
 	HookEvent(ME_SYSTEM_MODULESLOADED, OptionsModulesLoaded);
 }
 
 void SaveOptions()
 {
-	db_set_b(0, MODULE, "UsePopupModule", options.use_popup_module ? 1 : 0);
-	db_set_dw(0, MODULE, "SnoozeMinutes", options.snooze_minutes);
-	db_set_dw(0, MODULE, "RowHeight", options.row_height);
-	db_set_dw(0, MODULE, "Indent", options.indent);
-	db_set_b(0, MODULE, "Transparency", options.aw_trans);
-	db_set_b(0, MODULE, "RoundCorners", options.aw_roundcorners ? 1 : 0);
-	db_set_b(0, MODULE, "DontStealFocus", options.aw_dontstealfocus ? 1 : 0);
-	db_set_b(0, MODULE, "AutoShowHide", options.auto_showhide ? 1 : 0);
-	db_set_b(0, MODULE, "HideWithClist", options.hide_with_clist ? 1 : 0);
-	db_set_b(0, MODULE, "LoopSound", options.loop_sound ? 1 : 0);
-	db_set_b(0, MODULE, "AutoSize", options.auto_size_vert ? 1 : 0);
-	db_set_dw(0, MODULE, "ReminderPeriod", options.reminder_period);
+	db_set_b(0, MODULENAME, "UsePopupModule", options.use_popup_module ? 1 : 0);
+	db_set_dw(0, MODULENAME, "SnoozeMinutes", options.snooze_minutes);
+	db_set_dw(0, MODULENAME, "RowHeight", options.row_height);
+	db_set_dw(0, MODULENAME, "Indent", options.indent);
+	db_set_b(0, MODULENAME, "Transparency", options.aw_trans);
+	db_set_b(0, MODULENAME, "RoundCorners", options.aw_roundcorners ? 1 : 0);
+	db_set_b(0, MODULENAME, "DontStealFocus", options.aw_dontstealfocus ? 1 : 0);
+	db_set_b(0, MODULENAME, "AutoShowHide", options.auto_showhide ? 1 : 0);
+	db_set_b(0, MODULENAME, "HideWithClist", options.hide_with_clist ? 1 : 0);
+	db_set_b(0, MODULENAME, "LoopSound", options.loop_sound ? 1 : 0);
+	db_set_b(0, MODULENAME, "AutoSize", options.auto_size_vert ? 1 : 0);
+	db_set_dw(0, MODULENAME, "ReminderPeriod", options.reminder_period);
 }
 
 INT_PTR NewAlarmMenuFunc(WPARAM, LPARAM)

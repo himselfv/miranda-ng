@@ -23,11 +23,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma comment(lib, "delayimp.lib")
 
-HINSTANCE hInst;
-static HANDLE hHookModulesLoaded;
-int hLangpack;
+CMPlugin g_plugin;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -40,39 +40,24 @@ PLUGININFOEX pluginInfo = {
 	{0x52685cd7, 0xec7, 0x44c1, {0xa1, 0xa6, 0x38, 0x16, 0x12, 0x41, 0x82, 0x2}}
 };
 
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
+int CMPlugin::Load()
 {
-	hInst = hinstDLL;
-	return TRUE;
-}
-
-static int AssocMgrModulesLoaded(WPARAM,LPARAM)
-{
-	return 0;
-}
-
-extern "C" __declspec(dllexport) const PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
-
-extern "C" __declspec(dllexport) int Load(void)
-{
-	mir_getLP(&pluginInfo);
-
 	InitAssocList();
 	InitDde();
-
-	hHookModulesLoaded=HookEvent(ME_SYSTEM_MODULESLOADED,AssocMgrModulesLoaded);
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	UninitDde();
 	UninitAssocList();
-	UnhookEvent(hHookModulesLoaded);
 	return 0;
 }

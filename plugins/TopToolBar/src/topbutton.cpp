@@ -53,7 +53,7 @@ DWORD TopButtonInt::CheckFlags(DWORD Flags)
 void TopButtonInt::CreateWnd()
 {
 	if (!(dwFlags & TTBBF_ISSEPARATOR)) {
-		hwnd = CreateWindow(TTB_BUTTON_CLASS, L"", BS_PUSHBUTTON | WS_CHILD | WS_TABSTOP | SS_NOTIFY, 0, 0, g_ctrl->nButtonWidth, g_ctrl->nButtonHeight, g_ctrl->hWnd, nullptr, hInst, this);
+		hwnd = CreateWindow(TTB_BUTTON_CLASS, L"", BS_PUSHBUTTON | WS_CHILD | WS_TABSTOP | SS_NOTIFY, 0, 0, g_ctrl->nButtonWidth, g_ctrl->nButtonHeight, g_ctrl->hWnd, nullptr, g_plugin.getInst(), this);
 
 		if (dwFlags & TTBBF_ASPUSHBUTTON)
 			SendMessage(hwnd, BUTTONSETASPUSHBTN, 1, 0);
@@ -65,7 +65,7 @@ void TopButtonInt::CreateWnd()
 	}
 	// maybe SEPWIDTH, not g_ctrl->nButtonWidth?
 	else
-		hwnd = CreateWindow(L"STATIC", L"", WS_CHILD | SS_NOTIFY, 0, 0, g_ctrl->nButtonWidth, g_ctrl->nButtonHeight, g_ctrl->hWnd, nullptr, hInst, nullptr);
+		hwnd = CreateWindow(L"STATIC", L"", WS_CHILD | SS_NOTIFY, 0, 0, g_ctrl->nButtonWidth, g_ctrl->nButtonHeight, g_ctrl->hWnd, nullptr, g_plugin.getInst(), nullptr);
 
 	SetWindowLongPtr(hwnd, GWLP_USERDATA, id);
 	SetBitmap();
@@ -171,6 +171,6 @@ void TopButtonInt::SetBitmap()
 			pTooltip = ptszTooltipUp;
 		}
 		if (pTooltip)
-			SendMessage(hwnd, BUTTONADDTOOLTIP, (WPARAM)TranslateW_LP(pTooltip, hLangpack), BATF_UNICODE);
+			SendMessage(hwnd, BUTTONADDTOOLTIP, (WPARAM)TranslateW_LP(pTooltip, pPlugin), BATF_UNICODE);
 	}
 }

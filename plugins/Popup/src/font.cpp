@@ -28,8 +28,7 @@ PopupFonts fonts = {};
 void InitFonts()
 {
 	// Fonts
-	FontIDW fid = { 0 };
-	fid.cbSize = sizeof(FontIDW);
+	FontIDW fid = {};
 	mir_wstrncpy(fid.group, _A2W(PU_FNT_AND_COLOR), _countof(fid.group));
 	mir_strncpy(fid.dbSettingsGroup, PU_FNT_AND_COLOR_DB, _countof(fid.dbSettingsGroup));
 	fid.flags = FIDF_DEFAULTVALID;
@@ -40,45 +39,44 @@ void InitFonts()
 	mir_wstrncpy(fid.deffontsettings.szFace, L"Tahoma", _countof(fid.deffontsettings.szFace));
 
 	mir_wstrncpy(fid.name, _A2W(PU_FNT_NAME_TITLE), _countof(fid.name));
-	mir_snprintf(fid.prefix, PU_FNT_PREFIX, PU_FNT_NAME_TITLE);
+	mir_snprintf(fid.setting, PU_FNT_PREFIX, PU_FNT_NAME_TITLE);
 	fid.deffontsettings.style = DBFONTF_BOLD;
 	fid.deffontsettings.colour = RGB(0, 0, 0);
-	Font_RegisterW(&fid);
+	g_plugin.addFont(&fid);
 
 	mir_wstrncpy(fid.name, _A2W(PU_FNT_NAME_CLOCK), _countof(fid.name));
-	mir_snprintf(fid.prefix, PU_FNT_PREFIX, PU_FNT_NAME_CLOCK);
-	Font_RegisterW(&fid);
+	mir_snprintf(fid.setting, PU_FNT_PREFIX, PU_FNT_NAME_CLOCK);
+	g_plugin.addFont(&fid);
 
 	mir_wstrncpy(fid.name, _A2W(PU_FNT_NAME_TEXT), _countof(fid.name));
-	mir_snprintf(fid.prefix, PU_FNT_PREFIX, PU_FNT_NAME_TEXT);
+	mir_snprintf(fid.setting, PU_FNT_PREFIX, PU_FNT_NAME_TEXT);
 	fid.deffontsettings.style = 0;
-	Font_RegisterW(&fid);
+	g_plugin.addFont(&fid);
 
 	mir_wstrncpy(fid.name, _A2W(PU_FNT_NAME_ACTION), _countof(fid.name));
-	mir_snprintf(fid.prefix, PU_FNT_PREFIX, PU_FNT_NAME_ACTION);
+	mir_snprintf(fid.setting, PU_FNT_PREFIX, PU_FNT_NAME_ACTION);
 	fid.flags = FIDF_DEFAULTVALID | FIDF_ALLOWEFFECTS;
 	fid.deffontsettings.colour = RGB(0, 0, 255);
-	Font_RegisterW(&fid);
+	g_plugin.addFont(&fid);
 
 	mir_wstrncpy(fid.name, _A2W(PU_FNT_NAME_HOVERED_ACTION), _countof(fid.name));
-	mir_snprintf(fid.prefix, PU_FNT_PREFIX, PU_FNT_NAME_HOVERED_ACTION);
+	mir_snprintf(fid.setting, PU_FNT_PREFIX, PU_FNT_NAME_HOVERED_ACTION);
 	fid.deffontsettings.style = DBFONTF_UNDERLINE;
-	Font_RegisterW(&fid);
+	g_plugin.addFont(&fid);
 
-	ColourIDW cid = { 0 };
-	cid.cbSize = sizeof(ColourIDW);
+	ColourIDW cid = {};
 	mir_wstrncpy(cid.group, _A2W(PU_FNT_AND_COLOR), _countof(cid.group));
 	mir_strncpy(cid.dbSettingsGroup, PU_FNT_AND_COLOR_DB, _countof(cid.dbSettingsGroup));
 
 	mir_wstrncpy(cid.name, PU_COL_BACK_NAME, _countof(cid.name));
 	mir_strncpy(cid.setting, PU_COL_BACK_SETTING, _countof(cid.setting));
 	cid.defcolour = SETTING_BACKCOLOUR_DEFAULT;
-	Colour_RegisterW(&cid);
+	g_plugin.addColor(&cid);
 
 	mir_wstrncpy(cid.name, PU_COL_AVAT_NAME, _countof(cid.name));
 	mir_strncpy(cid.setting, PU_COL_AVAT_SETTING, _countof(cid.setting));
 	cid.defcolour = SETTING_TEXTCOLOUR_DEFAULT;
-	Colour_RegisterW(&cid);
+	g_plugin.addColor(&cid);
 
 	ReloadFonts();
 }
@@ -111,7 +109,7 @@ void ReloadFonts()
 	fonts.clBack = Colour_GetW(_A2W(PU_FNT_AND_COLOR), PU_COL_BACK_NAME);
 	fonts.clAvatarBorder = Colour_GetW(_A2W(PU_FNT_AND_COLOR), PU_COL_AVAT_NAME);
 
-	// update class popupps(only temp at this point, must rework)
+	// update class popups (only temp at this point, must rework)
 	char setting[256];
 	for (auto &it : gTreeData) {
 		if (it->typ == 2) {

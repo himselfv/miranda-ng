@@ -57,6 +57,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <locale.h>
 #include <direct.h>
 
+#define __NO_CMPLUGIN_NEEDED
 #include <win2k.h>
 
 #include <m_system.h>
@@ -70,6 +71,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <m_clistint.h>
 #include <m_avatars.h>
 #include <m_button.h>
+#include <m_idle.h>
 #include <m_protosvc.h>
 #include <m_protocols.h>
 #include <m_protoint.h>
@@ -88,10 +90,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <m_timezones.h>
 #include <m_extraicons.h>
 #include <m_xstatus.h>
+#include <m_cluiframes.h>
 #include <m_metacontacts.h>
 #include <m_gui.h>
 #include <m_srmm_int.h>
 #include <m_imgsrvc.h>
+#include <m_toptoolbar.h>
+#include <m_version.h>
 
 #include "miranda.h"
 
@@ -103,3 +108,8 @@ typedef struct GlobalLogSettingsBase GlobalLogSettings;
 #include <m_chat_int.h>
 
 #include "resource.h"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+};

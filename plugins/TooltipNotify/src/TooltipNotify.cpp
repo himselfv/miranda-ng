@@ -53,7 +53,7 @@ const char *CTooltipNotify::s_szModuleNameOld = "ttntfmod";
 //////////////////////////////////////////////////////////////////////
 
 CTooltipNotify::CTooltipNotify() :
-m_bNt50(IsNt50())
+	m_bNt50(IsNt50())
 {
 	if (s_pInstance != nullptr)
 		throw EAlreadyExists();
@@ -72,7 +72,7 @@ CTooltipNotify::~CTooltipNotify()
 
 void CTooltipNotify::RegisterFonts()
 {
-	FontIDW fontId = { sizeof(fontId) };
+	FontIDW fontId = {};
 	wcsncpy(fontId.group, FONTSERV_GROUP, _countof(fontId.group) - 1);
 	strncpy(fontId.dbSettingsGroup, MODULENAME, _countof(fontId.dbSettingsGroup) - 1);
 	fontId.flags = FIDF_DEFAULTVALID;
@@ -84,7 +84,7 @@ void CTooltipNotify::RegisterFonts()
 	fontId.order = 0;
 	wcsncpy(fontId.backgroundGroup, FONTSERV_GROUP, _countof(fontId.backgroundGroup) - 1);
 
-	ColourIDW colorId = { sizeof(colorId) };
+	ColourIDW colorId = {};
 	wcsncpy(colorId.group, FONTSERV_GROUP, _countof(colorId.group) - 1);
 	strncpy(colorId.dbSettingsGroup, MODULENAME, _countof(colorId.dbSettingsGroup) - 1);
 	colorId.flags = 0;
@@ -93,13 +93,13 @@ void CTooltipNotify::RegisterFonts()
 
 	for (int i = 0; i < _countof(s_fontTable); i++) {
 		wcsncpy(fontId.name, s_fontTable[i].name, _countof(fontId.name) - 1);
-		strncpy(fontId.prefix, s_fontTable[i].fontPrefix, _countof(fontId.prefix) - 1);
+		strncpy(fontId.setting, s_fontTable[i].fontPrefix, _countof(fontId.setting) - 1);
 		wcsncpy(fontId.backgroundName, s_fontTable[i].name, _countof(fontId.backgroundName) - 1);
-		::Font_RegisterW(&fontId);
+		::g_plugin.addFont(&fontId);
 
 		wcsncpy(colorId.name, s_fontTable[i].name, _countof(colorId.name) - 1);
 		strncpy(colorId.setting, s_fontTable[i].clrPrefix, _countof(colorId.setting) - 1);
-		::Colour_RegisterW(&colorId);
+		::g_plugin.addColor(&colorId);
 	}
 }
 
@@ -133,10 +133,10 @@ int CTooltipNotify::ModulesLoaded(WPARAM, LPARAM)
 		db_set_b(NULL, MODULENAME, "firstrun", 0);
 	}
 
-	Skin_AddSound(SND_ONLINE,  LPGENW("Tooltip Notify"), LPGENW("Online"),  L"online.wav");
-	Skin_AddSound(SND_OFFLINE, LPGENW("Tooltip Notify"), LPGENW("Offline"), L"offline.wav");
-	Skin_AddSound(SND_OTHER,   LPGENW("Tooltip Notify"), LPGENW("Other"),   L"other.wav");
-	Skin_AddSound(SND_TYPING,  LPGENW("Tooltip Notify"), LPGENW("Typing"),  L"typing.wav");
+	g_plugin.addSound(SND_ONLINE,  LPGENW("Tooltip Notify"), LPGENW("Online"),  L"online.wav");
+	g_plugin.addSound(SND_OFFLINE, LPGENW("Tooltip Notify"), LPGENW("Offline"), L"offline.wav");
+	g_plugin.addSound(SND_OTHER,   LPGENW("Tooltip Notify"), LPGENW("Other"),   L"other.wav");
+	g_plugin.addSound(SND_TYPING,  LPGENW("Tooltip Notify"), LPGENW("Typing"),  L"typing.wav");
 
 	// register fonts
 	RegisterFonts();
@@ -255,15 +255,14 @@ int CTooltipNotify::ContactSettingChanged(WPARAM hContact, LPARAM lParam)
 
 int CTooltipNotify::InitializeOptions(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 100000000;
-	odp.hInstance = g_hInstDLL;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
 	odp.szTitle.a = LPGEN("Tooltip Notify");
 	odp.szGroup.a = LPGEN("Popups");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = CTooltipNotify::OptionsDlgProcWrapper;
-	::Options_AddPage(wParam, &odp);
+	::g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -342,14 +341,9 @@ void CTooltipNotify::EndNotifyAll()
 
 CTooltipNotify::MapTimerIdProtoIter CTooltipNotify::FindProtoByTimer(UINT idTimer)
 {
-	for (
-		MapTimerIdProtoIter iter = m_mapTimerIdProto.begin();
-		iter != m_mapTimerIdProto.end();
-	++iter) {
-		if (iter->timerId == idTimer) {
+	for (MapTimerIdProtoIter iter = m_mapTimerIdProto.begin(); iter != m_mapTimerIdProto.end(); ++iter)
+		if (iter->timerId == idTimer)
 			return iter;
-		}
-	}
 
 	return m_mapTimerIdProto.end();
 }
@@ -587,11 +581,11 @@ BOOL CTooltipNotify::OptionsDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM l
 			}
 
 		case IDC_SEL_PROTO:
-			DialogBox(g_hInstDLL, MAKEINTRESOURCE(IDD_PROTOS), hDlg, CTooltipNotify::ProtosDlgProcWrapper);
+			DialogBox(g_plugin.getInst(), MAKEINTRESOURCE(IDD_PROTOS), hDlg, CTooltipNotify::ProtosDlgProcWrapper);
 			break;
 
 		case IDC_IGNORE:
-			DialogBox(g_hInstDLL, MAKEINTRESOURCE(IDD_CONTACTS), hDlg, CTooltipNotify::ContactsDlgProcWrapper);
+			DialogBox(g_plugin.getInst(), MAKEINTRESOURCE(IDD_CONTACTS), hDlg, CTooltipNotify::ContactsDlgProcWrapper);
 			break;
 
 		default:
@@ -842,7 +836,7 @@ void CTooltipNotify::OnTooltipDblClicked(CTooltip *pTooltip)
 {
 	switch (m_sOptions.bLDblClick) {
 	case SHOW_HIDE_CLIST:
-		pcli->pfnShowHide();
+		g_clistApi.pfnShowHide();
 		break;
 
 	case OPEN_MSGDLG:
@@ -856,7 +850,7 @@ void CTooltipNotify::OnTooltipDblClicked(CTooltip *pTooltip)
 		}
 
 	default:
-		pcli->pfnShowHide();
+		g_clistApi.pfnShowHide();
 		break;
 	}
 }

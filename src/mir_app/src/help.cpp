@@ -36,7 +36,7 @@ class CAboutDlg : public CDlgBase
 
 public:
 	CAboutDlg() :
-		CDlgBase(g_hInst, IDD_ABOUT),
+		CDlgBase(g_plugin, IDD_ABOUT),
 		btnLink(this, IDC_CONTRIBLINK),
 		ctrlCredits(this, IDC_CREDITSFILE),
 		ctrlHeaderBar(this, IDC_HEADERBAR),
@@ -50,7 +50,7 @@ public:
 		ctrlDevelopers.UseSystemColors();
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		ptrW wszCopyright(mir_utf8decodeW(LEGAL_COPYRIGHT));
 		if (wszCopyright == nullptr)
@@ -61,9 +61,9 @@ public:
 		Miranda_GetVersionText(productVersion, _countof(productVersion));
 		ctrlHeaderBar.SetText(CMStringW(FORMAT, L"Miranda NG\nv%S", productVersion));
 
-		HRSRC hResInfo = FindResource(g_hInst, MAKEINTRESOURCE(IDR_CREDITS), L"TEXT");
-		DWORD ResSize = SizeofResource(g_hInst, hResInfo);
-		HGLOBAL hRes = LoadResource(g_hInst, hResInfo);
+		HRSRC hResInfo = FindResource(g_plugin.getInst(), MAKEINTRESOURCE(IDR_CREDITS), L"TEXT");
+		DWORD ResSize = SizeofResource(g_plugin.getInst(), hResInfo);
+		HGLOBAL hRes = LoadResource(g_plugin.getInst(), hResInfo);
 		char *pszMsg = (char*)LockResource(hRes);
 		if (pszMsg) {
 			char *pszMsgt = (char*)alloca(ResSize + 1);
@@ -71,7 +71,7 @@ public:
 
 			ptrW ptszMsg;
 			if (ResSize >= 3 && pszMsgt[0] == '\xef' && pszMsgt[1] == '\xbb' && pszMsgt[2] == '\xbf')
-				ptszMsg = Utf8DecodeW(pszMsgt + 3);
+				ptszMsg = mir_utf8decodeW(pszMsgt + 3);
 			else
 				ptszMsg = mir_a2u_cp(pszMsgt, 1252);
 			ctrlCredits.SetText(ptszMsg);
@@ -82,9 +82,10 @@ public:
 		ctrlCredits.Hide();
 
 		Window_SetSkinIcon_IcoLib(m_hwnd, SKINICON_OTHER_MIRANDA);
+		return true;
 	}
 
-	virtual void OnDestroy() override
+	void OnDestroy() override
 	{
 		pAboutDialog = nullptr;
 		Window_FreeIcon_IcoLib(m_hwnd);
@@ -149,8 +150,8 @@ int LoadHelpModule(void)
 {
 	HookEvent(ME_SYSTEM_PRESHUTDOWN, ShutdownHelpModule);
 
-	CMenuItem mi;
-	mi.root = Menu_CreateRoot(MO_MAIN, LPGENW("&Help"), 2000090000);
+	CMenuItem mi(&g_plugin);
+	mi.root = g_plugin.addRootMenu(MO_MAIN, LPGENW("&Help"), 2000090000);
 	Menu_ConfigureItem(mi.root, MCI_OPT_UID, "8824ECA5-6942-46D7-9D07-1BA600E0D02E");
 
 	SET_UID(mi, 0xf3ebf1fa, 0x587c, 0x494d, 0xbd, 0x33, 0x7f, 0x88, 0xb3, 0x61, 0x1e, 0xd3);

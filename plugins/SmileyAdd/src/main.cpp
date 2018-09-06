@@ -20,11 +20,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "stdafx.h"
 
 // globals
-HINSTANCE g_hInst;
 HANDLE    hEvent1;
 HGENMENU  hContactMenuItem;
 
-int hLangpack;
+CMPlugin g_plugin;
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 static const PLUGININFOEX pluginInfoEx =
 {
@@ -40,19 +41,23 @@ static const PLUGININFOEX pluginInfoEx =
 	{0xbd542bb4, 0x5ae4, 0x4d0e, {0xa4, 0x35, 0xba, 0x8d, 0xbe, 0x39, 0x60, 0x7f}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD /* mirandaVersion */)
-{
-	return (PLUGININFOEX*)&pluginInfoEx;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-static IconItem icon = { LPGEN("Button smiley"), "SmileyAdd_ButtonSmiley", IDI_SMILINGICON };
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static IconItem iconList[] = 
+{
+	{ LPGEN("Button smiley"), "SmileyAdd_ButtonSmiley", IDI_SMILINGICON }
+};
 
 static int ModulesLoaded(WPARAM, LPARAM)
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x5ba238de, 0xe16b, 0x4928, 0xa0, 0x70, 0xff, 0x43, 0xf6, 0x1f, 0x16, 0xd4);
 	mi.position = 2000070050;
-	mi.hIcolibItem = icon.hIcolib;
+	mi.hIcolibItem = iconList[0].hIcolib;
 	mi.name.a = LPGEN("Assign smiley category");
 	hContactMenuItem = Menu_AddContactMenuItem(&mi);
 
@@ -64,13 +69,13 @@ static int ModulesLoaded(WPARAM, LPARAM)
 	g_SmileyCategories.AddAllProtocolsAsCategory();
 	g_SmileyCategories.ClearAndLoadAll();
 
-	ColourID cid = { sizeof(cid) };
+	ColourID cid = {};
 	strcpy_s(cid.dbSettingsGroup, MODULENAME);
 	strcpy_s(cid.group, MODULENAME);
 	strcpy_s(cid.name, LPGEN("Background color"));
 	strcpy_s(cid.setting, "SelWndBkgClr");
 	cid.defcolour = GetSysColor(COLOR_WINDOW);
-	Colour_Register(&cid);
+	g_plugin.addColor(&cid);
 	return 0;
 }
 
@@ -80,10 +85,8 @@ static int MirandaShutdown(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-
 	if (ServiceExists(MS_SMILEYADD_REPLACESMILEYS)) {
 		ReportError(TranslateT("Only one instance of SmileyAdd could be executed.\nRemove duplicate instances from 'Plugins' directory"));
 		return 1;
@@ -91,7 +94,7 @@ extern "C" __declspec(dllexport) int Load(void)
 
 	InitImageCache();
 
-	Icon_Register(g_hInst, MODULENAME, &icon, 1);
+	g_plugin.registerIcon(MODULENAME, iconList);
 
 	g_SmileyCategories.SetSmileyPackStore(&g_SmileyPacks);
 
@@ -125,7 +128,9 @@ extern "C" __declspec(dllexport) int Load(void)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	RemoveDialogBoxHook();
 
@@ -141,19 +146,4 @@ extern "C" __declspec(dllexport) int Unload(void)
 
 	DownloadClose();
 	return 0;
-}
-
-extern "C" BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID /*lpvReserved*/)
-{
-	switch (fdwReason) {
-	case DLL_PROCESS_ATTACH:
-		g_hInst = hinstDLL;
-		DisableThreadLibraryCalls(hinstDLL);
-		break;
-
-	case DLL_PROCESS_DETACH:
-		break;
-	}
-
-	return TRUE;
 }

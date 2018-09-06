@@ -4,9 +4,8 @@
 
 // plugin stuff
 
-int hLangpack;
 
-PLUGININFOEX pluginInfo =
+PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -20,16 +19,15 @@ PLUGININFOEX pluginInfo =
 	{ 0xf1b0ba1b, 0xc91, 0x4313, { 0x85, 0xeb, 0x22, 0x50, 0x69, 0xd4, 0x4d, 0x1 } } 
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD mirandaVersion)
+CMPlugin::CMPlugin() :
+	ACCPROTOPLUGIN<CSametimeProto>("Sametime", pluginInfoEx)
 {
-	return &pluginInfo;
+	SetUniqueId("stid");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
 CMPlugin g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -85,7 +83,7 @@ static IconItem iconList[] =
 
 void SametimeInitIcons(void)
 {
-	Icon_Register(g_plugin.getInst(), "Protocols/Sametime", iconList, _countof(iconList), "SAMETIME");
+	g_plugin.registerIcon("Protocols/Sametime", iconList, "SAMETIME");
 }
 
 HANDLE GetIconHandle(int iconId)
@@ -230,15 +228,4 @@ void CSametimeProto::BroadcastNewStatus(int iNewStatus)
 	previous_status = m_iStatus;
 	m_iStatus = iNewStatus;
 	ProtoBroadcastAck(NULL, ACKTYPE_STATUS, ACKRESULT_SUCCESS, (HANDLE)previous_status, m_iStatus);
-}
-
-extern "C" int __declspec(dllexport) Load(void)
-{
-	mir_getLP(&pluginInfo);
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload()
-{
-	return 0;
 }

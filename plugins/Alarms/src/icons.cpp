@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "icons.h"
 
 HICON hIconMenuSet, hIconList1, hIconList2, hIconMenuShowHide, hIconSystray;
 
@@ -26,7 +25,7 @@ int ReloadIcons(WPARAM, LPARAM)
 
 void InitIcons()
 {
-	Icon_Register(hInst, "Alarms", iconList, _countof(iconList));
+	g_plugin.registerIcon("Alarms", iconList);
 
 	if (!ServiceExists(MS_CLIST_FRAMES_ADDFRAME))
 		hIconMenuShowHide = IcoLib_GetIcon("alarms_menu_showhide");

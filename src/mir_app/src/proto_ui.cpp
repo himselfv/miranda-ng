@@ -23,14 +23,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 
-HINSTANCE ProtoGetInstance(const char *szModuleName)
+CMPluginBase& ProtoGetInstance(const char *szModuleName)
 {
 	PROTOACCOUNT *pa = Proto_GetAccount(szModuleName);
 	if (pa == nullptr)
-		return nullptr;
+		return g_plugin;
 
 	MBaseProto *p = Proto_GetProto(pa->szProtoName);
-	return (p == nullptr) ? nullptr : GetInstByAddress(p->fnInit);
+	return (p == nullptr) ? g_plugin : GetPluginByInstance(p->hInst);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -94,17 +94,17 @@ INT_PTR CProtoIntDlgBase::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	// Protocol events
 	case WM_PROTO_ACTIVATE:
 		OnProtoActivate(wParam, lParam);
-		return m_lresult;
+		return 0;
 
 	case WM_PROTO_CHECK_ONLINE:
 		if (m_hwndStatus)
 			UpdateStatusBar();
 		OnProtoCheckOnline(wParam, lParam);
-		return m_lresult;
+		return 0;
 
 	case WM_PROTO_REFRESH:
 		OnProtoRefresh(wParam, lParam);
-		return m_lresult;
+		return 0;
 	}
 
 	return CSuper::DlgProc(msg, wParam, lParam);

@@ -21,7 +21,10 @@ Boston, MA 02111-1307, USA.
 
 using namespace std;
 
-static IconItem icon = { LPGEN("Button"), "qr_button", IDI_QICON };
+static IconItem iconList[] = 
+{
+	{ LPGEN("Button"), "qr_button", IDI_QICON }
+};
 
 int iNumber = 0;
 
@@ -30,20 +33,20 @@ int OnModulesLoaded(WPARAM, LPARAM)
 	HookEvent(ME_OPT_INITIALISE, OnOptInitialized);
 	HookEvent(ME_MSG_BUTTONPRESSED, OnButtonPressed);
 
-	Icon_Register(hInstance, "TabSRMM/Quick Replies", &icon, 1);
+	g_plugin.registerIcon("TabSRMM/Quick Replies", iconList);
 
 	char buttonNameTranslated[32], buttonName[32];
 	mir_snprintf(buttonNameTranslated, "%s %x", Translate("Button"), iNumber + 1);
-	mir_snprintf(buttonName, MODULE" %x", iNumber + 1);
+	mir_snprintf(buttonName, MODULENAME" %x", iNumber + 1);
 
 	BBButton bbd = {};
 	bbd.bbbFlags = BBBF_ISIMBUTTON | BBBF_ISCHATBUTTON;
 	bbd.pszModuleName = buttonName;
 	bbd.pwszTooltip = LPGENW("Quick Replies");
-	bbd.hIcon = icon.hIcolib;
+	bbd.hIcon = iconList[0].hIcolib;
 	bbd.dwButtonID = iNumber;
 	bbd.dwDefPos = 220;
-	Srmm_AddButton(&bbd);
+	Srmm_AddButton(&bbd, &g_plugin);
 	return 0;
 }
 
@@ -52,7 +55,7 @@ int OnButtonPressed(WPARAM wParam, LPARAM lParam)
 	CustomButtonClickData *cbcd = (CustomButtonClickData *)lParam;
 
 	char buttonName[32];
-	mir_snprintf(buttonName, MODULE" %x", iNumber + 1);
+	mir_snprintf(buttonName, MODULENAME" %x", iNumber + 1);
 	if (mir_strcmp(cbcd->pszModule, buttonName))
 		return 0;
 
@@ -61,11 +64,11 @@ int OnButtonPressed(WPARAM wParam, LPARAM lParam)
 
 	char key[64];
 	mir_snprintf(key, "RepliesCount_%x", iNumber);
-	int count = db_get_w(NULL, MODULE, key, 0);
+	int count = db_get_w(NULL, MODULENAME, key, 0);
 
 	if (count == 0 || cbcd->flags & BBCF_RIGHTBUTTON) {
 		mir_snprintf(buttonName, "%s %x", Translate("Button"), iNumber + 1);
-		Options_Open(L"Message sessions", L"Quick Replies", _A2T(buttonName));
+		g_plugin.openOptions(L"Message sessions", L"Quick Replies", _A2T(buttonName));
 		return 0;
 	}
 
@@ -74,7 +77,7 @@ int OnButtonPressed(WPARAM wParam, LPARAM lParam)
 	LIST<wchar_t> replyList(1);
 	for (int i = 0; i < count; i++) {
 		mir_snprintf(key, "Reply_%x_%x", iNumber, i);
-		ptrW value(db_get_wsa(NULL, MODULE, key));
+		ptrW value(db_get_wsa(NULL, MODULENAME, key));
 		if (value == nullptr)
 			replyList.insert(mir_wstrdup(L""));
 		else
@@ -92,7 +95,7 @@ int OnButtonPressed(WPARAM wParam, LPARAM lParam)
 			CallService(MS_MSG_SENDMESSAGEW, cbcd->hContact, (LPARAM)replyList[index - 1]);
 
 			mir_snprintf(key, "ImmediatelySend_%x", iNumber);
-			if (db_get_b(NULL, MODULE, key, 1) || cbcd->flags & BBCF_CONTROLPRESSED)
+			if (db_get_b(NULL, MODULENAME, key, 1) || cbcd->flags & BBCF_CONTROLPRESSED)
 				SendMessage(cbcd->hwndFrom, WM_COMMAND, IDOK, 0);
 		}
 	}

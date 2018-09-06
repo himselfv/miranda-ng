@@ -3,6 +3,31 @@
 ;  Module: Miranda Core
 ;  Version: 0.95.9
 ;============================================================
+;file \src\core\stdautoaway\res\resource.rc
+[Become idle if the following is left unattended:]
+Przejdź w bezczynność jeśli aktywności nie wykazuje:
+[Become idle if the screen saver is active]
+Przejdź w bezczynność gdy działa wygaszacz ekranu
+[Become idle if the computer is locked]
+Przejdź w bezczynność gdy komputer jest zablokowany
+[Become idle if a terminal session is disconnected]
+Przejdź w stan bezczynności jeśli terminal sesji jest rozłączony
+[Do not let protocols report any idle information]
+Nie pozwalaj protokołom raportować bezczynności
+[minute(s)]
+minut(y)
+[for]
+przez
+[Change my status mode to:]
+Zmień mój status na:
+[Do not set status back to online when returning from idle]
+Nie zmieniaj mojego statusu na "Dostępny" gdy wracam z bezczynności
+[Idle options]
+Opcje bezczynności
+[Become idle if application full screen]
+Przejdź w bezczynność gdy uruchomiona jest aplikacja pełnoekranowa
+[Disable sounds on idle]
+Wyłącz dźwięki kiedy bezczynny
 ;file \src\core\stdaway\res\resource.rc
 [%s message for %s]
 Opis statusu "%s" - %s
@@ -223,32 +248,6 @@ Sekcje tej samej szerokości
 Pokaz separatory na panelach
 [Show resize grip indicator]
 Pokaż wskaźnik rozmiaru uchwytu
-[&Main menu]
-&Menu główne
-[E&xit]
-W&yjdź
-[&Status]
-&Status
-[&Offline\tCtrl+0]
-&Rozłączony\tCtrl+0
-[On&line\tCtrl+1]
-&Dostępny\tCtrl+1
-[&Away\tCtrl+2]
-&Zaraz wracam\tCtrl+2
-[&Not available\tCtrl+3]
-&Wrócę później\tCtrl+3
-[Occ&upied\tCtrl+4]
-Za&jęty\tCtrl+4
-[&Do not disturb\tCtrl+5]
-&Nie przeszkadzać\tCtrl+5
-[&Free for chat\tCtrl+6]
-&Porozmawiajmy\tCtrl+6
-[&Invisible\tCtrl+7]
-N&iewidoczny\tCtrl+7
-[On the &phone\tCtrl+8]
-Pod &telefonem\tCtrl+8
-[Out to &lunch\tCtrl+9]
-Na &obiedzie\tCtrl+9
 ;file \src\core\stdfile\res\resource.rc
 [Send file(s)]
 Wyślij plik(i)
@@ -376,31 +375,6 @@ Pytaj mnie
 Zmień nazwę (dodaj " (1)", itp.)
 [You will always be asked about files from people not on your contact list]
 Zawsze będziesz pytany o pliki od osób spoza twojej listy kontaktów
-;file \src\core\stdidle\res\resource.rc
-[Become idle if the following is left unattended:]
-Przejdź w bezczynność jeśli aktywności nie wykazuje:
-[Become idle if the screen saver is active]
-Przejdź w bezczynność gdy działa wygaszacz ekranu
-[Become idle if the computer is locked]
-Przejdź w bezczynność gdy komputer jest zablokowany
-[Become idle if a terminal session is disconnected]
-Przejdź w stan bezczynności jeśli terminal sesji jest rozłączony
-[Do not let protocols report any idle information]
-Nie pozwalaj protokołom raportować bezczynności
-[minute(s)]
-minut(y)
-[for]
-przez
-[Change my status mode to:]
-Zmień mój status na:
-[Do not set status back to online when returning from idle]
-Nie zmieniaj mojego statusu na "Dostępny" gdy wracam z bezczynności
-[Idle options]
-Opcje bezczynności
-[Become idle if application full screen]
-Przejdź w bezczynność gdy uruchomiona jest aplikacja pełnoekranowa
-[Disable sounds on idle]
-Wyłącz dźwięki kiedy bezczynny
 ;file \src\core\stdmsg\res\resource.rc
 [Automatically popup window when:]
 Automatycznie pokazuj okno gdy:
@@ -418,7 +392,7 @@ Użyj ikony statusu kontaktu jako ikony okna
 Zapamiętaj rozmiar i położenie okna oddzielnie dla każdego kontaktu
 [Cascade new windows]
 Kaskaduj nowe okna
-[Support CTRL+Up/Down in message area to show previously sent messages]
+[Support Ctrl+Up/Down in message area to show previously sent messages]
 Pozwalaj używać Ctrl+góra/dół w oknie rozmowy by przewijać wysłane wiadomości
 [Delete temporary contacts when closing message window]
 Usuń tymczasowe kontakty po zamknięciu okna rozmowy
@@ -474,8 +448,6 @@ minut(y)
 Użyj kart
 [Close tab on double click]
 Dwuklik zamyka kartę
-[Restore previously open tabs when showing the window]
-Przywróć ostatnio używane karty po otworzeniu okna
 [Show tabs at the bottom]
 Pokaż karty na dole
 [Send typing notifications to the following users when you are typing a message to them:]
@@ -1049,8 +1021,8 @@ Drugi kolor:
 Tylko zaznaczone ikony będą pokazywane na liście kontaktów:
 [*only the first %d icons will be shown]
 * tylko %d pierwszych ikon będzie pokazywane
-[You can group/ungroup icons by selecting them (CTRL+left click) and using the popup menu (right click)]
-Możesz grupować wyświetlane ikony (CTRL+LPM) i użyć menu popup (PPM)
+[You can group/ungroup icons by selecting them (Ctrl+left click) and using the popup menu (right click)]
+Możesz grupować wyświetlane ikony (Ctrl+LPM) i użyć menu popup (PPM)
 [Add to existing metacontact]
 Dodaj do metakontaktu
 [Please select a metacontact:]
@@ -1137,6 +1109,8 @@ Autorzy >
 Zasobnik
 [&Hide/Show]
 &Pokaż/Ukryj
+[E&xit]
+W&yjdź
 [Nowhere]
 Nigdzie
 [&New group]
@@ -1193,6 +1167,35 @@ Wikipedia
 Google Maps
 [Google Translate]
 Google Translate
+[&Main menu]
+&Menu główne
+[&Status]
+&Status
+[&Offline\tCtrl+0]
+&Rozłączony\tCtrl+0
+[On&line\tCtrl+1]
+&Dostępny\tCtrl+1
+[&Away\tCtrl+2]
+&Zaraz wracam\tCtrl+2
+[&Not available\tCtrl+3]
+&Wrócę później\tCtrl+3
+[Occ&upied\tCtrl+4]
+Za&jęty\tCtrl+4
+[&Do not disturb\tCtrl+5]
+&Nie przeszkadzać\tCtrl+5
+[&Free for chat\tCtrl+6]
+&Porozmawiajmy\tCtrl+6
+[&Invisible\tCtrl+7]
+N&iewidoczny\tCtrl+7
+[On the &phone\tCtrl+8]
+Pod &telefonem\tCtrl+8
+[Out to &lunch\tCtrl+9]
+Na &obiedzie\tCtrl+9
+;file \src\core\stdautoaway\src\options.cpp
+[Status]
+Status
+[Idle]
+Bezczynność
 ;file \src\core\stdaway\src\awaymsg.cpp
 [Re&ad %s message]
 Po&każ opis "%s"
@@ -1221,8 +1224,6 @@ Muszę odebrać telefon.
 Mmm... jedzonko.
 [idleeeeeeee]
 Bezczynnyyyyyyy
-[Status]
-Status
 ;file \src\core\stdclist\src\clcfonts.cpp
 [Standard contacts]
 Standardowe kontakty
@@ -1386,9 +1387,6 @@ Ukończono przesyłanie i skanowanie wirusów
 ;file \src\core\stdfile\src\ftmanager.cpp
 [Outgoing]
 Wychodzące
-;file \src\core\stdidle\src\options.cpp
-[Idle]
-Bezczynność
 ;file \src\core\stdmsg\src\chat_manager.cpp
 [Message sessions]
 Okno rozmowy
@@ -1704,39 +1702,39 @@ Wiadomość od %s
 %s pisze wiadomość
 [Typing notification]
 Pisanie
-[View user's history (CTRL+H)]
-Zobacz historię użytkownika (CTRL+H)
+[View user's history (Ctrl+H)]
+Zobacz historię użytkownika (Ctrl+H)
 [&Bold]
 &Pogrubienie
-[Make the text bold (CTRL+B)]
+[Make the text bold (Ctrl+B)]
 Pogrub tekst (Ctrl+B)
 [&Italic]
 &Kursywa
-[Make the text italicized (CTRL+I)]
+[Make the text italicized (Ctrl+I)]
 Dodaj kursywę do tekstu (Ctrl+I)
 [&Underline]
 P&odkreślenie
-[Make the text underlined (CTRL+U)]
+[Make the text underlined (Ctrl+U)]
 Podkreśl tekst (Ctrl+U)
 [&Color]
 K&olor
-[Select a foreground color for the text (CTRL+K)]
+[Select a foreground color for the text (Ctrl+K)]
 Wybierz kolor dla tekstu (Ctrl+K)
 [&Background color]
 Kolor &tła
-[Select a background color for the text (CTRL+L)]
+[Select a background color for the text (Ctrl+L)]
 Wybierz kolor tła dla tekstu (Ctrl+L)
 [&Room settings]
 Ustawienia &pokoju
-[Control this room (CTRL+O)]
+[Control this room (Ctrl+O)]
 Kontroluj ten pokój (Ctrl + O)
 [&Show/hide nick list]
 &Pokaż/Ukryj listę nicków
-[Show/hide the nick list (CTRL+N)]
+[Show/hide the nick list (Ctrl+N)]
 Pokaż/Ukryj listę nazw (Ctrl+N)
 [&Filter]
 &Filtr
-[Enable/disable the event filter (CTRL+F)]
+[Enable/disable the event filter (Ctrl+F)]
 Włącz/wyłącz filtr zdarzeń (Ctrl+F)
 [Miranda could not load the built-in message module, msftedit.dll is missing. Press 'Yes' to continue loading Miranda.]
 Miranda nie może załadować wbudowanego modułu wiadomości, brakuje msftedit.dll. Wciśnij "Tak" aby kontynuować.
@@ -2514,7 +2512,7 @@ Czy na pewno chcesz usunąć profil "%s"?
 [Run]
 Uruchom
 [Compact]
-
+Skompaktuj
 [Size]
 Rozmiar
 [Created]
@@ -3195,8 +3193,6 @@ Zambia
 Zimbabwe
 ;file \src\mir_app\src\visibility.cpp
 ;file \src\mir_core\src\bitmaps.cpp
-[All Files]
-Wszystkie pliki
 [Windows bitmaps]
 Mapa bitowa Windows
 [JPEG bitmaps]

@@ -1,11 +1,13 @@
 #include "stdafx.h"
 
-int	hLangpack;
-HINSTANCE g_hInstance;
-HANDLE	hFolder;
+CMPlugin g_plugin;
+
+HANDLE hFolder;
 char g_szMirVer[100];
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -18,11 +20,11 @@ PLUGININFOEX pluginInfo = {
 	{ 0x81c220a6, 0x226, 0x4ad6, { 0xbf, 0xca, 0x21, 0x7b, 0x17, 0xa1, 0x60, 0x53 } }
 };
 
-BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD, LPVOID)
-{
-	g_hInstance = hInstance;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 static INT_PTR ABService(WPARAM, LPARAM)
 {
@@ -62,8 +64,8 @@ static int FoldersGetBackupPath(WPARAM, LPARAM)
 
 static int ModulesLoad(WPARAM, LPARAM)
 {
-	CMenuItem mi;
-	mi.root = Menu_CreateRoot(MO_MAIN, LPGENW("Database"), 500100000);
+	CMenuItem mi(&g_plugin);
+	mi.root = g_plugin.addRootMenu(MO_MAIN, LPGENW("Database"), 500100000);
 
 	SET_UID(mi, 0x1439b1db, 0x7d95, 0x495b, 0xbf, 0x5, 0x3d, 0x21, 0xc1, 0xeb, 0xf7, 0x58);
 	mi.name.a = LPGEN("Backup profile");
@@ -85,8 +87,8 @@ static int ModulesLoad(WPARAM, LPARAM)
 	}
 	else {
 		DBVARIANT dbv;
-		if (!db_get_ws(0, MODULE, "Folder", &dbv)) {
-			wcsncpy_s(options.folder, dbv.ptszVal, _TRUNCATE);
+		if (!db_get_ws(0, MODULENAME, "Folder", &dbv)) {
+			wcsncpy_s(options.folder, dbv.pwszVal, _TRUNCATE);
 			db_free(&dbv);
 		}
 		else mir_snwprintf(options.folder, L"%s%s", DIR, SUB_DIR);
@@ -108,21 +110,14 @@ static int PreShutdown(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+int CMPlugin::Load()
 {
-	return &pluginInfo;
-}
-
-extern "C" __declspec(dllexport) int Load(void)
-{
-	mir_getLP(&pluginInfo);
-
 	Miranda_GetVersionText(g_szMirVer, sizeof(g_szMirVer));
 
 	HookEvent(ME_SYSTEM_PRESHUTDOWN, PreShutdown);
 	HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoad);
 
-	Icon_Register(g_hInstance, LPGEN("Database") "/" LPGEN("Database backups"), iconList, _countof(iconList));
+	g_plugin.registerIcon(LPGEN("Database") "/" LPGEN("Database backups"), iconList);
 
 	CreateServiceFunction(MS_AB_BACKUP, ABService);
 	CreateServiceFunction(MS_AB_SAVEAS, DBSaveAs);
@@ -130,13 +125,5 @@ extern "C" __declspec(dllexport) int Load(void)
 	HookEvent(ME_OPT_INITIALISE, OptionsInit);
 
 	SetBackupTimer();
-
 	return 0;
 }
-
-extern "C" __declspec(dllexport) int Unload(void)
-{
-	return 0;
-}
-
-

@@ -133,7 +133,7 @@ LONG_PTR CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 	switch (msg) {
 	case WM_CREATE:
 		for (auto &it : _hotkeydescs)
-			Hotkey_Register(&it);
+			g_plugin.addHotkey(&it);
 
 		WM_TASKBARCREATED = RegisterWindowMessageA("TaskbarCreated");
 		ShowWindow(hwndDlg, SW_HIDE);
@@ -143,7 +143,7 @@ LONG_PTR CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 
 	case WM_HOTKEY:
 		{
-			CLISTEVENT *cli = pcli->pfnGetEvent(-1, 0);
+			CLISTEVENT *cli = g_clistApi.pfnGetEvent(-1, 0);
 			if (cli != nullptr) {
 				if (strncmp(cli->pszService, MS_MSG_TYPINGMESSAGE, mir_strlen(cli->pszService))) {
 					CallService(cli->pszService, 0, (LPARAM)cli);
@@ -191,7 +191,7 @@ LONG_PTR CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 					HICON hIcon;
 
 					if (dis->itemData > 0)
-						hIcon = (dis->itemData & 0x10000000) ? pci->hIcons[ICON_HIGHLIGHT] : PluginConfig.g_IconMsgEvent;
+						hIcon = (dis->itemData & 0x10000000) ? g_chatApi.hIcons[ICON_HIGHLIGHT] : PluginConfig.g_IconMsgEvent;
 					else if (dat != nullptr) {
 						hIcon = dat->GetMyContactIcon(nullptr);
 						idle = dat->m_idle;
@@ -337,11 +337,11 @@ LONG_PTR CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 		if (lParam == 0)
 			HandleMenuEntryFromhContact(wParam);
 		else {
-			CLISTEVENT *cle = pcli->pfnGetEvent(wParam, 0);
+			CLISTEVENT *cle = g_clistApi.pfnGetEvent(wParam, 0);
 			if (cle) {
 				if (ServiceExists(cle->pszService)) {
 					CallService(cle->pszService, 0, (LPARAM)cle);
-					pcli->pfnRemoveEvent(cle->hContact, cle->hDbEvent);
+					g_clistApi.pfnRemoveEvent(cle->hContact, cle->hDbEvent);
 				}
 			}
 			// still, we got that message posted.. the event may be waiting in tabSRMMs tray...
@@ -380,39 +380,14 @@ LONG_PTR CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 
 	case DM_REMOVECLISTEVENT:
 		// sent from the popup to "dismiss" the event. we should do this in the main thread
-		pcli->pfnRemoveEvent(wParam, lParam);
+		g_clistApi.pfnRemoveEvent(wParam, lParam);
 		db_event_markRead(wParam, lParam);
 		return 0;
 
-	case DM_SETLOCALE:
-		{
-			HKL hkl = (HKL)lParam;
-			MCONTACT hContact = wParam;
-
-			HWND	hWnd = Srmm_FindWindow(hContact);
-			if (hWnd) {
-				CSrmmWindow *dat = (CSrmmWindow*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-				if (dat) {
-					if (hkl) {
-						dat->m_hkl = hkl;
-						PostMessage(dat->GetHwnd(), DM_SETLOCALE, 0, 0);
-					}
-
-					DBVARIANT  dbv;
-					if (0 == db_get_ws(hContact, SRMSGMOD_T, "locale", &dbv)) {
-						dat->GetLocaleID(dbv.ptszVal);
-						db_free(&dbv);
-						dat->UpdateReadChars();
-					}
-				}
-			}
-		}
-		return 0;
-
-	// react to changes in the desktop composition state
-	// (enable/disable DWM, change to a non-aero visual style
-	// or classic Windows theme
 	case WM_DWMCOMPOSITIONCHANGED:
+		// react to changes in the desktop composition state
+		// (enable/disable DWM, change to a non-aero visual style
+		// or classic Windows theme
 		SendMessage(hwndDlg, WM_THEMECHANGED, 0, 0);
 		{
 			bool bNewAero = M.getAeroState(); // refresh dwm state

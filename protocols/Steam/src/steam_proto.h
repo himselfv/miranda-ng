@@ -276,11 +276,9 @@ protected:
 
 struct CMPlugin : public ACCPROTOPLUGIN<CSteamProto>
 {
-	CMPlugin() :
-		ACCPROTOPLUGIN<CSteamProto>("STEAM")
-	{
-		SetUniqueId("SteamID");
-	}
+	CMPlugin();
+
+	int Load() override;
 };
 
 int OnReloadIcons(WPARAM wParam, LPARAM lParam);

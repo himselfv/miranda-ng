@@ -18,9 +18,6 @@
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#ifndef COMMHEADERS_H
-#define COMMHEADERS_H
-
 #include <windows.h>
 
 #include <win2k.h>
@@ -33,5 +30,3 @@
 #include "version.h"
 
 #define MODULENAME "Rate"
-
-#endif //COMMHEADERS_H

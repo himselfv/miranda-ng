@@ -19,15 +19,20 @@ Boston, MA 02111-1307, USA.
 
 #include "stdafx.h"
 
-CLIST_INTERFACE *pcli;
-HINSTANCE hInst;
-int hLangpack = 0;
+CMPlugin g_plugin;
 
 bool g_bAvsExist;
 
+static IconItem iconList[] =
+{
+	{ LPGEN("Listening to"), "LISTENING_TO_ICON", IDI_LISTENINGTO },
+	{ LPGEN("Previous account"), "MYDETAILS_PREV_PROTOCOL", IDI_LEFT_ARROW },
+	{ LPGEN("Next account"), "MYDETAILS_NEXT_PROTOCOL", IDI_RIGHT_ARROW }
+};
+
 // Plugin data ////////////////////////////////////////////////////////////////////////////////////
 
-PLUGININFOEX pluginInfo = {
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -40,25 +45,9 @@ PLUGININFOEX pluginInfo = {
 	{ 0xa82baeb3, 0xa33c, 0x4036, { 0xb8, 0x37, 0x78, 0x3, 0xa5, 0xb6, 0xc2, 0xab } }
 };
 
-static IconItem iconList[] =
-{
-	{ LPGEN("Listening to"), "LISTENING_TO_ICON", IDI_LISTENINGTO },
-	{ LPGEN("Previous account"), "MYDETAILS_PREV_PROTOCOL", IDI_LEFT_ARROW },
-	{ LPGEN("Next account"), "MYDETAILS_NEXT_PROTOCOL", IDI_RIGHT_ARROW }
-};
-
-// Functions //////////////////////////////////////////////////////////////////////////////////////
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 // Services ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -86,7 +75,7 @@ static int MainInit(WPARAM, LPARAM)
 	InitProtocolData();
 
 	// Add options to menu
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x73ff525d, 0x7b8, 0x49cc, 0xa2, 0xdf, 0xc5, 0xad, 0x13, 0xf3, 0x8e, 0x2d);
 	mi.position = 500050000;
 	mi.flags =  CMIF_UNICODE;
@@ -140,11 +129,8 @@ static int MainUninit(WPARAM, LPARAM)
 
 // Load ///////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
 	// Hook event to load messages and show first one
 	HookEvent(ME_SYSTEM_MODULESLOADED, MainInit);
 	HookEvent(ME_SYSTEM_PRESHUTDOWN, MainUninit);
@@ -152,10 +138,7 @@ extern "C" __declspec(dllexport) int Load()
 	// Options
 	InitOptions();
 
-	if (IcoLib_GetIcon("LISTENING_TO_ICON") == nullptr)
-		Icon_Register(hInst, LPGEN("Contact list"), iconList, 1);
-
-	Icon_Register(hInst, LPGEN("My details"), iconList + 1, _countof(iconList) - 1);
+	g_plugin.registerIcon(LPGEN("My details"), iconList);
 
 	// Register services
 	CreateServiceFunction(MS_MYDETAILS_SETMYNICKNAME, PluginCommand_SetMyNickname);
@@ -174,7 +157,7 @@ extern "C" __declspec(dllexport) int Load()
 
 // Unload /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	DeInitProtocolData();
 	return 0;

@@ -154,7 +154,7 @@ LPTSTR IcoLib_GetDefaultIconFileName()
  **/
 static void IcoLib_CheckIconPackVersion(LPTSTR szIconPack)
 {
-	if (db_get_b(NULL, MODNAME, SET_ICONS_CHECKFILEVERSION, TRUE)) {
+	if (db_get_b(NULL, MODULENAME, SET_ICONS_CHECKFILEVERSION, TRUE)) {
 		if (szIconPack) {
 			wchar_t szAbsolutePath[MAX_PATH];
 			PathToAbsoluteW(szIconPack, szAbsolutePath);
@@ -260,7 +260,7 @@ static HANDLE IcoLib_RegisterIconHandleEx(LPSTR szIconID, LPSTR szDescription, L
 				sid.hDefaultIcon = hDefIcon;
 				sid.iDefaultIndex = -1;
 			}
-			hIconHandle = IcoLib_AddIcon(&sid);
+			hIconHandle = g_plugin.addIcon(&sid);
 		}
 		MIR_FREE(sid.description.w);
 		MIR_FREE(sid.section.w);
@@ -323,7 +323,7 @@ static IconItem common[] =
 
 void IcoLib_LoadModule()
 {
-	Icon_Register(ghInst, SECT_COMMON, common, 2);
+	g_plugin.registerIcon(SECT_COMMON, common);
 
 	LPTSTR szDefaultFile = IcoLib_GetDefaultIconFileName();
 	IcoLib_CheckIconPackVersion(szDefaultFile);

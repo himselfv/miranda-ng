@@ -2,32 +2,33 @@
 	ClientChangeNotify - Plugin for Miranda IM
 	Copyright (c) 2006-2008 Chervov Dmitry
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "stdafx.h"
 
-HINSTANCE g_hInstance;
-HANDLE    g_hMainThread;
-HGENMENU  g_hTogglePopupsMenuItem;
-int       hLangpack;
+HGENMENU g_hTogglePopupsMenuItem;
+
+CMPlugin g_plugin;
 
 COptPage *g_PreviewOptPage; // we need to show popup even for the NULL contact if g_PreviewOptPage is not NULL (used for popup preview)
 BOOL bPopupExists = FALSE, bFingerprintExists = FALSE, bVariablesExists = FALSE;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -40,16 +41,11 @@ PLUGININFOEX pluginInfo = {
 	{0xb68a8906, 0x748b, 0x435d, {0x93, 0xe, 0x21, 0xcc, 0x6e, 0x8f, 0x3b, 0x3f}}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	g_hInstance = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX *MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 static int CALLBACK MenuWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -63,22 +59,21 @@ static int CALLBACK MenuWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-
-static VOID NTAPI ShowContactMenu(ULONG_PTR wParam)
-// wParam = hContact
+static VOID CALLBACK ShowContactMenu(void *param)
 {
+	MCONTACT hContact = (ULONG_PTR)param;
+
 	POINT pt;
-	HWND hMenuWnd = CreateWindowEx(WS_EX_TOOLWINDOW, L"static", _A2W(MOD_NAME) L"_MenuWindow", 0, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, HWND_DESKTOP, nullptr, g_hInstance, nullptr);
+	HWND hMenuWnd = CreateWindowEx(WS_EX_TOOLWINDOW, L"static", _A2W(MODULENAME) L"_MenuWindow", 0, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, HWND_DESKTOP, nullptr, g_plugin.getInst(), nullptr);
 	SetWindowLongPtr(hMenuWnd, GWLP_WNDPROC, (LONG_PTR)MenuWndProc);
-	HMENU hMenu = Menu_BuildContactMenu(wParam);
+	HMENU hMenu = Menu_BuildContactMenu(hContact);
 	GetCursorPos(&pt);
 	SetForegroundWindow(hMenuWnd);
-	Clist_MenuProcessCommand(TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD, pt.x, pt.y, 0, hMenuWnd, nullptr), MPCF_CONTACTMENU, wParam);
+	Clist_MenuProcessCommand(TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD, pt.x, pt.y, 0, hMenuWnd, nullptr), MPCF_CONTACTMENU, hContact);
 	PostMessage(hMenuWnd, WM_NULL, 0, 0);
 	DestroyMenu(hMenu);
 	DestroyWindow(hMenuWnd);
 }
-
 
 void Popup_DoAction(HWND hWnd, BYTE Action, PLUGIN_DATA*)
 {
@@ -91,7 +86,7 @@ void Popup_DoAction(HWND hWnd, BYTE Action, PLUGIN_DATA*)
 
 	case PCA_OPENMENU: // open contact menu
 		if (hContact && hContact != INVALID_CONTACT_ID)
-			QueueUserAPC(ShowContactMenu, g_hMainThread, (ULONG_PTR)hContact);
+			CallFunctionAsync(ShowContactMenu, (void*)hContact);
 		break;
 
 	case PCA_OPENDETAILS: // open contact details window
@@ -112,7 +107,6 @@ void Popup_DoAction(HWND hWnd, BYTE Action, PLUGIN_DATA*)
 		break;
 	}
 }
-
 
 static LRESULT CALLBACK PopupWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -142,7 +136,6 @@ static LRESULT CALLBACK PopupWndProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-
 void ShowPopup(SHOWPOPUP_DATA *sd)
 {
 	TCString PopupText;
@@ -156,7 +149,7 @@ void ShowPopup(SHOWPOPUP_DATA *sd)
 	}
 
 	PLUGIN_DATA *pdata = (PLUGIN_DATA*)calloc(1, sizeof(PLUGIN_DATA));
-	POPUPDATAT ppd = {0};
+	POPUPDATAT ppd = { 0 };
 	ppd.lchContact = sd->hContact;
 	char *szProto = GetContactProto(sd->hContact);
 	pdata->hIcon = ppd.lchIcon = Finger_GetClientIcon(sd->MirVer, false);
@@ -184,24 +177,26 @@ int ContactSettingChanged(WPARAM hContact, LPARAM lParam)
 	if (strcmp(cws->szSetting, DB_MIRVER))
 		return 0;
 
-	SHOWPOPUP_DATA sd = {0};
-	char *szProto = GetContactProto(hContact);
-	if (g_PreviewOptPage)
-		sd.MirVer = L"Miranda NG ICQ 0.93.5.3007";
+	SHOWPOPUP_DATA sd = { 0 };
+	if (g_PreviewOptPage) {
+		char szVersion[200];
+		Miranda_GetVersionText(szVersion, _countof(szVersion));
+		sd.MirVer = _A2T(szVersion);
+	}
 	else {
 		if (!hContact) // exit if hContact == NULL and it's not a popup preview
 			return 0;
 
-		_ASSERT(szProto);
-		if (!strcmp(szProto, META_PROTO)) // workaround for metacontacts
+		char *szProto = GetContactProto(hContact);
+		if (!mir_strcmp(szProto, META_PROTO)) // workaround for metacontacts
 			return 0;
 
 		sd.MirVer = db_get_s(hContact, szProto, DB_MIRVER, L"");
 		if (sd.MirVer.IsEmpty())
 			return 0;
 	}
-	sd.OldMirVer = db_get_s(hContact, MOD_NAME, DB_OLDMIRVER, L"");
-	db_set_ws(hContact, MOD_NAME, DB_OLDMIRVER, sd.MirVer); // we have to write it here, because we modify sd.OldMirVer and sd.MirVer to conform our settings later
+	sd.OldMirVer = db_get_s(hContact, MODULENAME, DB_OLDMIRVER, L"");
+	db_set_ws(hContact, MODULENAME, DB_OLDMIRVER, sd.MirVer); // we have to write it here, because we modify sd.OldMirVer and sd.MirVer to conform our settings later
 	if (sd.OldMirVer.IsEmpty())  // looks like it's the right way to do
 		return 0;
 
@@ -220,16 +215,16 @@ int ContactSettingChanged(WPARAM hContact, LPARAM lParam)
 	if (hContact && db_get_b(hContactOrMeta, "CList", "Hidden", 0))
 		return 0;
 
-	int PerContactSetting = hContact ? db_get_b(hContact, MOD_NAME, DB_CCN_NOTIFY, NOTIFY_USEGLOBAL) : NOTIFY_ALWAYS; // NOTIFY_ALWAYS for preview
+	int PerContactSetting = hContact ? db_get_b(hContact, MODULENAME, DB_CCN_NOTIFY, NOTIFY_USEGLOBAL) : NOTIFY_ALWAYS; // NOTIFY_ALWAYS for preview
 	if (PerContactSetting == NOTIFY_USEGLOBAL && hContactOrMeta != hContact) // subcontact setting has a priority over a metacontact setting
-		PerContactSetting = db_get_b(hContactOrMeta, MOD_NAME, DB_CCN_NOTIFY, NOTIFY_USEGLOBAL);
+		PerContactSetting = db_get_b(hContactOrMeta, MODULENAME, DB_CCN_NOTIFY, NOTIFY_USEGLOBAL);
 
 	if (PerContactSetting && (PerContactSetting == NOTIFY_ALMOST_ALWAYS || PerContactSetting == NOTIFY_ALWAYS || !PopupOptPage.GetValue(IDC_POPUPOPTDLG_USESTATUSNOTIFYFLAG) || !(db_get_dw(hContactOrMeta, "Ignore", "Mask1", 0) & 0x8))) { // check if we need to notify at all
 		sd.hContact = hContact;
 		sd.PopupOptPage = &PopupOptPage;
 		if (!PopupOptPage.GetValue(IDC_POPUPOPTDLG_VERCHGNOTIFY) || !PopupOptPage.GetValue(IDC_POPUPOPTDLG_SHOWVER)) {
 			if (bFingerprintExists) {
-				LPCTSTR ptszOldClient = Finger_GetClientDescr(sd.OldMirVer); 
+				LPCTSTR ptszOldClient = Finger_GetClientDescr(sd.OldMirVer);
 				LPCTSTR ptszClient = Finger_GetClientDescr(sd.MirVer);
 				if (ptszOldClient && ptszClient) {
 					if (PerContactSetting != NOTIFY_ALMOST_ALWAYS && PerContactSetting != NOTIFY_ALWAYS && !PopupOptPage.GetValue(IDC_POPUPOPTDLG_VERCHGNOTIFY) && !wcscmp(ptszClient, ptszOldClient))
@@ -296,11 +291,13 @@ INT_PTR CALLBACK CCNErrorDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM)
 
 	case WM_DESTROY:
 		if (IsDlgButtonChecked(hwndDlg, IDC_DONTREMIND))
-			db_set_b(NULL, MOD_NAME, DB_NO_FINGERPRINT_ERROR, 1);
+			db_set_b(NULL, MODULENAME, DB_NO_FINGERPRINT_ERROR, 1);
 		break;
 	}
 	return 0;
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 static int ModuleLoad(WPARAM, LPARAM)
 {
@@ -310,7 +307,7 @@ static int ModuleLoad(WPARAM, LPARAM)
 	return 0;
 }
 
-int MirandaLoaded(WPARAM, LPARAM)
+static int MirandaLoaded(WPARAM, LPARAM)
 {
 	ModuleLoad(0, 0);
 	COptPage PopupOptPage(g_PopupOptPage);
@@ -321,15 +318,15 @@ int MirandaLoaded(WPARAM, LPARAM)
 	HookEvent(ME_SYSTEM_MODULEUNLOAD, ModuleLoad);
 	HookEvent(ME_DB_CONTACT_SETTINGCHANGED, ContactSettingChanged);
 
-	Skin_AddSound(CLIENTCHANGED_SOUND, nullptr, LPGENW("ClientChangeNotify: Client changed"));
+	g_plugin.addSound(CLIENTCHANGED_SOUND, nullptr, LPGENW("ClientChangeNotify: Client changed"));
 
 	if (bPopupExists) {
 		CreateServiceFunction(MS_CCN_TOGGLEPOPUPS, srvTogglePopups);
 		HookEvent(ME_CLIST_PREBUILDMAINMENU, PrebuildMainMenu);
-	
-		CMenuItem mi;
+
+		CMenuItem mi(&g_plugin);
 		SET_UID(mi, 0xfabb9181, 0xdb92, 0x43f4, 0x86, 0x40, 0xca, 0xb6, 0x4c, 0x93, 0x34, 0x27);
-		mi.root = Menu_CreateRoot(MO_MAIN, LPGENW("Popups"), 0);
+		mi.root = g_plugin.addRootMenu(MO_MAIN, LPGENW("Popups"), 0);
 		mi.flags = CMIF_UNICODE;
 		if (g_PopupOptPage.GetDBValueCopy(IDC_POPUPOPTDLG_POPUPNOTIFY))
 			mi.name.w = LPGENW("Disable c&lient change notification");
@@ -341,33 +338,25 @@ int MirandaLoaded(WPARAM, LPARAM)
 	}
 
 	// seems that Fingerprint is not installed
-	if (!bFingerprintExists && !db_get_b(NULL, MOD_NAME, DB_NO_FINGERPRINT_ERROR, 0))
-		CreateDialog(g_hInstance, MAKEINTRESOURCE(IDD_CCN_ERROR), nullptr, CCNErrorDlgProc);
+	if (!bFingerprintExists && !db_get_b(NULL, MODULENAME, DB_NO_FINGERPRINT_ERROR, 0))
+		CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(IDD_CCN_ERROR), nullptr, CCNErrorDlgProc);
 
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, MirandaLoaded);
-	DuplicateHandle(GetCurrentProcess(), GetCurrentThread(), GetCurrentProcess(), &g_hMainThread, THREAD_SET_CONTEXT, false, 0);
+
 	InitOptions();
 
-	if (db_get_b(NULL, MOD_NAME, DB_SETTINGSVER, 0) < 1) {
+	if (db_get_b(NULL, MODULENAME, DB_SETTINGSVER, 0) < 1) {
 		TCString Str;
-		Str = db_get_s(NULL, MOD_NAME, DB_IGNORESUBSTRINGS, L"");
+		Str = db_get_s(NULL, MODULENAME, DB_IGNORESUBSTRINGS, L"");
 		if (Str.GetLen()) // fix incorrect regexp from v0.1.1.0
-			db_set_ws(NULL, MOD_NAME, DB_IGNORESUBSTRINGS, Str.Replace(L"/Miranda[0-9A-F]{8}/", L"/[0-9A-F]{8}(\\W|$)/"));
+			db_set_ws(NULL, MODULENAME, DB_IGNORESUBSTRINGS, Str.Replace(L"/Miranda[0-9A-F]{8}/", L"/[0-9A-F]{8}(\\W|$)/"));
 
-		db_set_b(NULL, MOD_NAME, DB_SETTINGSVER, 1);
+		db_set_b(NULL, MODULENAME, DB_SETTINGSVER, 1);
 	}
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload()
-{
-	CloseHandle(g_hMainThread);
 	return 0;
 }

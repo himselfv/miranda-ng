@@ -26,8 +26,16 @@
 #include "version.h"
 
 #define MaxTextSize 64000
-#define ModuleName  LPGEN("ChangeKeyboardLayout")
+#define MODULENAME  LPGEN("ChangeKeyboardLayout")
 #define ModuleNameW LPGENW("ChangeKeyboardLayout")
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 // History++ API
 #define MS_HPP_EG_WINDOW			"History++/ExtGrid/NewWindow"
@@ -87,8 +95,6 @@ typedef struct
 	BYTE bRightClick;
 	POPUPACTION paActions[1];
 } PopupOptions;
-
-extern HINSTANCE hInst;
 
 extern HICON hPopupIcon, hCopyIcon;
 

@@ -469,12 +469,10 @@ struct CMsnProto : public PROTO<CMsnProto>
 
 struct CMPlugin : public ACCPROTOPLUGIN<CMsnProto>
 {
-	CMPlugin() :
-		ACCPROTOPLUGIN<CMsnProto>("MSN")
-	{
-		::DisableThreadLibraryCalls(m_hInst);
-		SetUniqueId("wlid");
-	}
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
 };
 
 #endif

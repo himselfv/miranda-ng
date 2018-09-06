@@ -53,6 +53,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	DECLARE_HANDLE(HNETLIBBIND);
 #endif
 
+typedef struct TMO_IntMenuItem* HGENMENU;
+
+class CMPluginBase;
+typedef const CMPluginBase* HPLUGIN;
+
 #define MIR_APP_DLL(T) MIR_APP_EXPORT T __stdcall
 
 #pragma warning(disable:4201 4127 4312 4706)
@@ -65,8 +70,8 @@ extern "C"
 ///////////////////////////////////////////////////////////////////////////////
 // command line support
 
-MIR_CORE_DLL(void)    CmdLine_Parse(LPTSTR ptszCmdLine);
-MIR_CORE_DLL(LPCTSTR) CmdLine_GetOption(LPCTSTR ptszParameter);
+MIR_CORE_DLL(void)           CmdLine_Parse(const wchar_t *ptszCmdLine);
+MIR_CORE_DLL(const wchar_t*) CmdLine_GetOption(const wchar_t *ptszParameter);
 
 ///////////////////////////////////////////////////////////////////////////////
 // database functions
@@ -134,8 +139,8 @@ MIR_CORE_DLL(int)     CallFunctionAsync(void (__stdcall *func)(void *), void *ar
 MIR_CORE_DLL(void)    KillModuleServices(HINSTANCE hInst);
 MIR_CORE_DLL(void)    KillObjectServices(void* pObject);
 
-MIR_APP_DLL(int)      ProtoServiceExists(LPCSTR szModule, const char *szService);
-MIR_APP_DLL(INT_PTR)  CallProtoService(LPCSTR szModule, const char *szService, WPARAM wParam = 0, LPARAM lParam = 0);
+MIR_APP_DLL(int)      ProtoServiceExists(const char *szModule, const char *szService);
+MIR_APP_DLL(INT_PTR)  CallProtoService(const char *szModule, const char *szService, WPARAM wParam = 0, LPARAM lParam = 0);
 
 ///////////////////////////////////////////////////////////////////////////////
 // exceptions
@@ -153,40 +158,31 @@ MIR_CORE_DLL(char*) mir_urlEncode(const char *szUrl);
 ///////////////////////////////////////////////////////////////////////////////
 // icons support
 
-extern int hLangpack;
-
-typedef struct tagIconItem
+struct IconItem
 {
 	char  *szDescr, *szName;
 	int    defIconID, size;
 	HANDLE hIcolib;
-}
-	IconItem;
+};
 
-typedef struct tagIconItemT
+struct IconItemT
 {
 	wchar_t *tszDescr;
 	char  *szName;
 	int    defIconID, size;
 	HANDLE hIcolib;
-}
-	IconItemT;
+};
 
-#if defined( __cplusplus )
-MIR_CORE_DLL(void) Icon_Register(HINSTANCE hInst, const char* szSection, IconItem* pIcons, size_t iCount, char *prefix = nullptr, int = hLangpack);
-MIR_CORE_DLL(void) Icon_RegisterT(HINSTANCE hInst, const wchar_t* szSection, IconItemT* pIcons, size_t iCount, char *prefix = nullptr, int = hLangpack);
-#else
-MIR_CORE_DLL(void) Icon_Register(HINSTANCE hInst, const char* szSection, IconItem* pIcons, size_t iCount, char *prefix, int hLangpack);
-MIR_CORE_DLL(void) Icon_RegisterT(HINSTANCE hInst, const wchar_t* szSection, IconItemT* pIcons, size_t iCount, char *prefix, int hLangpack);
-#endif
+MIR_CORE_DLL(void) Icon_Register(HINSTANCE hInst, const char *szSection, IconItem *pIcons, size_t iCount, const char *prefix, HPLUGIN pPlugin);
+MIR_CORE_DLL(void) Icon_RegisterT(HINSTANCE hInst, const wchar_t *szSection, IconItemT *pIcons, size_t iCount, const char *prefix, HPLUGIN pPlugin);
 
 ///////////////////////////////////////////////////////////////////////////////
 // language packs support
 
-MIR_CORE_DLL(unsigned int) mir_hash(const void * key, unsigned int len);
+MIR_CORE_DLL(unsigned int) mir_hash(const void *key, unsigned int len);
 
 #pragma optimize("gt", on)
-__forceinline unsigned int mir_hashstr(const char * key)
+__forceinline unsigned int mir_hashstr(const char *key)
 {
 	if (key == nullptr) return 0;
 	else {
@@ -194,7 +190,7 @@ __forceinline unsigned int mir_hashstr(const char * key)
 		return mir_hash(key, len);
 }	}
 
-__forceinline unsigned int mir_hashstrW(const wchar_t * key)
+__forceinline unsigned int mir_hashstrW(const wchar_t *key)
 {
 	if (key == nullptr) return 0;
 	else {
@@ -307,14 +303,6 @@ MIR_CORE_DLL(char*)    mir_strndup(const char* str, size_t len);
 MIR_CORE_DLL(wchar_t*) mir_wstrndup(const wchar_t *str, size_t len);
 
 ///////////////////////////////////////////////////////////////////////////////
-// modules
-
-MIR_CORE_DLL(void) RegisterModule(HINSTANCE hInst);
-MIR_CORE_DLL(void) UnregisterModule(HINSTANCE hInst);
-
-MIR_CORE_DLL(HINSTANCE) GetInstByAddress(void* codePtr);
-
-///////////////////////////////////////////////////////////////////////////////
 // print functions
 
 MIR_CORE_DLL(int)    mir_snprintf(char *buffer, size_t count, const char* fmt, ...);
@@ -327,7 +315,7 @@ MIR_CORE_DLL(int)    mir_vsnwprintf(wchar_t *buffer, size_t count, const wchar_t
 
 struct PROTO_INTERFACE;
 
-MIR_APP_DLL(INT_PTR) ProtoBroadcastAck(LPCSTR szModule, MCONTACT hContact, int type, int result, HANDLE hProcess, LPARAM lParam);
+MIR_APP_DLL(INT_PTR) ProtoBroadcastAck(const char *szModule, MCONTACT hContact, int type, int result, HANDLE hProcess, LPARAM lParam);
 
 // avatar support functions
 
@@ -492,27 +480,18 @@ MIR_CORE_DLL(void) KillObjectThreads(void* pObject);
 ///////////////////////////////////////////////////////////////////////////////
 // utf8 interface
 
-MIR_CORE_DLL(char*) Utf8Decode(char* str, wchar_t** ucs2);
-MIR_CORE_DLL(char*) Utf8DecodeCP(char* str, int codepage, wchar_t** ucs2);
+MIR_CORE_DLL(BOOL)  Utf8CheckString(const char* str);
 MIR_CORE_DLL(int)   Utf8toUcs2(const char *src, size_t srclen, wchar_t *dst, size_t dstlen); // returns 0 on error
 
-MIR_CORE_DLL(wchar_t*) Utf8DecodeW(const char* str);
+MIR_CORE_DLL(char*) mir_utf8decode(char* str, wchar_t** ucs2);
+MIR_CORE_DLL(char*) mir_utf8decodecp(char* str, int codepage, wchar_t** ucs2);
+MIR_CORE_DLL(wchar_t*) mir_utf8decodeW(const char* str);
 
-MIR_CORE_DLL(char*) Utf8Encode(const char* str);
-MIR_CORE_DLL(char*) Utf8EncodeCP(const char* src, int codepage);
+MIR_CORE_DLL(char*) mir_utf8encode(const char* str);
+MIR_CORE_DLL(char*) mir_utf8encodecp(const char* src, int codepage);
+MIR_CORE_DLL(char*) mir_utf8encodeW(const wchar_t* str);
 
-MIR_CORE_DLL(char*) Utf8EncodeW(const wchar_t* str);
-MIR_CORE_DLL(int)   Ucs2toUtf8Len(const wchar_t *src);
-
-MIR_CORE_DLL(BOOL)  Utf8CheckString(const char* str);
-
-#define mir_utf8decode(A, B)      Utf8Decode(A, B)
-#define mir_utf8decodecp(A, B, C) Utf8DecodeCP(A, B, C)
-#define mir_utf8decodeW(A)   	    Utf8DecodeW(A)
-#define mir_utf8encode(A)         Utf8Encode(A)
-#define mir_utf8encodecp(A, B)    Utf8EncodeCP(A, B)
-#define mir_utf8encodeW(A)        Utf8EncodeW(A)
-#define mir_utf8lenW(A)           Ucs2toUtf8Len(A)
+MIR_CORE_DLL(int)   mir_utf8lenW(const wchar_t *src);
 
 __forceinline char* mir_utf8decodeA(const char* src)
 {

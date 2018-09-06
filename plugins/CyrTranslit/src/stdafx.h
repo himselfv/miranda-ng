@@ -32,3 +32,10 @@
 #include "MirandaContact.h"
 #include "TransliterationMap.h"
 #include "TransliterationProtocol.h"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};

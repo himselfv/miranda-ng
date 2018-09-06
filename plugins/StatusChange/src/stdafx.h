@@ -16,9 +16,16 @@
 #include "resource.h"
 #include "version.h"
 
-#define PLUGINNAME "StatusChange"
+#define MODULENAME "StatusChange"
 
-typedef struct
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
+
+struct TOPTIONS
 {
 	BOOL MessageRead;
 	BOOL MessageSend;
@@ -39,4 +46,4 @@ typedef struct
 	BOOL IfInvisible;
 	BOOL IfOnthephone;
 	BOOL IfOuttolunch;
-} TOPTIONS;
+};

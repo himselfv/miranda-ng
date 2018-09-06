@@ -22,72 +22,48 @@
 const wchar_t *pszGroupError = LPGENW("No_Group");
 const wchar_t *pszDbPathError = L".";
 
-// Replacement for chareteres not alowed in file names.
+// Replacement for characters not allowed in file names.
 const wchar_t cBadCharReplace = '_';
 
-// sTimeFormat 
-tstring sTimeFormat;
+// g_sTimeFormat 
+wstring g_sTimeFormat;
 
 // path from options dialog
-tstring sExportDir;
+wstring g_sExportDir;
 
-// The default filename. Used if no other file name is specifyed in DB.
-tstring sDefaultFile;
+// The default filename. Used if no other file name is specified in DB.
+wstring g_sDefaultFile;
 
 // path used then %dbpath% is used in export file path
-tstring sDBPath = pszDbPathError;
+wstring g_sDBPath = pszDbPathError;
 
 // path to miranda exe file used when to avoid relative paths
-tstring sMirandaPath = pszDbPathError;
+wstring g_sMirandaPath = pszDbPathError;
 
 // Used to store the width of the user name for a file.
 // if a file contains events from many users the one user name
 // may be shorter. so to make all event have the same first
 // column width this map contains the largest user name
-map<tstring, string::size_type, less<tstring> > clFileTo1ColWidth;
+map<wstring, string::size_type, less<wstring> > clFileTo1ColWidth;
 
 // default line width
 int nMaxLineWidth = 80;
 
-const wchar_t *pszReplaceList[] =
-{
-	L"%FirstName%",
-	L"%LastName%",
-	L"%e-mail%",
-	L"%Nick%",
-	L"%City%",
-	L"%State%",
-	L"%Phone%",
-	L"%Homepage%",
-	L"%About%"
-};
-const char *pszReplaceListA[] =
-{
-	"FirstName",
-	"LastName",
-	"e-mail",
-	"Nick",
-	"City",
-	"State",
-	"Phone",
-	"Homepage",
-	"About"
-};
-
-// Alowes this plugin to replace the history function of miranda !!
-bool bReplaceHistory = false;
+// Allow this plugin to replace the history function of miranda !!
+bool g_bReplaceHistory;
 
 // This enum define the actions which MsgExport must take when a File is renamed
-ENDialogAction enRenameAction = eDAPromptUser;
+ENDialogAction g_enRenameAction;
 
 // This enum define the actions which MsgExport must take when a user is delete
-ENDialogAction enDeleteAction = eDAPromptUser;
+ENDialogAction g_enDeleteAction;
 
-// If true MsgExport will use << and >> insted of the nick in the exported format
-bool bUseLessAndGreaterInExport = false;
+// If true MsgExport will use << and >> instead of the nick in the exported format
+bool g_bUseLessAndGreaterInExport;
 
-bool bAppendNewLine = true;
-bool bUseUtf8InNewFiles = true;
+bool g_bAppendNewLine;
+bool g_bUseUtf8InNewFiles;
+bool g_bUseJson;
 
 const char szUtf8ByteOrderHeader[] = "\xEF\xBB\xBF";
 bool bIsUtf8Header(BYTE * pucByteOrder)
@@ -96,46 +72,10 @@ bool bIsUtf8Header(BYTE * pucByteOrder)
 }
 
 /////////////////////////////////////////////////////////////////////
-// Member Function : ShowDebugInfo
-// Type            : Global
-// Parameters      : None
-// Returns         : void
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 021228, 28 December 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
-
-void ShowDebugInfo()
-{
-	tstring sDebug = L"Debug information\r\nsDBPath :";
-	sDebug += sDBPath;
-	sDebug += L"\r\nsMirandaPath :";
-	sDebug += sMirandaPath;
-	sDebug += L"\r\nsDefaultFile :";
-	sDebug += sDefaultFile;
-
-	sDebug += L"\r\nGetFilePathFromUser(NULL) :";
-	sDebug += GetFilePathFromUser(NULL);
-
-	MessageBox(nullptr, sDebug.c_str(), MSG_BOX_TITEL, MB_OK);
-}
-
-
-/////////////////////////////////////////////////////////////////////
 // Member Function : nGetFormatCount
 // Type            : Global
 // Parameters      : pszToCheck - ?
 // Returns         : int
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 030107, 07 January 2003
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
 int nGetFormatCount(const wchar_t *pszToCheck)
 {
@@ -151,19 +91,59 @@ int nGetFormatCount(const wchar_t *pszToCheck)
 }
 
 /////////////////////////////////////////////////////////////////////
+// Member Function : _DBGetStringW
+// Type            : Global
+// Parameters      : hContact  - ?
+//                   szModule  - ?
+//                   szSetting - ?
+//                   pszError  - ?
+// Returns         : string
+// Description     : Reads a string from the database 
+//                   Just like those in database.h
+
+wstring _DBGetStringW(MCONTACT hContact, const char *szModule, const char *szSetting, const wchar_t *pszError)
+{
+	DBVARIANT dbv = { 0 };
+	if (db_get_ws(hContact, szModule, szSetting, &dbv))
+		return pszError;
+
+	wstring ret = dbv.pwszVal;
+	db_free(&dbv);
+	return ret;
+}
+
+/////////////////////////////////////////////////////////////////////
+// Member Function : ReplaceAll
+// Type            : Global
+// Parameters      : sSrc       - string to replace in
+//                   pszReplace - what to replace
+//                   sNew       - the string to insert instead of pszReplace
+// Returns         : void
+// Description     : will replace all occurrences of a string with another string
+//                   used to replace %user%, and other user 
+
+static void ReplaceAll(wstring &sSrc, const wchar_t *pszReplace, const wstring &sNew)
+{
+	string::size_type nCur = 0;
+	while ((nCur = sSrc.find(pszReplace, nCur)) != sSrc.npos) {
+		sSrc.replace(nCur, mir_wstrlen(pszReplace), sNew);
+		nCur += sNew.size();
+	}
+}
+
+static void ReplaceAll(wstring &sSrc, const wchar_t *pszReplace, const wchar_t *pszNew)
+{
+	wstring sNew = pszNew;
+	ReplaceAll(sSrc, pszReplace, sNew);
+}
+
+/////////////////////////////////////////////////////////////////////
 // Member Function : sGetErrorString
 // Type            : Global
 // Parameters      : dwError - ?
 // Returns         : string
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 021012, 12 October 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
-tstring sGetErrorString(DWORD dwError)
+CMStringW sGetErrorString(DWORD dwError)
 {
 	LPVOID lpMsgBuf;
 	FormatMessage(
@@ -177,151 +157,32 @@ tstring sGetErrorString(DWORD dwError)
 	// Process any inserts in lpMsgBuf.
 	// ...
 	// Display the string.
-	tstring ret = (LPCTSTR)lpMsgBuf;
-	ReplaceAll(ret, L"\r", L" ");
-	ReplaceAll(ret, L"\n", L" ");
-	ReplaceAll(ret, L"  ", L" ");
+	CMStringW ret((LPCTSTR)lpMsgBuf);
+	ret.Replace(L"\r", L" ");
+	ret.Replace(L"\n", L" ");
+	ret.Replace(L"  ", L" ");
 
 	// Free the buffer.
 	LocalFree(lpMsgBuf);
 	return ret;
 }
 
-tstring sGetErrorString()
+CMStringW sGetErrorString()
 {
 	return sGetErrorString(GetLastError());
 }
 
-void DisplayLastError(const wchar_t *pszError)
+void LogLastError(const wchar_t *pszError)
 {
-	tstring sError = pszError;
 	DWORD error = GetLastError();
 
+	CMStringW sError = pszError;
+
 	wchar_t szTemp[50];
-	mir_snwprintf(szTemp, L"\r\nErrorCode: %d\r\n", error);
+	mir_snwprintf(szTemp, L"MsgExport error\r\nErrorCode: %d\r\n", error);
 	sError += szTemp;
 	sError += sGetErrorString(error);
-	MessageBox(nullptr, sError.c_str(), MSG_BOX_TITEL, MB_OK);
-}
-
-/////////////////////////////////////////////////////////////////////
-// Member Function : _DBGetString
-// Type            : Global
-// Parameters      : hContact  - ?
-//                   szModule  - ?
-//                   szSetting - ?
-//                   pszError  - ?
-// Returns         : string
-// Description     : Reads a string from the database 
-//                   Just like those in database.h
-// References      : -
-// Remarks         : -
-// Created         : 020422, 22 April 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
-
-tstring _DBGetStringW(MCONTACT hContact, const char *szModule, const char *szSetting, const wchar_t *pszError)
-{
-	tstring ret;
-	DBVARIANT dbv = { 0 };
-	//db_get
-	if (!db_get_ws(hContact, szModule, szSetting, &dbv)) {
-		if (dbv.type != DBVT_WCHAR) {
-			MessageBox(nullptr, TranslateT("Database: Attempt to get wrong type of value, string"), MSG_BOX_TITEL, MB_OK);
-			ret = pszError;
-		}
-		else ret = (wchar_t*)dbv.pszVal;
-	}
-	else ret = pszError;
-	
-	db_free(&dbv);
-	return ret;
-}
-
-string _DBGetStringA(MCONTACT hContact, const char *szModule, const char *szSetting, const char *pszError)
-{
-	string ret;
-	DBVARIANT dbv = { 0 };
-	if (!db_get(hContact, szModule, szSetting, &dbv)) {
-		if (dbv.type != DBVT_ASCIIZ) {
-			MessageBox(nullptr, TranslateT("Database: Attempt to get wrong type of value, string"), MSG_BOX_TITEL, MB_OK);
-			ret = pszError;
-		}
-		else ret = dbv.pszVal;
-	}
-	else ret = pszError;
-	
-	db_free(&dbv);
-	return ret;
-}
-
-/////////////////////////////////////////////////////////////////////
-// Member Function : ReplaceAll
-// Type            : Global
-// Parameters      : sSrc       - string to replace in
-//                   pszReplace - what to replace
-//                   sNew       - the string to insert insted of pszReplace
-// Returns         : void
-// Description     : will replace all acurances of a string with another string
-//                   used to replace %user%, and other user 
-// References      : -
-// Remarks         : -
-// Created         : 020422, 22 April 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
-
-void ReplaceAll(tstring &sSrc, const wchar_t *pszReplace, const tstring &sNew)
-{
-	string::size_type nCur = 0;
-	while ((nCur = sSrc.find(pszReplace, nCur)) != sSrc.npos) {
-		sSrc.replace(nCur, mir_wstrlen(pszReplace), sNew);
-		nCur += sNew.size();
-	}
-}
-
-void ReplaceAll(tstring &sSrc, const wchar_t *pszReplace, const wchar_t *pszNew)
-{
-	tstring sNew = pszNew;
-	ReplaceAll(sSrc, pszReplace, sNew);
-}
-
-/////////////////////////////////////////////////////////////////////
-// Member Function : bCreatePathToFile
-// Type            : Global
-// Parameters      : sFilePath - File name to create path to ( file name may be empty ( i.e. c:\Folder\ )
-// Returns         : Returns true if the path is created or already exists 
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 020525, 25 May 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
-
-bool bCreatePathToFile(tstring sFilePath)
-{
-	string::size_type nPos = sFilePath.rfind('\\');
-	if (nPos != string::npos) {
-		if (nPos + 1 < sFilePath.size())
-			sFilePath.erase(nPos + 1);
-	}
-	else // cant find
-		return false;
-
-	// create directory
-	if (!CreateDirectory(sFilePath.c_str(), nullptr)) {
-		DWORD dwE = GetLastError();
-		if (dwE == 183) // Cannot create a file when that file already exists. 
-			return true;
-
-		if (!bCreatePathToFile(sFilePath.substr(0, nPos)))
-			return false;
-
-		// try again 
-		if (!CreateDirectory(sFilePath.c_str(), nullptr))
-			return false;
-	}
-	return true;
+	Netlib_LogW(nullptr, sError.c_str());
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -331,15 +192,8 @@ bool bCreatePathToFile(tstring sFilePath)
 //                   pszSrc - in UTF8 or ANSII
 //                   nLen   - ?
 // Returns         : Returns true if all the data was written to the file
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 020629, 29 June 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
-bool bWriteToFile(HANDLE hFile, const char *pszSrc, int nLen = -1)
+static bool bWriteToFile(HANDLE hFile, const char *pszSrc, int nLen = -1)
 {
 	if (nLen < 0)
 		nLen = (int)mir_strlen(pszSrc);
@@ -356,13 +210,6 @@ bool bWriteToFile(HANDLE hFile, const char *pszSrc, int nLen = -1)
 //                   pszSrc    - ?
 //                   bUtf8File - ?
 // Returns         : Returns true if 
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 060130, 30 januar 2006
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
 static bool bWriteTextToFile(HANDLE hFile, const wchar_t *pszSrc, bool bUtf8File, int nLen = -1)
 {
@@ -378,8 +225,7 @@ static bool bWriteTextToFile(HANDLE hFile, const wchar_t *pszSrc, bool bUtf8File
 		return bWriteToFile(hFile, pszAstr, -1);
 	}
 
-	T2Utf pszUtf8(pszSrc);
-	return bWriteToFile(hFile, pszUtf8, -1);
+	return bWriteToFile(hFile, T2Utf(pszSrc), -1);
 }
 
 
@@ -394,8 +240,7 @@ static bool bWriteTextToFile(HANDLE hFile, const char *pszSrc, bool bUtf8File, i
 		pszSrc = tmp;
 	}
 
-	ptrA pszUtf8(mir_utf8encode(pszSrc));
-	return bWriteToFile(hFile, pszUtf8, -1);
+	return bWriteToFile(hFile, ptrA(mir_utf8encode(pszSrc)), -1);
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -404,13 +249,6 @@ static bool bWriteTextToFile(HANDLE hFile, const char *pszSrc, bool bUtf8File, i
 // Parameters      : hFile   - ?
 //                   nIndent - ?
 // Returns         : Returns true if all the data was written to the file
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 020629, 29 June 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
 const char szNewLineIndent[] = "\r\n                                                                                                   ";
 bool bWriteNewLine(HANDLE hFile, DWORD dwIndent)
@@ -427,14 +265,6 @@ bool bWriteNewLine(HANDLE hFile, DWORD dwIndent)
 // Parameters      : hFile - ?
 //                         - ?
 //                   nSize - ?
-// Returns         : void
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 021203, 03 December 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
 bool bWriteHexToFile(HANDLE hFile, void * pData, int nSize)
 {
@@ -455,24 +285,19 @@ bool bWriteHexToFile(HANDLE hFile, void * pData, int nSize)
 // Returns         : void
 // Description     : Used to set the internal path.
 //                   Handles the reading from the mirandaboot.ini to get the %dbpath%
-// References      : -
-// Remarks         : -
-// Created         : 020422, 22 April 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
 bool bReadMirandaDirAndPath()
 {
 	wchar_t szDBPath[MAX_PATH], tmp[MAX_PATH];
 	wcsncpy_s(szDBPath, pszDbPathError, _TRUNCATE);
 	PathToAbsoluteW(L"miranda32.exe", tmp);
-	sMirandaPath = tmp;
-	sMirandaPath.erase(sMirandaPath.find_last_of(L"\\"));
+	g_sMirandaPath = tmp;
+	g_sMirandaPath.erase(g_sMirandaPath.find_last_of(L"\\"));
 	Profile_GetPathW(MAX_PATH, szDBPath);
-	sDBPath = szDBPath;
+	g_sDBPath = szDBPath;
 	Profile_GetNameW(MAX_PATH, szDBPath);
-	sDBPath.append(L"\\").append(szDBPath);
-	sDBPath.erase(sDBPath.size() - 4);
+	g_sDBPath.append(L"\\").append(szDBPath);
+	g_sDBPath.erase(g_sDBPath.size() - 4);
 	return true;
 }
 
@@ -480,25 +305,17 @@ bool bReadMirandaDirAndPath()
 // Member Function : ReplaceDBPath
 // Type            : Global
 // Parameters      : sRet - ?
-// Returns         : void
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 021020, 20 October 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
-void ReplaceDBPath(tstring &sRet)
+void ReplaceDBPath(wstring &sRet)
 {
-	ReplaceAll(sRet, L"%dbpath%", sDBPath);
-	// Try to firure out if it is a relative path ( ..\..\MsgExport\ )
+	ReplaceAll(sRet, L"%dbpath%", g_sDBPath);
+	// Try to figure out if it is a relative path ( ..\..\MsgExport\ )
 	if (sRet.size() <= 2 || !(sRet[1] == ':' ||
 		(sRet[0] == '\\' && sRet[1] == '\\'))) {
 		// Relative path
 		// we will prepend the mirande exe path to avoid problems 
 		// if the current directory changes ( User receives a file )
-		sRet = sMirandaPath + sRet;
+		sRet = g_sMirandaPath + sRet;
 	}
 }
 
@@ -507,52 +324,38 @@ void ReplaceDBPath(tstring &sRet)
 // Member Function : GetFilePathFromUser
 // Type            : Global
 // Parameters      : hContact - Handle to user
-// Returns         : string contaning the compleate file name and path
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 020422, 22 April 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
+// Returns         : string containing the complete file name and path
 
-tstring GetFilePathFromUser(MCONTACT hContact)
+wstring GetFilePathFromUser(MCONTACT hContact)
 {
-	tstring sFilePath = sExportDir + _DBGetString(hContact, MODULE, "FileName", sDefaultFile.c_str());
+	wstring sFilePath = g_sExportDir + _DBGetStringW(hContact, MODULENAME, "FileName", g_sDefaultFile.c_str());
 
 	bool bNickUsed = sFilePath.find(L"%nick%") != string::npos;
 
 	ReplaceDefines(hContact, sFilePath);
 
-	tstring sNoDBPath = sFilePath;
+	wstring sNoDBPath = sFilePath;
 
 	ReplaceTimeVariables(sFilePath);
 	ReplaceDBPath(sFilePath);
 
 	// Previous file name check to see if it has changed !!
-	tstring sPrevFileName = _DBGetString(hContact, MODULE, "PrevFileName", L"");
+	wstring sPrevFileName = _DBGetStringW(hContact, MODULENAME, "PrevFileName", L"");
 	if (sNoDBPath != sPrevFileName) {
 		if (!sPrevFileName.empty()) {
 			ReplaceDBPath(sPrevFileName);
 
-			// Here we will try to avoide the (Unknown Contact) in cases where the protocol for 
+			// Here we will try to avoid the (Unknown Contact) in cases where the protocol for 
 			// this user has been removed.
 			if (bNickUsed && (wcsstr(Clist_GetContactDisplayName(hContact), LPGENW("(Unknown Contact)")) != nullptr))
 				return sPrevFileName; // Then the filename must have changed from a correct path to one including the (Unknown Contact)
 
 			// file name has changed
-			if (enRenameAction != eDANothing) {
+			if (g_enRenameAction != eDANothing) {
 
 				// we can not use FILE_SHARE_DELETE because this is not supported by 
 				// win 98 / ME 
-				HANDLE hPrevFile = CreateFile(sPrevFileName.c_str(),
-					GENERIC_READ,
-					FILE_SHARE_READ | FILE_SHARE_WRITE,
-					nullptr,
-					OPEN_EXISTING,
-					FILE_ATTRIBUTE_NORMAL,
-					nullptr);
-
+				HANDLE hPrevFile = CreateFile(sPrevFileName.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 				if (hPrevFile != INVALID_HANDLE_VALUE) {
 					CloseHandle(hPrevFile);
 					wchar_t szTemp[500];
@@ -560,8 +363,8 @@ tstring GetFilePathFromUser(MCONTACT hContact)
 					// ask user ?
 					bool bTryRename;
 
-					if (enRenameAction != eDAAutomatic) {
-						tstring sRemoteUser = Clist_GetContactDisplayName(hContact);
+					if (g_enRenameAction != eDAAutomatic) {
+						wstring sRemoteUser = Clist_GetContactDisplayName(hContact);
 						mir_snwprintf(szTemp,
 							TranslateT("File name for the user \"%s\" has changed!\n\nfrom:\t%s\nto:\t%s\n\nDo you wish to rename file?"),
 							sRemoteUser.c_str(),
@@ -569,15 +372,13 @@ tstring GetFilePathFromUser(MCONTACT hContact)
 							sFilePath.c_str());
 						bTryRename = MessageBox(nullptr, szTemp, MSG_BOX_TITEL, MB_YESNO) == IDYES;
 					}
-					else
-						bTryRename = true;
-
+					else bTryRename = true;
 
 					if (bTryRename) {
 						if (!MoveFile(sPrevFileName.c_str(), sFilePath.c_str())) {
-							// this might be because the new path isent created 
+							// this might be because the new path isn't created 
 							// so we will try to create it 
-							bCreatePathToFile(sFilePath);
+							CreateDirectoryTreeW(sFilePath.c_str());
 
 							while (!MoveFile(sPrevFileName.c_str(), sFilePath.c_str())) {
 								mir_snwprintf(szTemp,
@@ -596,28 +397,22 @@ tstring GetFilePathFromUser(MCONTACT hContact)
 		}
 
 		// Store the Filename used so that we can check if it changes.
-		db_set_ws(hContact, MODULE, "PrevFileName", sNoDBPath.c_str());
+		db_set_ws(hContact, MODULENAME, "PrevFileName", sNoDBPath.c_str());
 	}
 
 	return sFilePath;
 }
-
 
 /////////////////////////////////////////////////////////////////////
 // Member Function : FileNickFromHandle
 // Type            : Global
 // Parameters      : hContact - ?
 // Returns         : string
-// Description     : Replaceses invalid file name chars
-// References      : -
-// Remarks         : -
-// Created         : 030107, 07 January 2003
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
+// Description     : Replaces invalid file name chars
 
-tstring FileNickFromHandle(MCONTACT hContact)
+wstring FileNickFromHandle(MCONTACT hContact)
 {
-	tstring ret = Clist_GetContactDisplayName(hContact);
+	wstring ret = Clist_GetContactDisplayName(hContact);
 	string::size_type nCur = 0;
 	while ((nCur = ret.find_first_of(L":\\", nCur)) != ret.npos)
 		ret[nCur] = cBadCharReplace;
@@ -633,16 +428,10 @@ tstring FileNickFromHandle(MCONTACT hContact)
 //                   sNew       - ?
 // Returns         : void
 // Description     : Removes any ':' in the new string
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 040205, 05 februar 2004
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
-void ReplaceAllNoColon(tstring &sSrc, const wchar_t *pszReplace, tstring &sNew)
+void ReplaceAllNoColon(wstring &sSrc, const wchar_t *pszReplace, wstring &sNew)
 {
-	tstring::size_type nCur = 0;
+	wstring::size_type nCur = 0;
 	while ((nCur = sNew.find_first_of(':', nCur)) != sNew.npos)
 		sNew[nCur] = cBadCharReplace;
 	ReplaceAll(sSrc, pszReplace, sNew);
@@ -654,15 +443,8 @@ void ReplaceAllNoColon(tstring &sSrc, const wchar_t *pszReplace, tstring &sNew)
 // Parameters      : hContact - Handle to user
 //                   sTarget  - String with either %user% or %UIN%, to replace in
 // Returns         : void
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 020525, 25 May 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
-void ReplaceDefines(MCONTACT hContact, tstring & sTarget)
+void ReplaceDefines(MCONTACT hContact, wstring & sTarget)
 {
 	if (sTarget.find(L"%nick%") != string::npos)
 		ReplaceAll(sTarget, L"%nick%", FileNickFromHandle(hContact));
@@ -673,10 +455,10 @@ void ReplaceDefines(MCONTACT hContact, tstring & sTarget)
 	bool bIdentifierUsed = sTarget.find(L"%identifier%") != string::npos;
 
 	if (bUINUsed || bEMailUsed || bProtoUsed || bIdentifierUsed) {
-		string sProto = _DBGetStringA(hContact, "Protocol", "p", "");
-		if (bUINUsed || (bIdentifierUsed && sProto == "ICQ")) {
-			DWORD dwUIN = db_get_dw(hContact, sProto.c_str(), "UIN", 0);
-			tstring sReplaceUin;
+		const char *szProto = GetContactProto(hContact);
+		if (bUINUsed || (bIdentifierUsed && !mir_strcmp(szProto, "ICQ"))) {
+			DWORD dwUIN = db_get_dw(hContact, szProto, "UIN", 0);
+			wstring sReplaceUin;
 			if (dwUIN) {
 				wchar_t sTmp[20];
 				mir_snwprintf(sTmp, L"%d", dwUIN);
@@ -686,31 +468,31 @@ void ReplaceDefines(MCONTACT hContact, tstring & sTarget)
 
 			if (bUINUsed)
 				ReplaceAll(sTarget, L"%UIN%", sReplaceUin);
-			if (bIdentifierUsed && sProto == "ICQ") {
+			if (bIdentifierUsed && !mir_strcmp(szProto, "ICQ")) {
 				bIdentifierUsed = false;
 				ReplaceAll(sTarget, L"%identifier%", sReplaceUin);
 			}
 		}
 
-		if (bEMailUsed || (bIdentifierUsed && sProto == "MSN")) {
-			tstring sEMail = _DBGetString(hContact, sProto.c_str(), "e-mail", L"");
+		if (bEMailUsed || (bIdentifierUsed && !mir_strcmp(szProto, "MSN"))) {
+			wstring sEMail = _DBGetStringW(hContact, szProto, "e-mail", L"");
 			if (sEMail.empty()) {
-				sEMail = _DBGetString(hContact, "MSN", "e-mail", L"");
+				sEMail = _DBGetStringW(hContact, "MSN", "e-mail", L"");
 				if (sEMail.empty()) {
-					// We can't finde the E-mail address we will use the the nick
+					// We can't find the E-mail address we will use the the nick
 					sEMail = FileNickFromHandle(hContact);
 				}
 			}
 			if (bEMailUsed)
 				ReplaceAllNoColon(sTarget, L"%e-mail%", sEMail);
-			if (bIdentifierUsed && sProto == "MSN") {
+			if (bIdentifierUsed && !mir_strcmp(szProto, "MSN")) {
 				bIdentifierUsed = false;
 				ReplaceAllNoColon(sTarget, L"%identifier%", sEMail);
 			}
 		}
 
-		if (bIdentifierUsed && sProto == "Jabber") {
-			tstring sReplace = _DBGetString(hContact, "Jabber", "jid", L"");
+		if (bIdentifierUsed && !mir_strcmp(szProto, "Jabber")) {
+			wstring sReplace = _DBGetStringW(hContact, "Jabber", "jid", L"");
 			if (sReplace.empty()) {
 				sReplace = FileNickFromHandle(hContact);
 			}
@@ -719,7 +501,7 @@ void ReplaceDefines(MCONTACT hContact, tstring & sTarget)
 		}
 
 		if (bProtoUsed) {
-			tstring tmp = _DBGetString(hContact, "Protocol", "p", L"");
+			wstring tmp = _DBGetStringW(hContact, "Protocol", "p", L"");
 			ReplaceAllNoColon(sTarget, L"%protocol%", tmp);
 		}
 
@@ -728,7 +510,7 @@ void ReplaceDefines(MCONTACT hContact, tstring & sTarget)
 	}
 
 	if (sTarget.find(L"%group%") != string::npos) {
-		tstring sGroup = _DBGetString(hContact, "CList", "Group", L"");
+		wstring sGroup = _DBGetStringW(hContact, "CList", "Group", L"");
 		ReplaceAllNoColon(sTarget, L"%group%", sGroup);
 	}
 
@@ -743,16 +525,8 @@ void ReplaceDefines(MCONTACT hContact, tstring & sTarget)
 // Member Function : ReplaceTimeVariables
 // Type            : Global
 // Parameters      : sRet - ?
-// Returns         : void
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 040219, 19 februar 2004
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
-void ReplaceTimeVariables(tstring &sRet)
+void ReplaceTimeVariables(wstring &sRet)
 {
 	if (sRet.find(L"%year%") != string::npos ||
 		sRet.find(L"%month%") != string::npos ||
@@ -776,19 +550,13 @@ void ReplaceTimeVariables(tstring &sRet)
 // Parameters      : None
 // Returns         : void
 // Description     : updates clFileTo1ColWidth,
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 020422, 22 April 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
 void UpdateFileToColWidth()
 {
 	clFileTo1ColWidth.clear();
 
 	for (auto &hContact : Contacts()) {
-		tstring sNick = Clist_GetContactDisplayName(hContact);
+		wstring sNick = Clist_GetContactDisplayName(hContact);
 		string::size_type &rnValue = clFileTo1ColWidth[GetFilePathFromUser(hContact)];
 		if (rnValue < sNick.size())
 			rnValue = sNick.size();
@@ -801,18 +569,10 @@ void UpdateFileToColWidth()
 // Parameters      : pszError - ?
 //                   sFile    - ?
 //                   dbei     - ?
-// Returns         : void
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 021203, 03 December 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
-void DisplayErrorDialog(const wchar_t *pszError, tstring& sFilePath, DBEVENTINFO * dbei)
+void DisplayErrorDialog(const wchar_t *pszError, wstring &sFilePath, DBEVENTINFO *dbei)
 {
-	tstring sError = TranslateW(pszError);
+	wstring sError = TranslateW(pszError);
 	sError += sFilePath;
 	sError += TranslateT("\nError: ");
 	sError += sGetErrorString();
@@ -871,21 +631,29 @@ void DisplayErrorDialog(const wchar_t *pszError, tstring& sFilePath, DBEVENTINFO
 //                   sFilePath - path to file
 //                   dbei      - Event to export
 // Returns         : false on serious error, when file should be closed to not lost/overwrite any data
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 050429, 29 april 2005
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
-bool ExportDBEventInfo(MCONTACT hContact, HANDLE hFile, tstring sFilePath, DBEVENTINFO &dbei, bool bAppendOnly)
+const char *pSettings[] =
 {
-	tstring sLocalUser;
-	tstring sRemoteUser;
+	LPGEN("FirstName"),
+	LPGEN("LastName"),
+	LPGEN("e-mail"),
+	LPGEN("Nick"),
+	LPGEN("Age"),
+	LPGEN("Gender"),
+	LPGEN("City"),
+	LPGEN("State"),
+	LPGEN("Phone"),
+	LPGEN("Homepage"),
+	LPGEN("About")
+};
+
+static bool ExportDBEventInfo(MCONTACT hContact, HANDLE hFile, wstring sFilePath, DBEVENTINFO &dbei, bool bAppendOnly)
+{
+	wstring sLocalUser;
+	wstring sRemoteUser;
 	string::size_type nFirstColumnWidth;
 
-	if (bUseLessAndGreaterInExport) {
+	if (g_bUseLessAndGreaterInExport) {
 		sLocalUser = L"<<";
 		sRemoteUser = L">>";
 		nFirstColumnWidth = 4;
@@ -901,107 +669,164 @@ bool ExportDBEventInfo(MCONTACT hContact, HANDLE hFile, tstring sFilePath, DBEVE
 	wchar_t szTemp[500];
 	bool bWriteUTF8Format = false;
 
+	const char *szProto = GetContactProto(hContact);
+	if (szProto == nullptr) {
+		Netlib_Logf(0, MODULENAME ": cannot write message for a contact %d without protocol", hContact);
+		return false;
+	}
+
 	if (bAppendOnly) {
-		bWriteUTF8Format = bUseUtf8InNewFiles;
+		bWriteUTF8Format = g_bUseUtf8InNewFiles;
+
+		if (g_bUseJson) {
+			SetFilePointer(hFile, -3, nullptr, FILE_END);
+			bWriteToFile(hFile, ",", 1);
+		}
 	}
 	else {
 		DWORD dwHighSize = 0;
 		DWORD dwLowSize = GetFileSize(hFile, &dwHighSize);
-
 		if (dwLowSize == INVALID_FILE_SIZE || dwLowSize != 0 || dwHighSize != 0) {
 			DWORD dwDataRead = 0;
 			BYTE ucByteOrder[3];
 			if (ReadFile(hFile, ucByteOrder, 3, &dwDataRead, nullptr))
 				bWriteUTF8Format = bIsUtf8Header(ucByteOrder);
 
-			DWORD dwPtr = SetFilePointer(hFile, 0, nullptr, FILE_END);
-			if (dwPtr == INVALID_SET_FILE_POINTER) {
-				// we need to aborte mission here because if we continue we risk 
-				// overwriting old log.
-				DisplayErrorDialog(LPGENW("Failed to move to the end of the file :\n"), sFilePath, nullptr);
+			DWORD dwPtr = SetFilePointer(hFile, g_bUseJson ? -3 : 0, nullptr, FILE_END);
+			if (dwPtr == INVALID_SET_FILE_POINTER)
 				return false;
-			}
+
+			if (g_bUseJson)
+				bWriteToFile(hFile, ",", 1);		
 		}
 		else {
-			bWriteUTF8Format = bUseUtf8InNewFiles;
-			if (bWriteUTF8Format) {
-				if (!bWriteToFile(hFile, szUtf8ByteOrderHeader, sizeof(szUtf8ByteOrderHeader) - 1)) {
-					DisplayErrorDialog(LPGENW("Failed to UTF8 byte order code to file :\n"), sFilePath, nullptr);
-					return false;
+			if (g_bUseJson) {
+				JSONNode pRoot, pInfo, pHist(JSON_ARRAY);
+				pInfo.set_name("info");
+				pInfo.push_back(JSONNode("user", T2Utf(sRemoteUser.c_str()).get()));
+				pInfo.push_back(JSONNode("proto", szProto));
+
+				ptrW id(Contact_GetInfo(CNF_UNIQUEID, hContact, szProto));
+				if (id != NULL)
+					pInfo.push_back(JSONNode("uin", T2Utf(id).get()));
+
+				szTemp[0] = (wchar_t)db_get_b(hContact, szProto, "Gender", 0);
+				if (szTemp[0]) {
+					szTemp[1] = 0;
+					pInfo.push_back(JSONNode("gender", T2Utf(szTemp).get()));
 				}
+
+				int age = db_get_w(hContact, szProto, "Age", 0);
+				if (age != 0)
+					pInfo.push_back(JSONNode("gender", age));
+
+				for (auto &it : pSettings) {
+					wstring szValue = _DBGetStringW(hContact, szProto, it, L"");
+					if (!szValue.empty())
+						pInfo.push_back(JSONNode(it, T2Utf(szValue.c_str()).get()));
+				}
+				pRoot.push_back(pInfo);
+
+				pHist.set_name("history");
+				pRoot.push_back(pHist);
+
+				std::string output = pRoot.write_formatted();
+				if (!bWriteTextToFile(hFile, output.c_str(), false, (int)output.size()))
+					return false;
+
+				SetFilePointer(hFile, -3, nullptr, FILE_CURRENT);
 			}
-			tstring output = L"------------------------------------------------\r\n"
-				LPGENW("      History for\r\n")
-				LPGENW("User      : %User%\r\n")
-				LPGENW("Protocol  : %Proto%\r\n")
-				LPGENW("UIN       : %UIN%\r\n")
-				LPGENW("FirstName : %FirstName%\r\n")
-				LPGENW("LastName  : %LastName%\r\n")
-				LPGENW("Age       : %Age%\r\n")
-				LPGENW("Gender    : %Gender%\r\n")
-				LPGENW("e-mail    : %e-mail%\r\n")
-				LPGENW("Nick      : %Nick%\r\n")
-				LPGENW("City      : %City%\r\n")
-				LPGENW("State     : %State%\r\n")
-				LPGENW("Phone     : %Phone%\r\n")
-				LPGENW("Homepage  : %Homepage%\r\n")
-				LPGENW("- About -\r\n%About%\r\n")
-				L"------------------------------------------------\r\n";
+			else {
+				bWriteUTF8Format = g_bUseUtf8InNewFiles;
+				if (bWriteUTF8Format)
+					if (!bWriteToFile(hFile, szUtf8ByteOrderHeader, sizeof(szUtf8ByteOrderHeader) - 1))
+						return false;
 
-			// This is written this way because I expect this will become a string the user may set 
-			// in the options dialog.
-			ReplaceAll(output, L"%User%", sRemoteUser);
+				CMStringW output = L"------------------------------------------------\r\n";
+				output.AppendFormat(L"%s\r\n", TranslateT("      History for"));
 
-			string sProto = _DBGetStringA(hContact, "Protocol", "p", "");
-			ReplaceAll(output, L"%Proto%", _DBGetString(hContact, "Protocol", "p", L""));
+				// This is written this way because I expect this will become a string the user may set 
+				// in the options dialog.
+				output.AppendFormat(L"%-10s: %s\r\n", TranslateT("User"), sRemoteUser.c_str());
+				output.AppendFormat(L"%-10s: %s\r\n", TranslateT("Protocol"), _A2T(szProto));
 
-			for (int nCur = 0; nCur < 9; nCur++)
-				ReplaceAll(output, pszReplaceList[nCur], _DBGetString(hContact, sProto.c_str(), pszReplaceListA[nCur], L""));
+				ptrW id(Contact_GetInfo(CNF_UNIQUEID, hContact, szProto));
+				if (id != NULL)
+					output.AppendFormat(L"%-10s: %s\r\n", TranslateT("UIN"), id);
 
-			ptrW id(Contact_GetInfo(CNF_UNIQUEID, hContact, sProto.c_str()));
-			if (id != NULL)
-				ReplaceAll(output, L"%UIN%", id);
+				szTemp[0] = (wchar_t)db_get_b(hContact, szProto, "Gender", 0);
+				if (szTemp[0]) {
+					szTemp[1] = 0;
+					output.AppendFormat(L"%-10s: %s\r\n", TranslateT("Gender"), szTemp);
+				}
 
-			mir_snwprintf(szTemp, L"%d", db_get_w(hContact, sProto.c_str(), "Age", 0));
-			ReplaceAll(output, L"%Age%", szTemp);
+				int age = db_get_w(hContact, szProto, "Age", 0);
+				if (age != 0)
+					output.AppendFormat(L"%-10s: %d\r\n", TranslateT("Age"), age);
 
-			szTemp[0] = (wchar_t)db_get_b(hContact, sProto.c_str(), "Gender", 0);
-			szTemp[1] = 0;
-			ReplaceAll(output, L"%Gender%", szTemp);
+				for (auto &it : pSettings) {
+					wstring szValue = _DBGetStringW(hContact, szProto, it, L"");
+					if (!szValue.empty()) {
+						mir_snwprintf(szTemp, L"%-10s: %s\r\n", TranslateW(_A2T(it)), szValue.c_str());
+						output += szTemp;
+					}
+				}
 
-			if (!bWriteTextToFile(hFile, output.data(), bWriteUTF8Format, (int)output.size())) {
-				DisplayErrorDialog(LPGENW("Failed to write user details to file :\n"), sFilePath, nullptr);
-				return false;
+				output += L"------------------------------------------------\r\n";
+
+				if (!bWriteTextToFile(hFile, output, bWriteUTF8Format, output.GetLength()))
+					return false;
 			}
 		}
+	}
+
+	if (g_bUseJson) {
+		JSONNode pRoot;
+		pRoot.push_back(JSONNode("type", dbei.eventType));
+		if (mir_strcmp(dbei.szModule, szProto))
+			pRoot.push_back(JSONNode("module", dbei.szModule));
+
+		TimeZone_PrintTimeStamp(UTC_TIME_HANDLE, dbei.timestamp, L"I", szTemp, _countof(szTemp), 0);
+		pRoot.push_back(JSONNode("isotime", T2Utf(szTemp).get()));
+
+		std::string flags;
+		if (dbei.flags & DBEF_SENT)
+			flags += "m";
+		if (dbei.flags & DBEF_READ)
+			flags += "r";
+		pRoot.push_back(JSONNode("flags", flags));
+
+		ptrW msg(DbEvent_GetTextW(&dbei, CP_ACP));
+		if (msg)
+			pRoot.push_back(JSONNode("body", T2Utf(msg).get()));
+
+		std::string output = pRoot.write_formatted();
+		output += "\n]}";
+
+		if (!bWriteTextToFile(hFile, output.c_str(), false, (int)output.size()))
+			return false;
+
+		return true;
 	}
 
 	// Get time stamp 
 	int nIndent = mir_snwprintf(szTemp, L"%-*s", nFirstColumnWidth, dbei.flags & DBEF_SENT ? sLocalUser.c_str() : sRemoteUser.c_str());
 
-	TimeZone_ToStringT(dbei.timestamp, sTimeFormat.c_str(), &szTemp[nIndent], _countof(szTemp) - nIndent - 2);
+	TimeZone_ToStringT(dbei.timestamp, g_sTimeFormat.c_str(), &szTemp[nIndent], _countof(szTemp) - nIndent - 2);
 
 	nIndent = (int)mir_wstrlen(szTemp);
 	szTemp[nIndent++] = ' ';
 
 	// Write first part of line with name and timestamp
-	if (!bWriteTextToFile(hFile, szTemp, bWriteUTF8Format, nIndent)) {
-		DisplayErrorDialog(LPGENW("Failed to write timestamp and username to file :\n"), sFilePath, &dbei);
+	if (!bWriteTextToFile(hFile, szTemp, bWriteUTF8Format, nIndent))
 		return false;
-	}
 
 	if (dbei.pBlob != nullptr && dbei.cbBlob >= 2) {
 		dbei.pBlob[dbei.cbBlob] = 0;
 
 		switch (dbei.eventType) {
 		case EVENTTYPE_MESSAGE:
-			{
-				wchar_t *msg = DbEvent_GetTextW(&dbei, CP_ACP);
-				if (!bWriteIndentedToFile(hFile, nIndent, msg, bWriteUTF8Format)) {
-					DisplayErrorDialog(LPGENW("Failed to write message to the file :\n"), sFilePath, &dbei);
-				}
-				mir_free(msg);
-			}
+			bWriteIndentedToFile(hFile, nIndent, ptrW(DbEvent_GetTextW(&dbei, CP_ACP)), bWriteUTF8Format);
 			break;
 
 		case EVENTTYPE_URL:
@@ -1019,31 +844,22 @@ bool ExportDBEventInfo(MCONTACT hContact, HANDLE hFile, tstring sFilePath, DBEVE
 					pszData = (char *)(dbei.pBlob + sizeof(DWORD));
 				}
 
-				bool bWriteOk = false;
-
 				int nLen = (int)mir_strlen(pszData);
 				if ((pszData - (char *)dbei.pBlob) + nLen < (int)dbei.cbBlob) {
 					if (bWriteTextToFile(hFile, pszType, bWriteUTF8Format) &&
-						bWriteIndentedToFile(hFile, nIndent, pszData, bWriteUTF8Format)) {
+						bWriteIndentedToFile(hFile, nIndent, _A2T(pszData), bWriteUTF8Format)) {
 						pszData += nLen + 1;
-						if ((pszData - (char *)dbei.pBlob) >= (int)dbei.cbBlob) {
-							bWriteOk = true;
-						}
-						else {
+						if ((pszData - (char *)dbei.pBlob) < (int)dbei.cbBlob) {
 							nLen = (int)mir_strlen(pszData);
 							if ((pszData - (char *)dbei.pBlob) + nLen < (int)dbei.cbBlob) {
 								if (bWriteNewLine(hFile, nIndent) &&
 									bWriteTextToFile(hFile, LPGENW("Description: "), bWriteUTF8Format) &&
-									bWriteIndentedToFile(hFile, nIndent, pszData, bWriteUTF8Format)) {
-									bWriteOk = true;
+									bWriteIndentedToFile(hFile, nIndent, _A2T(pszData), bWriteUTF8Format)) {
 								}
 							}
 						}
 					}
 				}
-
-				if (!bWriteOk)
-					DisplayErrorDialog(LPGENW("Failed to write URL/File to the file :\n"), sFilePath, &dbei);
 			}
 			break;
 
@@ -1059,12 +875,9 @@ bool ExportDBEventInfo(MCONTACT hContact, HANDLE hFile, tstring sFilePath, DBEVE
 
 				if (dbei.cbBlob < 8 || dbei.cbBlob > 5000) {
 					int n = mir_snwprintf(szTemp, TranslateT("Invalid Database event received. Type %d, size %d"), dbei.eventType, dbei.cbBlob);
-					if (!bWriteTextToFile(hFile, szTemp, bWriteUTF8Format, n))
-						DisplayErrorDialog(LPGENW("Failed to write Invalid Database event the file :\n"), sFilePath, &dbei);
+					bWriteTextToFile(hFile, szTemp, bWriteUTF8Format, n);
 					break;
 				}
-
-				bool bWriteOk = false;
 
 				int nStringCount;
 				const wchar_t *pszTitle;
@@ -1093,19 +906,15 @@ bool ExportDBEventInfo(MCONTACT hContact, HANDLE hFile, tstring sFilePath, DBEVE
 							if (*pszCurBlobPos) {
 								if (!bWriteNewLine(hFile, nIndent) ||
 									!bWriteTextToFile(hFile, TranslateW(pszTypes[i]), bWriteUTF8Format) ||
-									!bWriteIndentedToFile(hFile, nIndent, pszCurBlobPos, bWriteUTF8Format)) {
+									!bWriteIndentedToFile(hFile, nIndent, _A2T(pszCurBlobPos), bWriteUTF8Format)) {
 									break;
 								}
 								pszCurBlobPos += mir_strlen(pszCurBlobPos);
 							}
 							pszCurBlobPos++;
 						}
-						bWriteOk = true;
 					}
 				}
-
-				if (!bWriteOk)
-					DisplayErrorDialog(LPGENW("Failed to write AUTHREQUEST or ADDED to the file :\n"), sFilePath, &dbei);
 			}
 			break;
 
@@ -1148,22 +957,18 @@ bool ExportDBEventInfo(MCONTACT hContact, HANDLE hFile, tstring sFilePath, DBEVE
 				}
 				else bWriteTextToFile(hFile, LPGENW("No from address"), bWriteUTF8Format);
 
-				if (!bWriteNewLine(hFile, nIndent) ||
-					!bWriteIndentedToFile(hFile, nIndent, pszStr, bWriteUTF8Format)) {
-					DisplayErrorDialog(LPGENW("Failed to write EmailExpress to the file :\n"), sFilePath, &dbei);
-				}
+				bWriteNewLine(hFile, nIndent);
+				bWriteIndentedToFile(hFile, nIndent, _A2T(pszStr), bWriteUTF8Format);
 			}
 			break;
 
 		case ICQEVENTTYPE_SMS:
-			if (!bWriteIndentedToFile(hFile, nIndent, (const char*)dbei.pBlob, bWriteUTF8Format))
-				DisplayErrorDialog(LPGENW("Failed to write SMS to the file :\n"), sFilePath, &dbei);
+			bWriteIndentedToFile(hFile, nIndent, _A2T((const char*)dbei.pBlob), bWriteUTF8Format);
 			break;
 
 		default:
 			int n = mir_snwprintf(szTemp, TranslateT("Unknown event type %d, size %d"), dbei.eventType, dbei.cbBlob);
-			if (!bWriteTextToFile(hFile, szTemp, bWriteUTF8Format, n))
-				DisplayErrorDialog(LPGENW("Failed to write Unknown event to the file :\n"), sFilePath, &dbei);
+			bWriteTextToFile(hFile, szTemp, bWriteUTF8Format, n);
 			break;
 		}
 	}
@@ -1172,7 +977,7 @@ bool ExportDBEventInfo(MCONTACT hContact, HANDLE hFile, tstring sFilePath, DBEVE
 		bWriteTextToFile(hFile, szTemp, bWriteUTF8Format, n);
 	}
 
-	bWriteToFile(hFile, bAppendNewLine ? "\r\n\r\n" : "\r\n");
+	bWriteToFile(hFile, g_bAppendNewLine ? "\r\n\r\n" : "\r\n");
 	UpdateFileViews(sFilePath.c_str());
 	return true;
 }
@@ -1185,23 +990,20 @@ bool ExportDBEventInfo(MCONTACT hContact, HANDLE hFile, tstring sFilePath, DBEVE
 // Returns         : int
 // Description     : Called when an event is added to the DB
 //                   Or from the Export All funktion
-// References      : -
-// Remarks         : -
-// Created         : 020422, 22 April 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
-HANDLE openCreateFile(tstring sFilePath)
+HANDLE openCreateFile(wstring sFilePath)
 {
-	GetLastError();// Clear last error !!
+	if (g_bUseJson)
+		sFilePath += L".json";
+
+	SetLastError(0);
 
 	HANDLE hFile = CreateFile(sFilePath.c_str(), GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (hFile == INVALID_HANDLE_VALUE) {
 		// this might be because the path isent created 
 		// so we will try to create it 
-		if (bCreatePathToFile(sFilePath)) {
+		if (!CreatePathToFileW(sFilePath.c_str()))
 			hFile = CreateFile(sFilePath.c_str(), GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-		}
 	}
 
 	return hFile;
@@ -1209,13 +1011,13 @@ HANDLE openCreateFile(tstring sFilePath)
 
 bool bIsExportEnabled(MCONTACT hContact)
 {
-	if (!db_get_b(hContact, MODULE, "EnableLog", 1))
+	if (!db_get_b(hContact, MODULENAME, "EnableLog", 1))
 		return false;
 
 	const char *szProto = GetContactProto(hContact);
 	char szTemp[500];
 	mir_snprintf(szTemp, "DisableProt_%s", szProto);
-	if (!db_get_b(NULL, MODULE, szTemp, 1))
+	if (!db_get_b(NULL, MODULENAME, szTemp, 1))
 		return false;
 
 	return true;
@@ -1227,10 +1029,10 @@ int nExportEvent(WPARAM hContact, LPARAM hDbEvent)
 		return 0;
 	
 	// Open/create file for writing
-	tstring sFilePath = GetFilePathFromUser(hContact);
+	wstring sFilePath = GetFilePathFromUser(hContact);
 	HANDLE hFile = openCreateFile(sFilePath);
 	if (hFile == INVALID_HANDLE_VALUE) {
-		DisplayErrorDialog(LPGENW("Failed to open or create file :\n"), sFilePath, nullptr);
+		DisplayErrorDialog(LPGENW("Failed to open or create file:\n"), sFilePath, nullptr);
 		return 0;
 	}
 
@@ -1243,7 +1045,7 @@ int nExportEvent(WPARAM hContact, LPARAM hDbEvent)
 	return 0;
 }
 
-bool bExportEvent(MCONTACT hContact, MEVENT hDbEvent, HANDLE hFile, tstring sFilePath, bool bAppendOnly)
+bool bExportEvent(MCONTACT hContact, MEVENT hDbEvent, HANDLE hFile, wstring sFilePath, bool bAppendOnly)
 {
 	DBEVENTINFO dbei = {};
 	int nSize = db_event_getBlobSize(hDbEvent);
@@ -1252,12 +1054,15 @@ bool bExportEvent(MCONTACT hContact, MEVENT hDbEvent, HANDLE hFile, tstring sFil
 		dbei.pBlob = (PBYTE)malloc(dbei.cbBlob + 2);
 		dbei.pBlob[dbei.cbBlob] = 0;
 		dbei.pBlob[dbei.cbBlob + 1] = 0;
-		// Double null terminate, this shut pervent most errors 
+		// Double null terminate, this should prevent most errors 
 		// where the blob received has an invalid format
 	}
 
 	bool result = true;
 	if (!db_event_get(hDbEvent, &dbei)) {
+		if (db_mc_isMeta(hContact))
+			hContact = db_event_getContact(hDbEvent);
+
 		// Write the event
 		result = ExportDBEventInfo(hContact, hFile, sFilePath, dbei, bAppendOnly);
 	}
@@ -1266,22 +1071,6 @@ bool bExportEvent(MCONTACT hContact, MEVENT hDbEvent, HANDLE hFile, tstring sFil
 	return result;
 }
 
-#ifdef _UNICODE
-bool bWriteIndentedToFile(HANDLE hFile, int nIndent, const char *pszSrc, bool bUtf8File)
-{
-	int nLen = (int)mir_strlen(pszSrc);
-	wchar_t * pszWstr = new wchar_t[nLen + 1];
-	bool bRet = false;
-	if (MultiByteToWideChar(CP_ACP, 0, pszSrc, nLen, pszWstr, nLen) == nLen) {
-		pszWstr[nLen] = NULL;
-		bRet = bWriteIndentedToFile(hFile, nIndent, pszWstr, bUtf8File);
-	}
-	delete[] pszWstr;
-
-	return bRet;
-}
-#endif
-
 /////////////////////////////////////////////////////////////////////
 // Member Function : bWriteIndentedToFile
 // Type            : Global
@@ -1289,13 +1078,6 @@ bool bWriteIndentedToFile(HANDLE hFile, int nIndent, const char *pszSrc, bool bU
 //                   nIndent - ?
 //                   pszSrc  - 
 // Returns         : Returns true if 
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 020629, 29 June 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
 bool bWriteIndentedToFile(HANDLE hFile, int nIndent, const wchar_t *pszSrc, bool bUtf8File)
 {
@@ -1374,25 +1156,17 @@ bool bWriteIndentedToFile(HANDLE hFile, int nIndent, const wchar_t *pszSrc, bool
 //                   lparam - 0
 // Returns         : int
 // Description     : Called when an contact is about to be deleted
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 021222, 22 December 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
 
-int nContactDeleted(WPARAM wparam, LPARAM /*lparam*/)
+int nContactDeleted(WPARAM hContact, LPARAM)
 {
-	MCONTACT hContact = (MCONTACT)wparam;
-
 	HWND hInternalWindow = WindowList_Find(hInternalWindowList, hContact);
 	if (hInternalWindow)
 		CloseWindow(hInternalWindow);
 
-	if (enDeleteAction == eDANothing)
+	if (g_enDeleteAction == eDANothing)
 		return 0;
 
-	tstring sFilePath = GetFilePathFromUser(hContact);
+	wstring sFilePath = GetFilePathFromUser(hContact);
 
 	// Test if there is another user using this file
 	for (auto &hOtherContact : Contacts())
@@ -1400,65 +1174,21 @@ int nContactDeleted(WPARAM wparam, LPARAM /*lparam*/)
 			return 0; // we found another contact abort mission :-)
 
 	// Test to see if there is a file to delete
-	HANDLE hPrevFile = CreateFile(sFilePath.c_str(),
-		GENERIC_READ,
-		FILE_SHARE_READ | FILE_SHARE_WRITE,
-		nullptr,
-		OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL,
-		nullptr);
-
+	HANDLE hPrevFile = CreateFile(sFilePath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 	if (hPrevFile != INVALID_HANDLE_VALUE) {
 		CloseHandle(hPrevFile);
 
 		wchar_t szTemp[500];
-		mir_snwprintf(szTemp, L"%s\r\n%s",
-			TranslateT("User has been deleted. Do you want to delete the file?"), sFilePath.c_str());
+		mir_snwprintf(szTemp, L"%s\r\n%s", TranslateT("User has been deleted. Do you want to delete the file?"), sFilePath.c_str());
 
-		if (enDeleteAction == eDAAutomatic ||
-			MessageBox(nullptr, szTemp, MSG_BOX_TITEL, MB_YESNO) == IDYES) {
+		if (g_enDeleteAction == eDAAutomatic || MessageBox(nullptr, szTemp, MSG_BOX_TITEL, MB_YESNO) == IDYES) {
 			if (!DeleteFile(sFilePath.c_str())) {
-				mir_snwprintf(szTemp,
-					L"%s\r\n%s",
-					TranslateT("Failed to delete the file"),
-					sFilePath.c_str());
-
-				DisplayLastError(szTemp);
+				mir_snwprintf(szTemp, L"%s\r\n%s", TranslateT("Failed to delete the file"), sFilePath.c_str());
+				LogLastError(szTemp);
 			}
 		}
 	}
 	return 0;
-}
-
-/////////////////////////////////////////////////////////////////////
-// Member Function : SaveSettings
-// Type            : Global
-// Parameters      : None
-// Returns         : void
-// Description     : Save Settings
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 020429, 29 April 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
-
-void SaveSettings()
-{
-	db_set_w(NULL, MODULE, "MaxLineWidth", (WORD)nMaxLineWidth);
-	db_set_ws(NULL, MODULE, "ExportDir", sExportDir.c_str());
-	db_set_ws(NULL, MODULE, "DefaultFile", sDefaultFile.c_str());
-	db_set_ws(NULL, MODULE, "TimeFormat", sTimeFormat.c_str());
-
-	db_set_ws(NULL, MODULE, "FileViewerPrg", sFileViewerPrg.c_str());
-	db_set_b(NULL, MODULE, "UseInternalViewer", bUseInternalViewer());
-	db_set_b(NULL, MODULE, "ReplaceHistory", bReplaceHistory);
-	db_set_b(NULL, MODULE, "AppendNewLine", bAppendNewLine);
-	db_set_b(NULL, MODULE, "UseUtf8InNewFiles", bUseUtf8InNewFiles);
-	db_set_b(NULL, MODULE, "UseLessAndGreaterInExport", bUseLessAndGreaterInExport);
-
-	db_set_b(NULL, MODULE, "RenameAction", (BYTE)enRenameAction);
-	db_set_b(NULL, MODULE, "DeleteAction", (BYTE)enDeleteAction);
 }
 
 /////////////////////////////////////////////////////////////////////

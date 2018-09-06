@@ -19,13 +19,15 @@ Boston, MA 02111-1307, USA.
 
 #include "stdafx.h"
 
-HINSTANCE hInst = nullptr;
-
 HANDLE hPackUpdaterFolder = nullptr;
 wchar_t tszRoot[MAX_PATH] = { 0 };
-int hLangpack;
 
-PLUGININFOEX pluginInfoEx = {
+CMPlugin g_plugin;
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx =
+{
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -38,21 +40,14 @@ PLUGININFOEX pluginInfoEx = {
 	{ 0x29517be5, 0x779a, 0x48e5, { 0x89, 0x50, 0xcb, 0x4d, 0xe1, 0xd4, 0x31, 0x72 } }
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-
 	wchar_t *tszFolder = Utils_ReplaceVarsW(L"%miranda_userdata%\\" DEFAULT_UPDATES_FOLDER);
 	mir_wstrncpy(tszRoot, tszFolder, _countof(tszRoot));
 
@@ -67,26 +62,26 @@ extern "C" __declspec(dllexport) int Load(void)
 	IcoLibInit();
 
 	// Add cheking update menu item
-	CreateServiceFunction(MODNAME"/CheckUpdates", MenuCommand);
+	CreateServiceFunction(MODULENAME"/CheckUpdates", MenuCommand);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x326495e8, 0xab0a, 0x47d2, 0xb2, 0x22, 0x2a, 0x8e, 0xa8, 0xae, 0x53, 0x1a);
 	mi.position = -0x7FFFFFFF;
 	mi.flags = CMIF_UNICODE;
 	mi.hIcolibItem = IcoLib_GetIcon("check_update");
 	mi.name.w = LPGENW("Check for pack updates");
-	mi.pszService = MODNAME"/CheckUpdates";
+	mi.pszService = MODULENAME"/CheckUpdates";
 	Menu_AddMainMenuItem(&mi);
 
 	// Add empty updates folder menu item
-	CreateServiceFunction(MODNAME"/EmptyFolder", EmptyFolder);
+	CreateServiceFunction(MODULENAME"/EmptyFolder", EmptyFolder);
 	memset(&mi, 0, sizeof(mi));
 	SET_UID(mi, 0xc3eea590, 0xaba3, 0x454f, 0x93, 0x93, 0xbc, 0x97, 0x15, 0x2c, 0x3b, 0x3d);
 	mi.position = -0x7FFFFFFF;
 	mi.flags = CMIF_UNICODE;
 	mi.hIcolibItem = IcoLib_GetIcon("empty_folder");
 	mi.name.w = LPGENW("Clear pack updates folder");
-	mi.pszService = MODNAME"/EmptyFolder";
+	mi.pszService = MODULENAME"/EmptyFolder";
 	Menu_AddMainMenuItem(&mi);
 
 	// Add options hook
@@ -97,7 +92,9 @@ extern "C" __declspec(dllexport) int Load(void)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	if (hCheckThread)
 		hCheckThread = nullptr;

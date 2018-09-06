@@ -40,8 +40,8 @@ static void __stdcall DummyAPCFunc(ULONG_PTR)
 
 static int MirandaWaitForMutex(HANDLE hEvent)
 {
+	// will get WAIT_IO_COMPLETE for QueueUserAPC() which isnt a result
 	for (;;) {
-		// will get WAIT_IO_COMPLETE for QueueUserAPC() which isnt a result
 		DWORD rc = MsgWaitForMultipleObjectsEx(1, &hEvent, INFINITE, QS_ALLINPUT, MWMO_ALERTABLE);
 		if (rc == WAIT_OBJECT_0 + 1) {
 			MSG msg;
@@ -333,11 +333,14 @@ MIR_CORE_DLL(INT_PTR) Thread_Push(HINSTANCE hInst, void* pOwner)
 	DuplicateHandle(GetCurrentProcess(), GetCurrentThread(), GetCurrentProcess(), &p->hThread, 0, FALSE, DUPLICATE_SAME_ACCESS);
 	p->dwThreadId = GetCurrentThreadId();
 	p->pObject = pOwner;
-	if (pluginListAddr.getIndex(hInst) != -1)
+	p->pEntryPoint = hInst;
+
+	// try to find the precise match
+	CMPluginBase &pPlugin = GetPluginByInstance(hInst);
+	if (pPlugin.getInst() == hInst)
 		p->hOwner = hInst;
 	else
-		p->hOwner = GetInstByAddress((hInst != nullptr) ? (PVOID)hInst : GetCurrentThreadEntryPoint());
-	p->pEntryPoint = hInst;
+		GetInstByAddress((hInst != nullptr) ? (PVOID)hInst : GetCurrentThreadEntryPoint());
 
 	threads.insert(p);
 	return 0;

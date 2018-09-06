@@ -16,14 +16,17 @@
 
 #include "stdafx.h"
 
-HINSTANCE hInst;
+CMPlugin g_plugin;
+
 BOOL bWatrackService = FALSE;
-int hLangpack = 0;
 wchar_t *gbHost, *gbPassword;
 WORD gbPort;
 HNETLIBUSER ghNetlibUser;
 
-PLUGININFOEX pluginInfo={
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx =
+{
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -33,26 +36,14 @@ PLUGININFOEX pluginInfo={
 	__AUTHORWEB,
 	UNICODE_AWARE,
 	// 692E87D0-6C71-4CDC-9E36-2B69FBDC4C
-	{0x692e87d0, 0x6c71, 0x4cdc, {0x9e, 0x36, 0x2b, 0x2d, 0x69, 0xfb, 0xdc, 0x4c}}
+	{ 0x692e87d0, 0x6c71, 0x4cdc, {0x9e, 0x36, 0x2b, 0x2d, 0x69, 0xfb, 0xdc, 0x4c }}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
-
-void InitVars()
-{
-	gbPort = db_get_w(NULL, szModuleName, "Port", 6600);
-	gbHost = UniGetContactSettingUtf(NULL, szModuleName, "Server", L"127.0.0.1");
-	gbPassword = UniGetContactSettingUtf(NULL, szModuleName, "Password", L"");
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 static int OnModulesLoaded(WPARAM, LPARAM)
 {
@@ -61,24 +52,28 @@ static int OnModulesLoaded(WPARAM, LPARAM)
 	nlu.szDescriptiveName.w = TranslateT("Watrack MPD connection");
 	nlu.szSettingsModule = __PLUGIN_NAME;
 	ghNetlibUser = Netlib_RegisterUser(&nlu);
-	InitVars();
+
+	gbPort = db_get_w(NULL, MODULENAME, "Port", 6600);
+	gbHost = UniGetContactSettingUtf(NULL, MODULENAME, "Server", L"127.0.0.1");
+	gbPassword = UniGetContactSettingUtf(NULL, MODULENAME, "Password", L"");
+
 	if (ServiceExists(MS_WAT_PLAYER))
 		bWatrackService = TRUE;
-	RegisterPlayer();
 
+	RegisterPlayer();
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
 	HookEvent(ME_SYSTEM_MODULESLOADED, OnModulesLoaded);
 	HookEvent(ME_OPT_INITIALISE, WaMpdOptInit);
-
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	mir_free(gbHost);
 	mir_free(gbPassword);

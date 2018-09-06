@@ -152,7 +152,7 @@ void g_MenuInit(void)
 
 	hChooserMenu = Menu_AddObject("JabberAccountChooser", LPGEN("Jabber account chooser"), nullptr, "Jabber/MenuChoose");
 	{
-		CMenuItem mi;
+		CMenuItem mi(&g_plugin);
 		mi.name.a = "Cancel";
 		mi.position = 9999999;
 		mi.hIcolibItem = Skin_GetIconHandle(SKINICON_OTHER_DELETE);
@@ -162,7 +162,7 @@ void g_MenuInit(void)
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Contact menu initialization
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.flags = CMIF_UNMOVABLE;
 
 	// "Convert Chat/Contact"
@@ -370,7 +370,7 @@ int CJabberProto::OnPrebuildContactMenu(WPARAM hContact, LPARAM)
 	}
 
 	char text[256];
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.flags = CMIF_SYSTEM;
 	mi.pszService = text;
 
@@ -530,7 +530,7 @@ INT_PTR __cdecl CJabberProto::OnMenuBookmarkAdd(WPARAM hContact, LPARAM)
 
 void CJabberProto::OnBuildProtoMenu()
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.root = m_hMenuRoot = Menu_GetProtocolRoot(this);
 	mi.flags = CMIF_UNMOVABLE;
 
@@ -659,7 +659,7 @@ void CJabberProto::BuildPriorityMenu()
 	if (m_hMenuPriorityRoot)
 		Menu_RemoveItem(m_hMenuPriorityRoot);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.pszService = nullptr;
 	mi.position = 200006;
 	mi.root = m_hMenuRoot;
@@ -729,7 +729,7 @@ void CJabberProto::GlobalMenuInit()
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Account chooser menu
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.flags = CMIF_UNMOVABLE | CMIF_UNICODE | CMIF_KEEPUNTRANSLATED;
 	mi.position = iChooserMenuPos++;
 	mi.name.w = m_tszUserName;
@@ -750,19 +750,19 @@ void CJabberProto::GlobalMenuInit()
 
 	mir_strcpy(tDest, "/Groupchat");
 	hkd.szDescription.w = LPGENW("Join conference");
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	mir_strcpy(tDest, "/Bookmarks");
 	hkd.szDescription.w = LPGENW("Open bookmarks");
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	mir_strcpy(tDest, "/PrivacyLists");
 	hkd.szDescription.w = LPGENW("Privacy lists");
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	mir_strcpy(tDest, "/ServiceDiscovery");
 	hkd.szDescription.w = LPGENW("Service discovery");
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 }
 
 static INT_PTR g_ToolbarHandleJoinGroupchat(WPARAM w, LPARAM l)
@@ -798,19 +798,19 @@ int g_OnToolbarInit(WPARAM, LPARAM)
 	ttb.pszService = "JABBER/*/Groupchat";
 	ttb.pszTooltipUp = ttb.name = LPGEN("Join conference");
 	ttb.hIconHandleUp = g_GetIconHandle(IDI_GROUP);
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 
 	CreateServiceFunction("JABBER/*/Bookmarks", g_ToolbarHandleBookmarks);
 	ttb.pszService = "JABBER/*/Bookmarks";
 	ttb.pszTooltipUp = ttb.name = LPGEN("Open bookmarks");
 	ttb.hIconHandleUp = g_GetIconHandle(IDI_BOOKMARKS);
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 
 	CreateServiceFunction("JABBER/*/ServiceDiscovery", g_ToolbarHandleServiceDiscovery);
 	ttb.pszService = "JABBER/*/ServiceDiscovery";
 	ttb.pszTooltipUp = ttb.name = LPGEN("Service discovery");
 	ttb.hIconHandleUp = g_GetIconHandle(IDI_SERVICE_DISCOVERY);
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 	return 0;
 }
 
@@ -906,7 +906,7 @@ int CJabberProto::OnProcessSrmmEvent(WPARAM, LPARAM lParam)
 			WindowList_Remove(hDialogsList, event->hwndWindow);
 
 		DBVARIANT dbv;
-		BOOL bSupportTyping = FALSE;
+		bool bSupportTyping = false;
 		if (!db_get(event->hContact, "SRMsg", "SupportTyping", &dbv)) {
 			bSupportTyping = dbv.bVal == 1;
 			db_free(&dbv);
@@ -915,6 +915,7 @@ int CJabberProto::OnProcessSrmmEvent(WPARAM, LPARAM lParam)
 			bSupportTyping = dbv.bVal == 1;
 			db_free(&dbv);
 		}
+		
 		if (!bSupportTyping || !m_bJabberOnline)
 			return 0;
 
@@ -1081,7 +1082,7 @@ CJabberProto* JabberChooseInstance(bool bIsLink)
 
 		HMENU hMenu = CreatePopupMenu();
 		Menu_Build(hMenu, hChooserMenu);
-		int res = TrackPopupMenu(hMenu, TPM_RETURNCMD, pt.x, pt.y, 0, pcli->hwndContactList, nullptr);
+		int res = TrackPopupMenu(hMenu, TPM_RETURNCMD, pt.x, pt.y, 0, g_clistApi.hwndContactList, nullptr);
 		DestroyMenu(hMenu);
 
 		if (res) {

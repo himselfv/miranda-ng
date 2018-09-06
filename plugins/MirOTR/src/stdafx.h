@@ -74,7 +74,13 @@ using namespace std;
 
 #define MODULENAME "MirOTR"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 #define PREF_BYPASS_OTR 0x8000
 #define PREF_NO_HISTORY  0x10000
-
-extern HINSTANCE hInst;

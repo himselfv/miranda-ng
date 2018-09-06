@@ -30,7 +30,7 @@ CSendHost_Imgur::~CSendHost_Imgur()
 
 int CSendHost_Imgur::Send()
 {
-	if (!g_hNetlibUser) { /// check Netlib
+	if (!g_hNetlibUser) { // check Netlib
 		Error(SS_ERR_INIT, m_pszSendTyp);
 		Exit(ACKRESULT_FAILED);
 		return !m_bAsync;
@@ -40,15 +40,13 @@ int CSendHost_Imgur::Send()
 	HTTPFormData frm[] = {
 		{ "Authorization", HTTPFORM_HEADER("Client-ID 2a7303d78abe041") },
 		{ "image", HTTPFORM_FILE(tmp) },
-		//		{"name",""},// filename (detected if multipart / form-data)
-		//		{"title",""},
-		//		{"description",""},
 	};
-	int error = HTTPFormCreate(&m_nlhr, REQUEST_POST, "https://api.imgur.com/3/image", frm, sizeof(frm) / sizeof(HTTPFormData));
+
+	int error = HTTPFormCreate(&m_nlhr, REQUEST_POST, "https://api.imgur.com/3/image", frm, _countof(frm));
 	mir_free(tmp);
 	if (error)
 		return !m_bAsync;
-	/// start upload thread
+	// start upload thread
 	if (m_bAsync) {
 		mir_forkthread(&CSendHost_Imgur::SendThread, this);
 		return 0;
@@ -59,31 +57,27 @@ int CSendHost_Imgur::Send()
 
 void CSendHost_Imgur::SendThread(void* obj)
 {
-	CSendHost_Imgur* self = (CSendHost_Imgur*)obj;
-	/// send DATA and wait for m_nlreply
-	NETLIBHTTPREQUEST* reply = Netlib_HttpTransaction(g_hNetlibUser, &self->m_nlhr);
+	CSendHost_Imgur *self = (CSendHost_Imgur*)obj;
+	// send DATA and wait for m_nlreply
+	NETLIBHTTPREQUEST *reply = Netlib_HttpTransaction(g_hNetlibUser, &self->m_nlhr);
 	self->HTTPFormDestroy(&self->m_nlhr);
 	if (reply) {
 		if (reply->dataLength) {
-			char buf[128];
-
-			if (GetJSONBool(reply->pData, reply->dataLength, "success")) {
-				GetJSONString(reply->pData, reply->dataLength, "data[link]", buf, sizeof(buf));
-
-				mir_free(self->m_URL), self->m_URL = mir_strdup(buf);
-				char* ext = strrchr(self->m_URL, '.');
-				if (ext) {
-					size_t thumblen = mir_strlen(self->m_URL) + 2;
-					mir_free(self->m_URLthumb), self->m_URLthumb = (char*)mir_alloc(thumblen);
-					thumblen = ext - self->m_URL;
-					memcpy(self->m_URLthumb, self->m_URL, thumblen);
-					self->m_URLthumb[thumblen] = 'm'; // 320x320, see http://api.imgur.com/models/image
-					mir_strcpy(self->m_URLthumb + thumblen + 1, self->m_URL + thumblen);
+			JSONROOT root(reply->pData);
+			if (root) {
+				if ((*root)["success"].as_bool()) {
+					self->m_URL = (*root)["data"]["link"].as_mstring();
+					int idx = self->m_URL.ReverseFind('.');
+					if (idx != -1) {
+						self->m_URLthumb = self->m_URL;
+						self->m_URLthumb.Insert(idx, 'm');
+					}
+					Netlib_FreeHttpRequest(reply);
+					self->svcSendMsgExit(self->m_URL); return;
 				}
-				Netlib_FreeHttpRequest(reply);
-				self->svcSendMsgExit(self->m_URL); return;
+				else self->Error(SS_ERR_RESPONSE, self->m_pszSendTyp, (*root)["status"].as_int(), 0);
 			}
-			else self->Error(SS_ERR_RESPONSE, self->m_pszSendTyp, GetJSONInteger(reply->pData, reply->dataLength, "status", 0));
+			else self->Error(SS_ERR_RESPONSE, self->m_pszSendTyp, reply->resultCode);
 		}
 		else self->Error(SS_ERR_RESPONSE, self->m_pszSendTyp, reply->resultCode);
 

@@ -32,10 +32,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "resource.h"
 #include "version.h"
 
-extern HINSTANCE g_hInstance;
-
-#define MODULE_NAME "StartPosition"
+#define MODULENAME "StartPosition"
 #define CLIST_MODULE_NAME "CList"
 
 #include "options.h"
 #include "startposition.h"
+
+extern PLUGININFOEX pluginInfoEx;

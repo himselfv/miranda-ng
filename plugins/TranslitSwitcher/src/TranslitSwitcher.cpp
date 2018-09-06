@@ -19,9 +19,16 @@ Boston, MA 02111-1307, USA.
 
 #include "stdafx.h"
 
-HINSTANCE hInst = nullptr;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
 
-int hLangpack;
+	int Load() override;
+}
+g_plugin;
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
@@ -36,23 +43,18 @@ PLUGININFOEX pluginInfoEx = {
 	{ 0x286947d, 0x3140, 0x4222, { 0xb5, 0xad, 0x2c, 0x92, 0x31, 0x5e, 0x1c, 0x1e } }
 };
 
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
 static IconItem iconList[] =
 {
 	{ LPGEN("Switch Layout and Send"), "Switch Layout and Send", IDI_SWITCHSEND },
 	{ LPGEN("Translit and Send"), "Translit and Send", IDI_TRANSLITSEND },
 	{ LPGEN("Invert Case and Send"), "Invert Case and Send", IDI_INVERTSEND },
 };
-
-bool WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return true;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
 
 //-------------------------------------------------------------------------------------------------------
 #define MS_TS_SWITCHLAYOUT "TranslitSwitcher/SwitchLayout"
@@ -80,7 +82,7 @@ int OnModulesLoaded(WPARAM, LPARAM)
 {
 	HookEvent(ME_MSG_BUTTONPRESSED, OnButtonPressed);
 
-	Icon_Register(hInst, "TabSRMM/TranslitSwitcher", iconList, _countof(iconList));
+	g_plugin.registerIcon("TabSRMM/TranslitSwitcher", iconList);
 
 	BBButton bbd = {};
 	bbd.bbbFlags = BBBF_ISIMBUTTON | BBBF_ISCHATBUTTON | BBBF_ISRSIDEBUTTON;
@@ -89,30 +91,28 @@ int OnModulesLoaded(WPARAM, LPARAM)
 	bbd.hIcon = iconList[0].hIcolib;
 	bbd.dwButtonID = 1;
 	bbd.dwDefPos = 30;
-	Srmm_AddButton(&bbd);
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.pszModuleName = "Translit and Send";
 	bbd.pwszTooltip = TranslateT("Translit and Send");
 	bbd.hIcon = iconList[1].hIcolib;
 	bbd.dwButtonID = 1;
 	bbd.dwDefPos = 40;
-	Srmm_AddButton(&bbd);
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.pszModuleName = "Invert Case and Send";
 	bbd.pwszTooltip = TranslateT("Invert Case and Send");
 	bbd.hIcon = iconList[2].hIcolib;
 	bbd.dwButtonID = 1;
 	bbd.dwDefPos = 50;
-	Srmm_AddButton(&bbd);
+	Srmm_AddButton(&bbd, &g_plugin);
 	return 0;
 }
 
-//-------------------------------------------------------------------------------------------------------
+/////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-
 	CreateServiceFunction(MS_TS_SWITCHLAYOUT, ServiceSwitch);
 	CreateServiceFunction(MS_TS_TRANSLITLAYOUT, ServiceTranslit);
 	CreateServiceFunction(MS_TS_INVERTCASE, ServiceInvert);
@@ -126,43 +126,38 @@ extern "C" __declspec(dllexport) int Load(void)
 	hkd.szSection.w = L"TranslitSwitcher";
 	hkd.pszService = MS_TS_SWITCHLAYOUT;
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL + HKCOMB_A, 'R') | HKF_MIRANDA_LOCAL;
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	hkd.pszName = "TranslitSwitcher/ConvertLastOrSelected";
 	hkd.szDescription.w = LPGENW("Convert Last / Selected");
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_ALT + HKCOMB_A, 'R') | HKF_MIRANDA_LOCAL;
 	hkd.lParam = true;
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	hkd.pszName = "TranslitSwitcher/TranslitAllOrSelected";
 	hkd.szDescription.w = LPGENW("Translit All / Selected");
 	hkd.pszService = MS_TS_TRANSLITLAYOUT;
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL + HKCOMB_A, 'T') | HKF_MIRANDA_LOCAL;
 	hkd.lParam = false;
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	hkd.pszName = "TranslitSwitcher/TranslitLastOrSelected";
 	hkd.szDescription.w = LPGENW("Translit Last / Selected");
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_ALT + HKCOMB_A, 'T') | HKF_MIRANDA_LOCAL;
 	hkd.lParam = true;
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	hkd.pszName = "TranslitSwitcher/InvertCaseAllOrSelected";
 	hkd.szDescription.w = LPGENW("Invert Case All / Selected");
 	hkd.pszService = MS_TS_INVERTCASE;
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL + HKCOMB_A, 'Y') | HKF_MIRANDA_LOCAL;
 	hkd.lParam = false;
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	hkd.pszName = "TranslitSwitcher/InvertCaseLastOrSelected";
 	hkd.szDescription.w = LPGENW("Invert Case Last / Selected");
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_ALT + HKCOMB_A, 'Y') | HKF_MIRANDA_LOCAL;
 	hkd.lParam = true;
-	Hotkey_Register(&hkd);
-	return 0;
-}
-
-extern "C" __declspec(dllexport) int Unload(void)
-{
+	g_plugin.addHotkey(&hkd);
 	return 0;
 }

@@ -151,14 +151,14 @@ struct CIcqProto : public PROTO<CIcqProto>
 	mir_cs localSeqMutex;
 	mir_cs connectionHandleMutex;
 
-	int   m_bIdleAllow;
+	bool  m_bIdleMode;
 	DWORD m_dwLocalUIN;
-	BYTE m_bConnectionLost;
+	BYTE  m_bConnectionLost;
 
-	char m_szPassword[PASSWORDMAXLEN+1];
-	BYTE m_bRememberPwd;
+	char  m_szPassword[PASSWORDMAXLEN+1];
+	BYTE  m_bRememberPwd;
 
-	int cheekySearchId;
+	int   cheekySearchId;
 	DWORD cheekySearchUin;
 	char* cheekySearchUid;
 
@@ -334,8 +334,6 @@ struct CIcqProto : public PROTO<CIcqProto>
 
 	MCONTACT HContactFromRecordName(const char *szRecordName, int *bAdded);
 
-	void   processCListReply(const char *szRecordName, WORD wGroupId, WORD wItemId, WORD wItemType, oscar_tlv_chain *pItemData);
-
 	void   icq_sendServerBeginOperation(int bImport);
 	void   icq_sendServerEndOperation();
 	void   sendRosterAck(void);
@@ -455,9 +453,7 @@ struct CIcqProto : public PROTO<CIcqProto>
 	void   icq_CancelFileTransfer(filetransfer* ft);
 
 	//----| icq_filetransfer.cpp |--------------------------------------------------------
-	void   icq_AcceptFileTransfer(MCONTACT hContact, filetransfer *ft);
 	void   icq_sendFileResume(filetransfer *ft, int action, const char *szFilename);
-	void   icq_InitFileSend(filetransfer *ft);
 
 	void   handleFileTransferPacket(directconnect *dc, PBYTE buf, size_t wLen);
 	void   handleFileTransferIdle(directconnect *dc);
@@ -672,7 +668,7 @@ struct CIcqProto : public PROTO<CIcqProto>
 
 	void   icq_requestnewfamily(WORD wFamily, void (CIcqProto::*familyhandler)(HNETLIBCONN hConn, char* cookie, size_t cookieLen));
 
-	void   icq_setidle(int bAllow);
+	void   icq_setidle(bool bIsIdle);
 	void   icq_setstatus(WORD wStatus, const char *szStatusNote = nullptr);
 	DWORD  icq_sendGetInfoServ(MCONTACT hContact, DWORD, int);
 	DWORD  icq_sendGetAimProfileServ(MCONTACT hContact, char *szUid);
@@ -897,11 +893,10 @@ struct CIcqProto : public PROTO<CIcqProto>
 
 struct CMPlugin : public ACCPROTOPLUGIN<CIcqProto>
 {
-	CMPlugin() :
-		ACCPROTOPLUGIN<CIcqProto>(ICQ_PROTOCOL_NAME)
-	{
-		SetUniqueId(UNIQUEIDSETTING);
-	}
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
 };
 
 #endif

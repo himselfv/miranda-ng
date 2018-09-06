@@ -469,8 +469,8 @@ int RegisterButtonByParce(char * ObjectName, char * Params)
 		+ ((TL[3] == 'C') ? SBF_ALIGN_BR_VCENTER : 0)
 		+ ((TL[4] == 'I') ? SBF_CALL_ON_PRESS : 0);
 	if (a)
-		return ModernSkinButton_AddButton(pcli->hwndContactList, ObjectName + 1, pServiceName, pStatusServiceName, "\0", Left, Top, Right, Bottom, alingnto, TranslateW(Hint), Section, Type, MinWidth, MinHeight);
-	return ModernSkinButton_AddButton(pcli->hwndContactList, ObjectName + 1, pServiceName, pStatusServiceName, "\0", Left, Top, Right, Bottom, alingnto, TranslateW(Hint), nullptr, nullptr, MinWidth, MinHeight);
+		return ModernSkinButton_AddButton(g_clistApi.hwndContactList, ObjectName + 1, pServiceName, pStatusServiceName, "\0", Left, Top, Right, Bottom, alingnto, TranslateW(Hint), Section, Type, MinWidth, MinHeight);
+	return ModernSkinButton_AddButton(g_clistApi.hwndContactList, ObjectName + 1, pServiceName, pStatusServiceName, "\0", Left, Top, Right, Bottom, alingnto, TranslateW(Hint), nullptr, nullptr, MinWidth, MinHeight);
 }
 
 //Parse DB string and add object
@@ -560,6 +560,6 @@ int SkinDrawGlyphMask(HDC hdc, RECT *rcSize, RECT *rcClip, MODERNMASK *ModernMas
 	rq.hDC = hdc;
 	rq.rcDestRect = *rcSize;
 	rq.rcClipRect = *rcClip;
-	mir_strncpy(rq.szObjectID, "Masked draw", _countof(rq.szObjectID));
+	strncpy_s(rq.szObjectID, "Masked draw", _TRUNCATE);
 	return ske_Service_DrawGlyph((WPARAM)&rq, (LPARAM)ModernMask);
 }

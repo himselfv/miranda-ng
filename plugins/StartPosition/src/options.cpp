@@ -1,22 +1,22 @@
 #include "stdafx.h"
 
 StartPositionOptions::StartPositionOptions() :
-	setTopPosition(MODULE_NAME, "CLEnableTop", 1),
-	setBottomPosition(MODULE_NAME, "CLEnableBottom", 0),
-	setSidePosition(MODULE_NAME, "CLEnableSide", 1),
-	clistAlign(MODULE_NAME, "CLAlign", ClistAlign::right),
-	setClistWidth(MODULE_NAME, "CLEnableWidth", 0),
-	setClistStartState(MODULE_NAME, "CLEnableState", 0),
-	clistState(MODULE_NAME, "CLState", ClistState::normal),
-	pixelsFromTop(MODULE_NAME, "CLpixelsTop", 3),
-	pixelsFromBottom(MODULE_NAME, "CLpixelsBottom", 3),
-	pixelsFromSide(MODULE_NAME, "CLpixelsSide", 3),
-	clistWidth(MODULE_NAME, "CLWidth", 180)
+	setTopPosition(MODULENAME, "CLEnableTop", 1),
+	setBottomPosition(MODULENAME, "CLEnableBottom", 0),
+	setSidePosition(MODULENAME, "CLEnableSide", 1),
+	clistAlign(MODULENAME, "CLAlign", ClistAlign::right),
+	setClistWidth(MODULENAME, "CLEnableWidth", 0),
+	setClistStartState(MODULENAME, "CLEnableState", 0),
+	clistState(MODULENAME, "CLState", ClistState::normal),
+	pixelsFromTop(MODULENAME, "CLpixelsTop", 3),
+	pixelsFromBottom(MODULENAME, "CLpixelsBottom", 3),
+	pixelsFromSide(MODULENAME, "CLpixelsSide", 3),
+	clistWidth(MODULENAME, "CLWidth", 180)
 {
 }
 
 COptionsDlg::COptionsDlg() :
-	CPluginDlgBase(g_hInstance, IDD_OPTIONS, MODULE_NAME),
+	CDlgBase(g_plugin, IDD_OPTIONS),
 	chkPositionTop(this, IDC_CLTOPENABLE),
 	edtPositionTop(this, IDC_CLTOP),
 	chkPositionBottom(this, IDC_CLBOTTOMENABLE),
@@ -49,7 +49,7 @@ COptionsDlg::COptionsDlg() :
 	chkStartState.OnChange = Callback(this, &COptionsDlg::onCheck_StartState);
 }
 
-void COptionsDlg::OnInitDialog()
+bool COptionsDlg::OnInitDialog()
 {
 	if (g_plugin.spOptions.clistState == ClistState::normal)
 		chkStartNormal.SetState(true);
@@ -71,9 +71,10 @@ void COptionsDlg::OnInitDialog()
 	edtPositionBottom.Enable(chkPositionBottom.GetState());
 	edtPositionSide.Enable(chkPositionSide.GetState());
 	edtWidth.Enable(chkWidth.GetState());
+	return true;
 }
 
-void COptionsDlg::OnApply()
+bool COptionsDlg::OnApply()
 {
 	removeOldSettings();
 
@@ -86,6 +87,7 @@ void COptionsDlg::OnApply()
 		g_plugin.spOptions.clistAlign = ClistAlign::right;
 	else
 		g_plugin.spOptions.clistAlign = ClistAlign::left;
+	return true;
 }
 
 void COptionsDlg::removeOldSettings()

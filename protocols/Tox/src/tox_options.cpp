@@ -37,7 +37,7 @@ CToxOptionsMain::CToxOptionsMain(CToxProto *proto, int idDialog)
 	m_profileExport.OnClick = Callback(this, &CToxOptionsMain::ProfileExport_OnClick);
 }
 
-void CToxOptionsMain::OnInitDialog()
+bool CToxOptionsMain::OnInitDialog()
 {
 	CToxDlgBase::OnInitDialog();
 
@@ -68,6 +68,7 @@ void CToxOptionsMain::OnInitDialog()
 
 	m_maxConnectRetries.SetRange(255, 1);
 	m_maxReconnectRetries.SetRange(255, 1);
+	return true;
 }
 
 void CToxOptionsMain::PasswordCreate_OnClick(CCtrlButton*)
@@ -112,11 +113,6 @@ void CToxOptionsMain::ToxAddressCopy_OnClick(CCtrlButton*)
 
 void CToxOptionsMain::ProfileCreate_OnClick(CCtrlButton*)
 {
-	Tox_Options *options = nullptr;
-	tox_options_default(options);
-	Tox *tox = tox_new(options, nullptr);
-	tox_options_free(options);
-
 	ptrW profilePath(m_proto->GetToxProfilePath());
 	if (!m_proto->IsFileExists(profilePath)) {
 		HANDLE hProfile = CreateFile(profilePath, GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -127,6 +123,9 @@ void CToxOptionsMain::ProfileCreate_OnClick(CCtrlButton*)
 		CloseHandle(hProfile);
 	}
 
+	Tox_Options *options = nullptr;
+	tox_options_default(options);
+	Tox *tox = tox_new(options, nullptr);
 	m_proto->InitToxCore(tox);
 	m_proto->UninitToxCore(tox);
 	tox_kill(tox);
@@ -170,10 +169,11 @@ void CToxOptionsMain::ProfileImport_OnClick(CCtrlButton*)
 
 	Tox_Options *options = tox_options_new(nullptr);
 	if (m_proto->LoadToxProfile(options)) {
-		CToxThread toxThread(options);
+		Tox *tox = tox_new(options, nullptr);
+		tox_options_free(options);
 
 		uint8_t data[TOX_ADDRESS_SIZE];
-		tox_self_get_address(toxThread.Tox(), data);
+		tox_self_get_address(tox, data);
 		ToxHexAddress address(data);
 		m_proto->setString(TOX_SETTINGS_ID, address);
 
@@ -181,20 +181,22 @@ void CToxOptionsMain::ProfileImport_OnClick(CCtrlButton*)
 		m_toxAddress.SetTextA(address);
 
 		uint8_t nick[TOX_MAX_NAME_LENGTH] = { 0 };
-		tox_self_get_name(toxThread.Tox(), nick);
-		ptrW nickname(Utf8DecodeW((char*)nick));
+		tox_self_get_name(tox, nick);
+		ptrW nickname(mir_utf8decodeW((char*)nick));
 		m_proto->setWString("Nick", nickname);
 		m_nickname.SetText(nickname);
 
 		uint8_t statusMessage[TOX_MAX_STATUS_MESSAGE_LENGTH] = { 0 };
-		tox_self_get_status_message(toxThread.Tox(), statusMessage);
-		m_proto->setWString("StatusMsg", ptrW(Utf8DecodeW((char*)statusMessage)));
+		tox_self_get_status_message(tox, statusMessage);
+		m_proto->setWString("StatusMsg", ptrW(mir_utf8decodeW((char*)statusMessage)));
 
 		ShowWindow(m_profileCreate.GetHwnd(), FALSE);
 		ShowWindow(m_profileImport.GetHwnd(), FALSE);
 
 		ShowWindow(m_toxAddressCopy.GetHwnd(), TRUE);
 		ShowWindow(m_profileExport.GetHwnd(), TRUE);
+
+		tox_kill(tox);
 	}
 	tox_options_free(options);
 }
@@ -226,7 +228,7 @@ void CToxOptionsMain::ProfileExport_OnClick(CCtrlButton*)
 		CopyFile(defaultProfilePath, profilePath, FALSE);
 }
 
-void CToxOptionsMain::OnApply()
+bool CToxOptionsMain::OnApply()
 {
 	ptrW group(m_group.GetText());
 	if (mir_wstrcmp(group, m_proto->m_defaultGroup)) {
@@ -240,14 +242,15 @@ void CToxOptionsMain::OnApply()
 		// todo: add checkbox
 		//m_proto->setWString("Password", pass_ptrW(m_password.GetText()));
 
-		m_proto->SaveToxProfile(m_proto->m_toxThread->Tox());
+		m_proto->SaveToxProfile(m_proto->m_tox);
 	}
+	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
 
 CToxNodeEditor::CToxNodeEditor(int iItem, CCtrlListView *m_nodes)
-	: CSuper(g_plugin.getInst(), IDD_NODE_EDITOR),
+	: CSuper(g_plugin, IDD_NODE_EDITOR),
 	m_ipv4(this, IDC_IPV4), m_ipv6(this, IDC_IPV6),
 	m_port(this, IDC_PORT), m_pkey(this, IDC_PKEY),
 	m_ok(this, IDOK), m_iItem(iItem)
@@ -257,7 +260,7 @@ CToxNodeEditor::CToxNodeEditor(int iItem, CCtrlListView *m_nodes)
 	m_ok.OnClick = Callback(this, &CToxNodeEditor::OnOk);
 }
 
-void CToxNodeEditor::OnInitDialog()
+bool CToxNodeEditor::OnInitDialog()
 {
 	SetWindowText(m_hwnd, m_iItem == -1 ? TranslateT("Add node") : TranslateT("Change node"));
 
@@ -286,6 +289,7 @@ void CToxNodeEditor::OnInitDialog()
 	}
 
 	Utils_RestoreWindowPositionNoSize(m_hwnd, NULL, MODULE, "EditNodeDlg");
+	return true;
 }
 
 void CToxNodeEditor::OnOk(CCtrlBase*)
@@ -325,11 +329,11 @@ void CToxNodeEditor::OnOk(CCtrlBase*)
 	EndDialog(m_hwnd, 1);
 }
 
-void CToxNodeEditor::OnClose()
+bool CToxNodeEditor::OnClose()
 {
 	Utils_SaveWindowPosition(m_hwnd, NULL, MODULE, "EditNodeDlg");
+	return true;
 }
-
 
 /****************************************/
 
@@ -345,7 +349,7 @@ CToxOptionsNodeList::CToxOptionsNodeList(CToxProto *proto)
 	m_nodes.OnKeyDown = Callback(this, &CToxOptionsNodeList::OnNodeListKeyDown);
 }
 
-void CToxOptionsNodeList::OnInitDialog()
+bool CToxOptionsNodeList::OnInitDialog()
 {
 	m_nodes.SetExtendedListViewStyle(LVS_EX_SUBITEMIMAGES | LVS_EX_FULLROWSELECT | LVS_EX_LABELTIP);
 
@@ -367,6 +371,7 @@ void CToxOptionsNodeList::OnInitDialog()
 	m_nodes.AddGroup(1, TranslateT("User nodes"));
 
 	ReloadNodeList();
+	return true;
 }
 
 void CToxOptionsNodeList::OnAddNode(CCtrlBase*)
@@ -484,7 +489,7 @@ void CToxOptionsNodeList::ReloadNodeList()
 	}
 }
 
-void CToxOptionsNodeList::OnApply()
+bool CToxOptionsNodeList::OnApply()
 {
 	char setting[MAX_PATH];
 	wchar_t tszText[MAX_PATH];
@@ -543,28 +548,29 @@ void CToxOptionsNodeList::OnApply()
 		db_unset(NULL, module, setting);
 	}
 	db_set_b(NULL, module, TOX_SETTINGS_NODE_COUNT, itemCount);
+	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
 
 int CToxProto::OnOptionsInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szTitle.w = m_tszUserName;
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE | ODPF_DONTTRANSLATE;
 	odp.szGroup.w = LPGENW("Network");
 
 	odp.szTab.w = LPGENW("Account");
 	odp.pDialog = CToxOptionsMain::CreateOptionsPage(this);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	/*odp.szTab.w = LPGENW("Multimedia");
 	odp.pDialog = CToxOptionsMultimedia::CreateOptionsPage(this);
-	Options_AddPage(wParam, &odp);*/
+	g_plugin.addOptions(wParam, &odp);*/
 
 	odp.szTab.w = LPGENW("Nodes");
 	odp.pDialog = CToxOptionsNodeList::CreateOptionsPage(this);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	return 0;
 }

@@ -98,7 +98,7 @@ static INT_PTR TrayMenuOnAddService(WPARAM wParam, LPARAM lParam)
 
 static INT_PTR ShowHideStub(WPARAM, LPARAM)
 {
-	return cli.pfnShowHide();
+	return g_clistApi.pfnShowHide();
 }
 
 void InitTrayMenus(void)
@@ -116,7 +116,7 @@ void InitTrayMenus(void)
 	Menu_ConfigureObject(hTrayMenuObject, MCO_OPT_ONADD_SERVICE, "CLISTMENUSTRAY/TrayMenuOnAddService");
 
 	// add exit command to menu
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 
 	SET_UID(mi, 0x6c202553, 0xb4d5, 0x403c, 0xa6, 0x82, 0x2, 0xd8, 0x2b, 0x42, 0xba, 0x9e);
 	mi.flags = CMIF_DEFAULT;

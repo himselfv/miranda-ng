@@ -814,7 +814,7 @@ bool Utils::extractResource(const HMODULE h, const UINT uID, const wchar_t *tszN
 		HGLOBAL hResource = LoadResource(h, hRes);
 		if (hResource) {
 			char 	*pData = (char *)LockResource(hResource);
-			DWORD	dwSize = SizeofResource(g_hInst, hRes), written = 0;
+			DWORD	dwSize = SizeofResource(g_plugin.getInst(), hRes), written = 0;
 
 			wchar_t	szFilename[MAX_PATH];
 			mir_snwprintf(szFilename, L"%s%s", tszPath, tszFilename);
@@ -968,6 +968,67 @@ void Utils::AddToFileList(wchar_t ***pppFiles, int *totalCount, LPCTSTR szFilena
 	}
 }
 
+int _DebugTraceW(const wchar_t *fmt, ...)
+{
+	wchar_t 	debug[2048];
+	int     	ibsize = 2047;
+	SYSTEMTIME	st;
+	va_list 	va;
+	char		tszTime[50];
+	va_start(va, fmt);
+
+	GetLocalTime(&st);
+
+	mir_snprintf(tszTime, "%02d.%02d.%04d - %02d:%02d:%02d.%04d: ", st.wDay, st.wMonth, st.wYear, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+
+
+	mir_vsnwprintf(debug, ibsize - 10, fmt, va);
+	//#ifdef _DEBUG
+	OutputDebugStringW(debug);
+	//#else
+	{
+		char szLogFileName[MAX_PATH], szDataPath[MAX_PATH];
+		FILE *f;
+
+		Profile_GetPathA(MAX_PATH, szDataPath);
+		mir_snprintf(szLogFileName, "%s\\%s", szDataPath, "tabsrmm_debug.log");
+		f = fopen(szLogFileName, "a+");
+		if (f) {
+			fputs(tszTime, f);
+			fputs(T2Utf(debug), f);
+			fputs("\n", f);
+			fclose(f);
+		}
+	}
+	//#endif
+	return 0;
+}
+
+/*
+* output a notification message.
+* may accept a hContact to include the contacts nickname in the notification message...
+* the actual message is using printf() rules for formatting and passing the arguments...
+*
+* can display the message either as systray notification (baloon popup) or using the
+* popup plugin.
+*/
+int _DebugPopup(MCONTACT hContact, const wchar_t *fmt, ...)
+{
+	va_list	va;
+	wchar_t		debug[1024];
+	int			ibsize = 1023;
+
+	va_start(va, fmt);
+	mir_vsnwprintf(debug, ibsize, fmt, va);
+
+	wchar_t	szTitle[128];
+	mir_snwprintf(szTitle, TranslateT("TabSRMM message (%s)"),
+		(hContact != 0) ? Clist_GetContactDisplayName(hContact) : TranslateT("Global"));
+
+	Clist_TrayNotifyW(nullptr, szTitle, debug, NIIF_INFO, 1000 * 4);
+	return 0;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // implementation of the CWarning class
 //
@@ -988,14 +1049,12 @@ void Utils::AddToFileList(wchar_t ***pppFiles, int *totalCount, LPCTSTR szFilena
 //  Entries that do not use the LPGENW() macro are NOT TRANSLATABLE, so don't bother translating them.
 
 static wchar_t* warnings[] = {
-	LPGENW("Important release notes|A test warning message"),							/* WARN_TEST */ /* reserved for important notes after upgrade - NOT translatable */
-	LPGENW("Icon pack version check|The installed icon pack is outdated and might be incompatible with TabSRMM version 3.\n\n\\b1Missing or misplaced icons are possible issues with the currently installed icon pack.\\b0"),			/* WARN_ICONPACKVERSION */
-	LPGENW("Edit user notes|You are editing the user notes. Click the button again or use the hotkey (default: Alt-N) to save the notes and return to normal messaging mode"),  /* WARN_EDITUSERNOTES */
+	LPGENW("Edit user notes|You are editing the user notes. Click the button again or use the hotkey (default: Alt+N) to save the notes and return to normal messaging mode"),  /* WARN_EDITUSERNOTES */
 	LPGENW("Missing component|The icon pack is missing. Please install it to the default icons folder.\n\nNo icons will be available"),		/* WARN_ICONPACKMISSING */
 	LPGENW("Aero peek warning|You have enabled Aero Peek features and loaded a custom container window skin\n\nThis can result in minor visual anomalies in the live preview feature."),	/* WARN_AEROPEEKSKIN */
 	LPGENW("File transfer problem|Sending the image by file transfer failed.\n\nPossible reasons: File transfers not supported, either you or the target contact is offline, or you are invisible and the target contact is not on your visibility list."), /* WARN_IMGSVC_MISSING */
 	LPGENW("Settings problem|The option \\b1 History -> Imitate IEView API\\b0  is enabled and the History++ plugin is active. This can cause problems when using IEView as message log viewer.\n\nShould I correct the option (a restart is required)?"), /* WARN_HPP_APICHECK */
-	L" ", /* WARN_NO_SENDLATER */ /*uses "Configuration issue|The unattended send feature is disabled. The \\b1 send later\\b0  and \\b1 send to multiple contacts\\b0  features depend on it.\n\nYou must enable it under \\b1Options -> Message sessions -> Advanced tweaks\\b0. Changing this option requires a restart." */
+	LPGENW("Configuration issue|The unattended send feature is disabled. The \\b1 send later\\b0  and \\b1 send to multiple contacts\\b0  features depend on it.\n\nYou must enable it under \\b1Options -> Message sessions -> Advanced tweaks\\b0. Changing this option requires a restart."), /* WARN_NO_SENDLATER */
 	LPGENW("Closing Window|You are about to close a window with multiple tabs open.\n\nProceed?"),		/* WARN_CLOSEWINDOW */
 	LPGENW("Closing options dialog|To reflect the changes done by importing a theme in the options dialog, the dialog must be closed after loading a theme \\b1 and unsaved changes might be lost\\b0 .\n\nDo you want to continue?"), /* WARN_OPTION_CLOSE */
 	LPGENW("Loading a theme|Loading a color and font theme can overwrite the settings defined by your skin.\n\nDo you want to continue?"), /* WARN_THEME_OVERWRITE */
@@ -1021,11 +1080,11 @@ CWarning::~CWarning()
 LRESULT CWarning::ShowDialog() const
 {
 	if (!m_fIsModal) {
-		::CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_WARNING), nullptr, stubDlgProc, LPARAM(this));
+		::CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_WARNING), nullptr, stubDlgProc, LPARAM(this));
 		return 0;
 	}
 
-	return ::DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_WARNING), nullptr, stubDlgProc, LPARAM(this));
+	return ::DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_WARNING), nullptr, stubDlgProc, LPARAM(this));
 }
 
 __int64 CWarning::getMask()
@@ -1075,7 +1134,7 @@ LRESULT CWarning::show(const int uId, DWORD dwFlags, const wchar_t* tszTxt)
 	else {
 		if (uId == -1)
 			return -1;
-		
+
 		if (dwFlags & CWF_UNTRANSLATED)
 			_s = TranslateW(warnings[uId]);
 		else {
@@ -1102,7 +1161,7 @@ LRESULT CWarning::show(const int uId, DWORD dwFlags, const wchar_t* tszTxt)
 			if (separator_pos) {
 				*separator_pos = 0;
 
-				CWarning *w = new CWarning(s, separator_pos+1, uId, dwFlags);
+				CWarning *w = new CWarning(s, separator_pos + 1, uId, dwFlags);
 				if (dwFlags & MB_YESNO || dwFlags & MB_YESNOCANCEL)
 					return w->ShowDialog();
 

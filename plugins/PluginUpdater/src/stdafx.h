@@ -47,12 +47,7 @@ Boston, MA 02111-1307, USA.
 #include "version.h"
 #include "resource.h"
 
-#if MIRANDA_VER < 0x0A00
-	#include <m_system_cpp.h>
-	#include "Compat/compat.h"
-#else
-	#include <m_autobackups.h>
-#endif
+#include <m_autobackups.h>
 
 #include "Notifications.h"
 
@@ -67,7 +62,7 @@ Boston, MA 02111-1307, USA.
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 
-#define MODNAME "PluginUpdater"
+#define MODULENAME "PluginUpdater"
 #define MODULEA "Plugin Updater"
 #define MODULE L"Plugin Updater"
 #define DEFAULT_UPDATES_FOLDER L"Plugin Updates"
@@ -101,16 +96,12 @@ extern struct PlugOptions
 #define DEFAULT_UPDATEONPERIOD    0
 #define DEFAULT_PERIOD            1
 #define DEFAULT_PERIODMEASURE     1
-
-#if MIRANDA_VER < 0x0A00
-	#define DEFAULT_ONLYONCEADAY      0
-#else
-	#define DEFAULT_ONLYONCEADAY      1
-#endif
+#define DEFAULT_ONLYONCEADAY      1
 
 #define DEFAULT_UPDATE_URL                L"https://miranda-ng.org/distr/stable/x%d"
 #define DEFAULT_UPDATE_URL_TRUNK          L"https://miranda-ng.org/distr/x%d"
 #define DEFAULT_UPDATE_URL_TRUNK_SYMBOLS  L"https://miranda-ng.org/distr/pdb_x%d"
+#define DEFAULT_UPDATE_URL_STABLE_SYMBOLS L"https://miranda-ng.org/distr/stable/pdb_x%d"
 
 
 #define FILENAME_X64 L"miranda64.exe"
@@ -138,7 +129,8 @@ extern struct PlugOptions
 #define UPDATE_MODE_STABLE			1
 #define UPDATE_MODE_TRUNK			2
 #define UPDATE_MODE_TRUNK_SYMBOLS	3
-#define UPDATE_MODE_MAX_VALUE		3 // when adding new mode, increment this number
+#define UPDATE_MODE_STABLE_SYMBOLS	4
+#define UPDATE_MODE_MAX_VALUE		4 // when adding new mode, increment this number
 
 #define DB_SETTING_UPDATE_MODE		"UpdateMode"
 #define DB_SETTING_UPDATE_URL		"UpdateURL"
@@ -148,29 +140,37 @@ extern struct PlugOptions
 #define DB_SETTING_LAST_UPDATE		"LastUpdate"
 #define DB_SETTING_DONT_SWITCH_TO_STABLE		"DontSwitchToStable"
 #define DB_SETTING_CHANGEPLATFORM	"ChangePlatform"
-#define DB_MODULE_FILES				MODNAME "Files"
-#define DB_MODULE_NEW_FILES         MODNAME "NewFiles"
+#define DB_MODULE_FILES				MODULENAME "Files"
+#define DB_MODULE_NEW_FILES         MODULENAME "NewFiles"
 
-#define MAX_RETRIES			3
+#define MAX_RETRIES   3
 
-#define IDINFO				3
-#define IDDOWNLOAD			4
-#define IDDOWNLOADALL		5
+#define IDINFO        3
+#define IDDOWNLOAD    4
+#define IDDOWNLOADALL 5
 
 using namespace std;
-
-extern HINSTANCE hInst;
 
 extern DWORD g_mirandaVersion;
 extern wchar_t g_tszRoot[MAX_PATH], g_tszTempPath[MAX_PATH];
 extern aPopups PopupsList[POPUPS];
 extern HANDLE hPipe;
 extern HNETLIBUSER hNetlibUser;
-#if MIRANDA_VER >= 0x0A00
-extern IconItemT iconList[];
-#endif
+
+extern IconItem iconList[];
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 void UninitCheck(void);
 void UninitListNew(void);
+
+int OptInit(WPARAM, LPARAM);
 
 class AutoHandle : private MNonCopyable
 {
@@ -218,7 +218,6 @@ void  InitNetlib();
 void  InitIcoLib();
 void  InitServices();
 void  InitEvents();
-void  InitOptions();
 void  InitListNew();
 void  InitCheck();
 void  CreateTimer();
@@ -236,7 +235,6 @@ wchar_t* GetDefaultUrl();
 bool   DownloadFile(FILEURL *pFileURL, HNETLIBCONN &nlc);
 
 void  ShowPopup(LPCTSTR Title, LPCTSTR Text, int Number);
-void  __stdcall RestartMe(void*);
 void  __stdcall OpenPluginOptions(void*);
 void  CheckUpdateOnStartup();
 void  InitTimer(void *type);
@@ -254,6 +252,6 @@ int SafeCreateDirectory(const wchar_t *ptszDirName);
 int SafeCopyFile(const wchar_t *ptszSrc, const wchar_t *ptszDst);
 int SafeMoveFile(const wchar_t *ptszSrc, const wchar_t *ptszDst);
 int SafeDeleteFile(const wchar_t *ptszSrc);
-int SafeCreateFilePath(wchar_t *pFolder);
+int SafeCreateFilePath(const wchar_t *pFolder);
 
-char *StrToLower(char *str);
+char* StrToLower(char *str);

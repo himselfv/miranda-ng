@@ -403,9 +403,7 @@ private:
 
 struct CMPlugin : public ACCPROTOPLUGIN<CVkProto>
 {
-	CMPlugin() :
-		ACCPROTOPLUGIN<CVkProto>("VKontakte")
-	{
-		SetUniqueId("ID");
-	}
+	CMPlugin();
+
+	int Load() override;
 };

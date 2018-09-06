@@ -201,7 +201,7 @@ static INT_PTR CALLBACK IcqDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 				break;
 
 			case PSN_INFOCHANGED:
-				CIcqProto* ppro = (CIcqProto*)GetWindowLongPtr(hwndDlg, GWLP_USERDATA);
+				CIcqProto * ppro = (CIcqProto*)GetWindowLongPtr(hwndDlg, GWLP_USERDATA);
 				if (!ppro)
 					break;
 
@@ -268,25 +268,23 @@ int CIcqProto::OnUserInfoInit(WPARAM wParam, LPARAM lParam)
 	if ((!IsICQContact(lParam)) && lParam)
 		return 0;
 
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.flags = ODPF_UNICODE | ODPF_DONTTRANSLATE;
-	odp.hInstance = g_plugin.getInst();
+	OPTIONSDIALOGPAGE odp = {};
+	odp.flags = ODPF_UNICODE | ODPF_USERINFOTAB | ODPF_DONTTRANSLATE;
 	odp.dwInitParam = LPARAM(this);
+	odp.szTitle.w = m_tszUserName;
+
 	odp.pfnDlgProc = IcqDlgProc;
 	odp.position = -1900000000;
-	odp.szTitle.w = m_tszUserName;
+	odp.szTab.w = LPGENW("Details");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_INFO_ICQ);
-	UserInfo_AddPage(wParam, &odp);
+	g_plugin.addUserInfo(wParam, &odp);
 
 	if (!lParam) {
-		wchar_t buf[200];
-		mir_snwprintf(buf, TranslateT("%s Details"), m_tszUserName);
-		odp.szTitle.w = buf;
-
+		odp.szTab.w = LPGENW("Account");
 		odp.position = -1899999999;
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_INFO_CHANGEINFO);
 		odp.pfnDlgProc = ChangeInfoDlgProc;
-		UserInfo_AddPage(wParam, &odp);
+		g_plugin.addUserInfo(wParam, &odp);
 	}
 	return 0;
 }

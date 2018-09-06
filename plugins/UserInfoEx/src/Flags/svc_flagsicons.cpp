@@ -194,9 +194,9 @@ FIBITMAP* LoadResource(UINT ID, LPTSTR lpType)
 {
 	FIBITMAP *dib      = nullptr;
 	if (lpType) {
-		HRSRC	hResInfo	= FindResource(ghInst,MAKEINTRESOURCE(ID),lpType);
-		DWORD	ResSize		= SizeofResource(ghInst,hResInfo);
-		HGLOBAL	hRes		= LoadResource(ghInst,hResInfo);
+		HRSRC	hResInfo	= FindResource(g_plugin.getInst(),MAKEINTRESOURCE(ID),lpType);
+		DWORD	ResSize		= SizeofResource(g_plugin.getInst(),hResInfo);
+		HGLOBAL	hRes		= LoadResource(g_plugin.getInst(),hResInfo);
 		BYTE*	buffer		= (BYTE*)LockResource(hRes);
 		if (buffer)
 		{
@@ -214,7 +214,7 @@ FIBITMAP* LoadResource(UINT ID, LPTSTR lpType)
 		FreeResource(hRes);
 	}
 	else {
-		HBITMAP hScrBM = (HBITMAP)LoadImage(ghInst,MAKEINTRESOURCE(ID), IMAGE_BITMAP, 0, 0,LR_SHARED);
+		HBITMAP hScrBM = (HBITMAP)LoadImage(g_plugin.getInst(),MAKEINTRESOURCE(ID), IMAGE_BITMAP, 0, 0,LR_SHARED);
 		if (hScrBM == nullptr)
 			return dib;
 		dib = FreeImage_CreateDIBFromHBITMAP(hScrBM);
@@ -355,7 +355,7 @@ void InitIcons()
 				sid.hDefaultIcon = ImageList_ExtractIcon(NULL, himl, index);
 				index = CountryNumberToIndex(countries[i].id);
 
-				phIconHandles[index] = IcoLib_AddIcon(&sid);
+				phIconHandles[index] = g_plugin.addIcon(&sid);
 				if (sid.hDefaultIcon != nullptr)
 					DestroyIcon(sid.hDefaultIcon);
 				mir_free(sid.description.w); sid.description.w = nullptr;

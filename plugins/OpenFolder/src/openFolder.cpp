@@ -1,8 +1,16 @@
 #include "stdafx.h"
 
-int hLangpack = 0;
-HINSTANCE hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+}
+g_plugin;
+
 HANDLE hButtonTopToolbar;
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx =
 {
@@ -18,13 +26,16 @@ PLUGININFOEX pluginInfoEx =
 	{0x10896143, 0x7249, 0x4b36, {0xa4, 0x8, 0x65, 0x1, 0xa6, 0xb6, 0x3, 0x5a}}
 };
 
-static IconItem icon = { LPGEN("Open Folder"), "open", IDI_FOLDER };
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static IconItem iconList[] = 
 {
-	hInst = hinstDLL;
-	return TRUE;
-}
+	{ LPGEN("Open Folder"), "open", IDI_FOLDER }
+};
 
 static INT_PTR MenuCommand_OpenFolder(WPARAM, LPARAM)
 {
@@ -46,11 +57,11 @@ static INT_PTR MenuCommand_OpenFolder(WPARAM, LPARAM)
 static int ToptoolBarHook(WPARAM, LPARAM)
 {
 	TTBButton ttb = {};
-	ttb.hIconHandleUp = icon.hIcolib;
+	ttb.hIconHandleUp = iconList[0].hIcolib;
 	ttb.pszService = MS_OPENFOLDER_OPEN;
 	ttb.dwFlags = TTBBF_VISIBLE | TTBBF_SHOWTOOLTIP;
 	ttb.name = LPGEN("Open Folder");
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 	return 0;
 }
 
@@ -67,23 +78,16 @@ HICON LoadIconExEx(const char* IcoLibName, int)
 	return IcoLib_GetIcon(szSettingName);
 }
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-
 	CreateServiceFunction(MS_OPENFOLDER_OPEN, MenuCommand_OpenFolder);
 
 	HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoaded);
 
 	// icolib (0.7+)
-	Icon_Register(hInst, LPGEN("Open Folder"), &icon, 1, OPENFOLDER_MODULE_NAME);
+	g_plugin.registerIcon(LPGEN("Open Folder"), iconList, OPENFOLDER_MODULE_NAME);
 	
 	// hotkeys service (0.8+)
 	HOTKEYDESC hotkey = {};
@@ -93,23 +97,16 @@ extern "C" int __declspec(dllexport) Load()
 	hotkey.szSection.w = LPGENW("Main");
 	hotkey.pszService = MS_OPENFOLDER_OPEN;
 	hotkey.DefHotKey = MAKEWORD( 'O', HOTKEYF_SHIFT | HOTKEYF_ALT );
-	Hotkey_Register(&hotkey);
+	g_plugin.addHotkey(&hotkey);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0xbba6ad01, 0x755a, 0x4d01, 0x94, 0xee, 0x57, 0x84, 0x18, 0x70, 0x77, 0x4f);
 	mi.position = 0x7FFFFFFF;
 	mi.flags = CMIF_UNICODE;
-	mi.hIcolibItem = icon.hIcolib;
+	mi.hIcolibItem = iconList[0].hIcolib;
 	mi.name.w = LPGENW("Open Folder");
 	mi.pszService = MS_OPENFOLDER_OPEN;
 	Menu_AddMainMenuItem(&mi);
 
-	return 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-extern "C" int __declspec(dllexport) Unload()
-{
 	return 0;
 }

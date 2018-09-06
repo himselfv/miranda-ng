@@ -148,7 +148,7 @@ static HICON GetAnnivIcon(const CEvent &evt)
 		if (evt._wDaysLeft > 9)
 			hIcon = IcoLib_GetIcon(ICO_RMD_DTBX);
 		else {
-			mir_snprintf(szIcon, MODNAME"_rmd_dtb%u", evt._wDaysLeft);
+			mir_snprintf(szIcon, MODULENAME"_rmd_dtb%u", evt._wDaysLeft);
 			hIcon = IcoLib_GetIcon(szIcon);
 		}
 		break;
@@ -157,7 +157,7 @@ static HICON GetAnnivIcon(const CEvent &evt)
 		if (evt._wDaysLeft > 9)
 			hIcon = IcoLib_GetIcon(ICO_RMD_DTAX);
 		else {
-			mir_snprintf(szIcon, MODNAME"_rmd_dta%u", evt._wDaysLeft);
+			mir_snprintf(szIcon, MODULENAME"_rmd_dta%u", evt._wDaysLeft);
 			hIcon = IcoLib_GetIcon(szIcon);
 		}
 	}
@@ -183,7 +183,7 @@ static void NotifyWithExtraIcon(MCONTACT hContact, const CEvent &evt)
 			if (evt._wDaysLeft > 9)
 				icoName = ICO_RMD_DTAX;
 			else {
-				mir_snprintf(szIcon, MODNAME"_rmd_dtb%u", evt._wDaysLeft);
+				mir_snprintf(szIcon, MODULENAME"_rmd_dtb%u", evt._wDaysLeft);
 				icoName = szIcon;
 			}
 			break;
@@ -192,7 +192,7 @@ static void NotifyWithExtraIcon(MCONTACT hContact, const CEvent &evt)
 			if (evt._wDaysLeft > 9)
 				icoName = ICO_RMD_DTAX;
 			else {
-				mir_snprintf(szIcon, MODNAME"_rmd_dta%u", evt._wDaysLeft);
+				mir_snprintf(szIcon, MODULENAME"_rmd_dta%u", evt._wDaysLeft);
 				icoName = szIcon;
 			}
 			break;
@@ -251,7 +251,7 @@ static int NotifyWithPopup(MCONTACT hContact, CEvent::EType eventType, int DaysT
 
 	POPUPDATAT ppd = { 0 };
 	ppd.PluginWindowProc = PopupWindowProc;
-	ppd.iSeconds = (int)db_get_b(NULL, MODNAME, SET_POPUP_DELAY, 0);
+	ppd.iSeconds = (int)db_get_b(NULL, MODULENAME, SET_POPUP_DELAY, 0);
 
 	if (hContact) {
 		ppd.lchContact = hContact;
@@ -265,29 +265,29 @@ static int NotifyWithPopup(MCONTACT hContact, CEvent::EType eventType, int DaysT
 
 	switch (eventType) {
 	case CEvent::BIRTHDAY:
-		switch (db_get_b(NULL, MODNAME, SET_POPUP_BIRTHDAY_COLORTYPE, POPUP_COLOR_CUSTOM)) {
+		switch (db_get_b(NULL, MODULENAME, SET_POPUP_BIRTHDAY_COLORTYPE, POPUP_COLOR_CUSTOM)) {
 		case POPUP_COLOR_WINDOWS:
 			ppd.colorBack = GetSysColor(COLOR_BTNFACE);
 			ppd.colorText = GetSysColor(COLOR_WINDOWTEXT);
 			break;
 
 		case POPUP_COLOR_CUSTOM:
-			ppd.colorBack = db_get_dw(NULL, MODNAME, SET_POPUP_BIRTHDAY_COLOR_BACK, RGB(192, 180, 30));
-			ppd.colorText = db_get_dw(NULL, MODNAME, SET_POPUP_BIRTHDAY_COLOR_TEXT, 0);
+			ppd.colorBack = db_get_dw(NULL, MODULENAME, SET_POPUP_BIRTHDAY_COLOR_BACK, RGB(192, 180, 30));
+			ppd.colorText = db_get_dw(NULL, MODULENAME, SET_POPUP_BIRTHDAY_COLOR_TEXT, 0);
 			break;
 		}
 		break;
 
 	case CEvent::ANNIVERSARY:
-		switch (db_get_b(NULL, MODNAME, SET_POPUP_ANNIVERSARY_COLORTYPE, POPUP_COLOR_CUSTOM)) {
+		switch (db_get_b(NULL, MODULENAME, SET_POPUP_ANNIVERSARY_COLORTYPE, POPUP_COLOR_CUSTOM)) {
 		case POPUP_COLOR_WINDOWS:
 			ppd.colorBack = GetSysColor(COLOR_BTNFACE);
 			ppd.colorText = GetSysColor(COLOR_WINDOWTEXT);
 			break;
 
 		case POPUP_COLOR_CUSTOM:
-			ppd.colorBack = db_get_dw(NULL, MODNAME, SET_POPUP_ANNIVERSARY_COLOR_BACK, RGB(90, 190, 130));
-			ppd.colorText = db_get_dw(NULL, MODNAME, SET_POPUP_ANNIVERSARY_COLOR_TEXT, 0);
+			ppd.colorBack = db_get_dw(NULL, MODULENAME, SET_POPUP_ANNIVERSARY_COLOR_BACK, RGB(90, 190, 130));
+			ppd.colorText = db_get_dw(NULL, MODULENAME, SET_POPUP_ANNIVERSARY_COLOR_TEXT, 0);
 			break;
 		}
 	}
@@ -335,7 +335,7 @@ static void NotifyFlashCListIcon(MCONTACT hContact, const CEvent &evt)
 	// pszService = "dummy" get 'service not fount' and continue;
 	cle.pszService = "dummy";
 	cle.lParam = NULL;
-	pcli->pfnAddEvent(&cle);
+	g_clistApi.pfnAddEvent(&cle);
 }
 
 /**
@@ -349,7 +349,7 @@ static void NotifyFlashCListIcon(MCONTACT hContact, const CEvent &evt)
 
 static BYTE NotifyWithSound(const CEvent &evt)
 {
-	if (evt._wDaysLeft <= min(db_get_b(NULL, MODNAME, SET_REMIND_SOUNDOFFSET, DEFVAL_REMIND_SOUNDOFFSET), gRemindOpts.wDaysEarlier)) {
+	if (evt._wDaysLeft <= min(db_get_b(NULL, MODULENAME, SET_REMIND_SOUNDOFFSET, DEFVAL_REMIND_SOUNDOFFSET), gRemindOpts.wDaysEarlier)) {
 		switch (evt._eType) {
 		case CEvent::BIRTHDAY:
 			Skin_PlaySound(evt._wDaysLeft == 0 ? SOUND_BIRTHDAY_TODAY : SOUND_BIRTHDAY_SOON);
@@ -460,7 +460,7 @@ static bool CheckBirthday(MCONTACT hContact, MTime &Now, CEvent &evt, BYTE bNoti
 			mtb.DBGetReminderOpts(hContact);
 
 			// make backup of each protocol based birthday
-			if (db_get_b(NULL, MODNAME, SET_REMIND_SECUREBIRTHDAY, TRUE))
+			if (db_get_b(NULL, MODULENAME, SET_REMIND_SECUREBIRTHDAY, TRUE))
 				mtb.BackupBirthday(hContact, nullptr, 0, LastAnwer);
 
 			if (mtb.RemindOption() != BST_UNCHECKED) {
@@ -572,7 +572,7 @@ void SvcReminderCheckAll(const ENotify notify)
 		NotifyWithSound(evt);
 
 		// popup anniversary list
-		if (db_get_b(NULL, MODNAME, SET_ANNIVLIST_POPUP, FALSE))
+		if (db_get_b(NULL, MODULENAME, SET_ANNIVLIST_POPUP, FALSE))
 			DlgAnniversaryListShow(0, 0);
 
 		if (evt._wDaysLeft > gRemindOpts.wDaysEarlier && notify == NOTIFY_NOANNIV)
@@ -664,28 +664,6 @@ static int OnContactSettingChanged(MCONTACT hContact, DBCONTACTWRITESETTING* pdb
 	return 0;
 }
 
-#define TBB_IDBTN		"CheckAnniv"
-#define TBB_ICONAME	TOOLBARBUTTON_ICONIDPREFIX TBB_IDBTN TOOLBARBUTTON_ICONIDPRIMARYSUFFIX
-
-/**
-* This function is called by the ME_TTB_MODULELOADED event.
-* It adds a set of buttons to the TopToolbar plugin.
-*
-* @param	none
-*
-* @return	nothing
-**/
-
-void SvcReminderOnTopToolBarLoaded()
-{
-	TTBButton ttb = {};
-	ttb.dwFlags = TTBBF_VISIBLE | TTBBF_SHOWTOOLTIP;
-	ttb.pszService = MS_USERINFO_REMINDER_CHECK;
-	ttb.name = ttb.pszTooltipUp = LPGEN("Check anniversaries");
-	ttb.hIconHandleUp = IcoLib_GetIconHandle(ICO_COMMON_BIRTHDAY);
-	TopToolbar_AddButton(&ttb);
-}
-
 /***********************************************************************************************************
  * services
  ***********************************************************************************************************/
@@ -755,7 +733,7 @@ static INT_PTR BackupBirthdayService(WPARAM hContact, LPARAM lParam)
 
 LPCSTR SvcReminderGetMyBirthdayModule()
 {
-	return ((db_get_b(NULL, MODNAME, SET_REMIND_BIRTHMODULE, DEFVAL_REMIND_BIRTHMODULE) == 1) ? USERINFO : MOD_MBIRTHDAY);
+	return ((db_get_b(NULL, MODULENAME, SET_REMIND_BIRTHMODULE, DEFVAL_REMIND_BIRTHMODULE) == 1) ? USERINFO : MOD_MBIRTHDAY);
 }
 
 /***********************************************************************************************************
@@ -809,23 +787,23 @@ static void CALLBACK TimerProc_Check(HWND, UINT, UINT_PTR, DWORD)
 
 static void UpdateTimer(BYTE bStartup)
 {
-	LONG	wNotifyInterval =	60 * 60 * (LONG)db_get_w(NULL, MODNAME, SET_REMIND_NOTIFYINTERVAL, DEFVAL_REMIND_NOTIFYINTERVAL);
+	LONG	wNotifyInterval =	60 * 60 * (LONG)db_get_w(NULL, MODULENAME, SET_REMIND_NOTIFYINTERVAL, DEFVAL_REMIND_NOTIFYINTERVAL);
 	MTime	now, last;
 
 	now.GetTimeUTC();
 
 	if (bStartup) {
-		last.DBGetStamp(NULL, MODNAME, SET_REMIND_LASTCHECK);
+		last.DBGetStamp(NULL, MODULENAME, SET_REMIND_LASTCHECK);
 
 		// if last check occured at least one day before just do it on startup again
-		if (now.Year() > last.Year() ||	now.Month() > last.Month() ||	now.Day() > last.Day() || db_get_b(NULL, MODNAME, SET_REMIND_CHECKON_STARTUP, FALSE))
+		if (now.Year() > last.Year() ||	now.Month() > last.Month() ||	now.Day() > last.Day() || db_get_b(NULL, MODULENAME, SET_REMIND_CHECKON_STARTUP, FALSE))
 			wNotifyInterval = 5;
 		else
 			wNotifyInterval -= now.Compare(last);
 
 		ghRemindDateChangeTimer = SetTimer(nullptr, 0, 1000 * 60 * 5, (TIMERPROC)TimerProc_DateChanged);
 	}
-	else now.DBWriteStamp(NULL, MODNAME, SET_REMIND_LASTCHECK);
+	else now.DBWriteStamp(NULL, MODULENAME, SET_REMIND_LASTCHECK);
 
 	// wait at least 5 seconds before checking at startup, to give miranda a better chance to load faster
 	KillTimer(nullptr, ghRemindTimer);
@@ -847,12 +825,12 @@ void SvcReminderEnable(BYTE bEnable)
 			ghSettingsChanged = HookEvent(ME_DB_CONTACT_SETTINGCHANGED, (MIRANDAHOOK)OnContactSettingChanged);
 
 		// reinit reminder options
-		gRemindOpts.RemindState	= db_get_b(NULL, MODNAME, SET_REMIND_ENABLED, DEFVAL_REMIND_ENABLED);
-		gRemindOpts.wDaysEarlier = db_get_w(NULL, MODNAME, SET_REMIND_OFFSET, DEFVAL_REMIND_OFFSET);
-		gRemindOpts.bCListExtraIcon = db_get_b(NULL, MODNAME, SET_REMIND_EXTRAICON, 1);
-		gRemindOpts.bCheckVisibleOnly = db_get_b(NULL, MODNAME, SET_REMIND_CHECKVISIBLE, DEFVAL_REMIND_CHECKVISIBLE);
-		gRemindOpts.bFlashCList = db_get_b(NULL, MODNAME, SET_REMIND_FLASHICON, FALSE);
-		gRemindOpts.bPopups = ServiceExists(MS_POPUP_ADDPOPUPT) && db_get_b(NULL, MODNAME, SET_POPUP_ENABLED, DEFVAL_POPUP_ENABLED);
+		gRemindOpts.RemindState	= db_get_b(NULL, MODULENAME, SET_REMIND_ENABLED, DEFVAL_REMIND_ENABLED);
+		gRemindOpts.wDaysEarlier = db_get_w(NULL, MODULENAME, SET_REMIND_OFFSET, DEFVAL_REMIND_OFFSET);
+		gRemindOpts.bCListExtraIcon = db_get_b(NULL, MODULENAME, SET_REMIND_EXTRAICON, 1);
+		gRemindOpts.bCheckVisibleOnly = db_get_b(NULL, MODULENAME, SET_REMIND_CHECKVISIBLE, DEFVAL_REMIND_CHECKVISIBLE);
+		gRemindOpts.bFlashCList = db_get_b(NULL, MODULENAME, SET_REMIND_FLASHICON, FALSE);
+		gRemindOpts.bPopups = ServiceExists(MS_POPUP_ADDPOPUPT) && db_get_b(NULL, MODULENAME, SET_POPUP_ENABLED, DEFVAL_POPUP_ENABLED);
 
 		// init the timer
 		UpdateTimer(TRUE);
@@ -879,23 +857,19 @@ void SvcReminderOnModulesLoaded(void)
 	// init clist extra icon structure
 	OnCListRebuildIcons(0, 0);
 
-	SvcReminderEnable(db_get_b(NULL, MODNAME, SET_REMIND_ENABLED, DEFVAL_REMIND_ENABLED) != REMIND_OFF);
+	SvcReminderEnable(db_get_b(NULL, MODULENAME, SET_REMIND_ENABLED, DEFVAL_REMIND_ENABLED) != REMIND_OFF);
 }
 
 /**
 * This function initially loads all required stuff for reminder.
-*
-* @param	none
-*
-* @return	nothing
 **/
 
 void SvcReminderLoadModule(void)
 {
 	// init sounds
-	Skin_AddSound(SOUND_BIRTHDAY_TODAY, LPGENW("Birthday reminder"), L"Sounds\\BirthDay.wav");
-	Skin_AddSound(SOUND_BIRTHDAY_SOON, LPGENW("Birthday reminder: it's coming"), L"Sounds\\BirthDayComing.wav");
-	Skin_AddSound(SOUND_ANNIVERSARY, LPGENW("Anniversary Reminder"), L"Sounds\\Reminder.wav");
+	g_plugin.addSound(SOUND_BIRTHDAY_TODAY, LPGENW("Reminders"), LPGENW("Birthday reminder"), L"Sounds\\BirthDay.wav");
+	g_plugin.addSound(SOUND_BIRTHDAY_SOON, LPGENW("Reminders"), LPGENW("Birthday reminder: it's coming"), L"Sounds\\BirthDayComing.wav");
+	g_plugin.addSound(SOUND_ANNIVERSARY, LPGENW("Reminders"), LPGENW("Anniversary reminder"), L"Sounds\\Reminder.wav");
 
 	// create service functions
 	CreateServiceFunction(MS_USERINFO_REMINDER_CHECK, CheckService);
@@ -904,21 +878,17 @@ void SvcReminderLoadModule(void)
 	// register hotkey
 	HOTKEYDESC hk = {};
 	hk.pszName = "ReminderCheck";
-	hk.szSection.a = MODNAME;
+	hk.szSection.a = MODULENAME;
 	hk.szDescription.a = LPGEN("Check anniversaries");
 	hk.pszService = MS_USERINFO_REMINDER_CHECK;
-	Hotkey_Register(&hk);
+	g_plugin.addHotkey(&hk);
 
-	if (db_get_b(NULL, MODNAME, SET_REMIND_ENABLED, DEFVAL_REMIND_ENABLED) != REMIND_OFF && ExtraIcon == INVALID_HANDLE_VALUE)
+	if (db_get_b(NULL, MODULENAME, SET_REMIND_ENABLED, DEFVAL_REMIND_ENABLED) != REMIND_OFF && ExtraIcon == INVALID_HANDLE_VALUE)
 		ExtraIcon = ExtraIcon_RegisterIcolib("Reminder", LPGEN("Reminder (UInfoEx)"), ICO_COMMON_ANNIVERSARY);
 }
 
 /**
 * This function unloads the reminder module.
-*
-* @param	none
-*
-* @return	nothing
 **/
 
 void SvcReminderUnloadModule(void)

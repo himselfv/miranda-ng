@@ -37,16 +37,11 @@ CSend::CSend(HWND /*Owner*/, MCONTACT hContact, bool bAsync, bool bSilent) :
 	m_bSilent(bSilent),
 	m_pszFile(nullptr),
 	m_pszFileDesc(nullptr),
-	m_URL(nullptr),
-	m_URLthumb(nullptr),
 	m_pszSendTyp(nullptr),
 	m_pszProto(nullptr),
-	//	m_hContact(hContact), // initialized below
 	m_EnableItem(0),
 	m_ChatRoom(0),
-	//	m_PFflag(0),
 	m_cbEventMsg(0),
-	m_szEventMsg(nullptr),
 	m_hSend(nullptr),
 	m_hOnSend(nullptr),
 	m_ErrorMsg(nullptr),
@@ -59,9 +54,6 @@ CSend::~CSend()
 {
 	mir_free(m_pszFile);
 	mir_free(m_pszFileDesc);
-	mir_free(m_URL);
-	mir_free(m_URLthumb);
-	mir_free(m_szEventMsg);
 	mir_free(m_ErrorMsg);
 	mir_free(m_ErrorTitle);
 	if (m_hOnSend) UnhookEvent(m_hOnSend);
@@ -75,10 +67,6 @@ void CSend::SetContact(MCONTACT hContact)
 	if (hContact) {
 		m_pszProto = GetContactProto(hContact);
 		m_ChatRoom = db_get_b(hContact, m_pszProto, "ChatRoom", 0);
-		/*
-		m_PFflag = hasCap(PF1_URLSEND);
-		m_PFflag = hasCap(PF1_CHAT);
-		m_PFflag = hasCap(PF1_IMSEND);// */
 	}
 }
 
@@ -210,6 +198,7 @@ void CSend::svcSendMsgExit(const char* szMessage)
 			m_pszFileDesc = mir_a2u(szMessage);
 		Exit(CSEND_DIALOG); return;
 	}
+
 	if (m_ChatRoom) {
 		CMStringW tmp(szMessage);
 		if (m_pszFileDesc) {
@@ -218,7 +207,7 @@ void CSend::svcSendMsgExit(const char* szMessage)
 		}
 		
 		int res = GC_RESULT_NOSESSION;
-		int cnt = pci->SM_GetCount(m_pszProto);
+		int cnt = g_chatApi.SM_GetCount(m_pszProto);
 
 		// loop on all gc session to get the right (save) ptszID for the chatroom from m_hContact
 		GC_INFO gci = { 0 };
@@ -236,24 +225,20 @@ void CSend::svcSendMsgExit(const char* szMessage)
 		Exit(res); return;
 	}
 	else {
-		mir_freeAndNil(m_szEventMsg);
-		m_cbEventMsg = (DWORD)mir_strlen(szMessage) + 1;
-		m_szEventMsg = (char*)mir_realloc(m_szEventMsg, (sizeof(char) * m_cbEventMsg));
-		memset(m_szEventMsg, 0, (sizeof(char) * m_cbEventMsg));
-		mir_strcpy(m_szEventMsg, szMessage);
+		m_szEventMsg = szMessage;
 		if (m_pszFileDesc && m_pszFileDesc[0] != NULL) {
-			char *temp = mir_u2a(m_pszFileDesc);
-			mir_stradd(m_szEventMsg, "\r\n");
-			mir_stradd(m_szEventMsg, temp);
-			m_cbEventMsg = (DWORD)mir_strlen(m_szEventMsg) + 1;
-			mir_free(temp);
+			m_szEventMsg.Append("\r\n");
+			m_szEventMsg.Append(_T2A(m_pszFileDesc));
+			m_cbEventMsg = m_szEventMsg.GetLength() + 1;
 		}
-		//create a HookEventObj on ME_PROTO_ACK
-		if (!m_hOnSend) {
+
+		// create a HookEventObj on ME_PROTO_ACK
+		if (!m_hOnSend)
 			m_hOnSend = HookEventObj(ME_PROTO_ACK, OnSend, this);
-		}
-		//start PSS_MESSAGE service
+
+		// start PSS_MESSAGE service
 		m_hSend = (HANDLE)ProtoChainSend(m_hContact, PSS_MESSAGE, NULL, ptrA(mir_utf8encode(m_szEventMsg)));
+		
 		// check we actually got an ft handle back from the protocol
 		if (!m_hSend) {
 			Unhook();
@@ -265,33 +250,28 @@ void CSend::svcSendMsgExit(const char* szMessage)
 
 void CSend::svcSendFileExit()
 {
-	//szMessage should be encoded as the File followed by the description, the
-	//separator being a single nul (\0). If there is no description, do not forget
-	//to end the File with two nuls.
+	// szMessage should be encoded as the File followed by the description, the
+	// separator being a single nul (\0). If there is no description, do not forget
+	// to end the File with two nuls.
 	if (m_bSilent) {
 		Exit(ACKRESULT_SUCCESS); return;
 	}
+	
 	if (!m_hContact) {
 		Error(LPGENW("%s requires a valid contact!"), m_pszSendTyp);
 		Exit(ACKRESULT_FAILED); return;
 	}
-	mir_freeAndNil(m_szEventMsg);
-	char* szFile = mir_u2a(m_pszFile);
-	m_cbEventMsg = (DWORD)mir_strlen(szFile) + 2;
-	m_szEventMsg = (char*)mir_realloc(m_szEventMsg, (sizeof(char) * m_cbEventMsg));
-	memset(m_szEventMsg, 0, (sizeof(char) * m_cbEventMsg));
-	mir_strcpy(m_szEventMsg, szFile);
-	if (m_pszFileDesc && m_pszFileDesc[0] != NULL) {
-		char* temp = mir_u2a(m_pszFileDesc);
-		m_cbEventMsg += (DWORD)mir_strlen(temp);
-		m_szEventMsg = (char*)mir_realloc(m_szEventMsg, sizeof(char)*m_cbEventMsg);
-		mir_strcpy(m_szEventMsg + mir_strlen(szFile) + 1, temp);
-		m_szEventMsg[m_cbEventMsg - 1] = 0;
-		mir_free(temp);
-	}
-	mir_free(szFile);
+	
+	m_szEventMsg = _T2A(m_pszFile);
 
-	//create a HookEventObj on ME_PROTO_ACK
+	if (m_pszFileDesc && m_pszFileDesc[0] != NULL) {
+		m_szEventMsg.AppendChar(0);
+		m_szEventMsg.Append(_T2A(m_pszFileDesc));
+	}
+	
+	m_cbEventMsg = m_szEventMsg.GetLength() + 1;
+
+	// Сreate a HookEventObj on ME_PROTO_ACK
 	if (!m_hOnSend) {
 		m_hOnSend = HookEventObj(ME_PROTO_ACK, OnSend, this);
 	}
@@ -319,23 +299,19 @@ int CSend::OnSend(void *obj, WPARAM, LPARAM lParam)
 {
 	CSend* self = (CSend*)obj;
 	ACKDATA *ack = (ACKDATA*)lParam;
-	if (ack->hProcess != self->m_hSend) return 0;
-	/*	if(dat->waitingForAcceptance) {
-			SetTimer(hwndDlg,1,1000,NULL);
-			dat->waitingForAcceptance=0;
-			}
-			*/
+	if (ack->hProcess != self->m_hSend)
+		return 0;
 
 	switch (ack->result) {
-	case ACKRESULT_INITIALISING:	//SetFtStatus(hwndDlg, LPGENW("Initialising..."), FTS_TEXT); break;
-	case ACKRESULT_CONNECTING:		//SetFtStatus(hwndDlg, LPGENW("Connecting..."), FTS_TEXT); break;
-	case ACKRESULT_CONNECTPROXY:	//SetFtStatus(hwndDlg, LPGENW("Connecting to proxy..."), FTS_TEXT); break;
-	case ACKRESULT_LISTENING:		//SetFtStatus(hwndDlg, LPGENW("Waiting for connection..."), FTS_TEXT); break;
-	case ACKRESULT_CONNECTED:		//SetFtStatus(hwndDlg, LPGENW("Connected"), FTS_TEXT); break;
-	case ACKRESULT_SENTREQUEST:		//SetFtStatus(hwndDlg, LPGENW("Decision sent"), FTS_TEXT); break;
-	case ACKRESULT_NEXTFILE:		//SetFtStatus(hwndDlg, LPGENW("Moving to next file..."), FTS_TEXT);
-	case ACKRESULT_FILERESUME:		//
-	case ACKRESULT_DATA:			//transfer is on progress
+	case ACKRESULT_INITIALISING: // SetFtStatus(hwndDlg, LPGENW("Initialising..."), FTS_TEXT); break;
+	case ACKRESULT_CONNECTING:   // SetFtStatus(hwndDlg, LPGENW("Connecting..."), FTS_TEXT); break;
+	case ACKRESULT_CONNECTPROXY: // SetFtStatus(hwndDlg, LPGENW("Connecting to proxy..."), FTS_TEXT); break;
+	case ACKRESULT_LISTENING:    // SetFtStatus(hwndDlg, LPGENW("Waiting for connection..."), FTS_TEXT); break;
+	case ACKRESULT_CONNECTED:    // SetFtStatus(hwndDlg, LPGENW("Connected"), FTS_TEXT); break;
+	case ACKRESULT_SENTREQUEST:  // SetFtStatus(hwndDlg, LPGENW("Decision sent"), FTS_TEXT); break;
+	case ACKRESULT_NEXTFILE:     // SetFtStatus(hwndDlg, LPGENW("Moving to next file..."), FTS_TEXT);
+	case ACKRESULT_FILERESUME:
+	case ACKRESULT_DATA:         // transfer is on progress
 		break;
 	case ACKRESULT_DENIED:
 		self->Unhook();
@@ -344,9 +320,9 @@ int CSend::OnSend(void *obj, WPARAM, LPARAM lParam)
 	case ACKRESULT_FAILED:
 		self->Unhook();
 		self->Exit(ack->result);
-		//type=ACKTYPE_MESSAGE, result=success/failure, (char*)lParam=error message or NULL.
-		//type=ACKTYPE_URL, result=success/failure, (char*)lParam=error message or NULL.
-		//type=ACKTYPE_FILE, result=ACKRESULT_FAILED then lParam=(LPARAM)(const char*)szReason
+		// type=ACKTYPE_MESSAGE, result=success/failure, (char*)lParam=error message or NULL.
+		// type=ACKTYPE_URL, result=success/failure, (char*)lParam=error message or NULL.
+		// type=ACKTYPE_FILE, result=ACKRESULT_FAILED then lParam=(LPARAM)(const char*)szReason
 		break;
 	case ACKRESULT_SUCCESS:
 		self->Unhook();
@@ -360,8 +336,7 @@ int CSend::OnSend(void *obj, WPARAM, LPARAM lParam)
 			self->DB_EventAdd((WORD)EVENTTYPE_URL);
 			break;
 		case ACKTYPE_FILE:
-			self->m_szEventMsg = (char*)mir_realloc(self->m_szEventMsg, sizeof(DWORD) + self->m_cbEventMsg);
-			memmove(self->m_szEventMsg + sizeof(DWORD), self->m_szEventMsg, self->m_cbEventMsg);
+			self->m_szEventMsg.Insert(0, "aaaa");
 			self->m_cbEventMsg += sizeof(DWORD);
 			self->DB_EventAdd((WORD)EVENTTYPE_FILE);
 			break;
@@ -381,7 +356,7 @@ void CSend::DB_EventAdd(WORD EventType)
 	dbei.timestamp = time(0);
 	dbei.flags |= DBEF_UTF;
 	dbei.cbBlob = m_cbEventMsg;
-	dbei.pBlob = (PBYTE)m_szEventMsg;
+	dbei.pBlob = (PBYTE)m_szEventMsg.GetString();
 	db_event_add(m_hContact, &dbei);
 }
 
@@ -391,7 +366,7 @@ void CSend::Error(LPCTSTR pszFormat, ...)
 {
 	wchar_t tszMsg[MAX_SECONDLINE];
 
-	mir_snwprintf(tszMsg, L"%s - %s", _A2W(SZ_SENDSS), TranslateT("Error"));
+	mir_snwprintf(tszMsg, L"%s - %s", _A2W(MODULENAME), TranslateT("Error"));
 	mir_free(m_ErrorTitle), m_ErrorTitle = mir_wstrdup(tszMsg);
 
 	va_list vl;
@@ -419,7 +394,7 @@ void CSend::Exit(unsigned int Result)
 		switch (Result) {
 		case CSEND_DIALOG:
 			Skin_PlaySound("FileDone");
-			DialogBoxParam(g_hSendSS, MAKEINTRESOURCE(IDD_UResultForm), nullptr, ResultDialogProc, (LPARAM)this);
+			DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_UResultForm), nullptr, ResultDialogProc, (LPARAM)this);
 			err = false;
 			break;
 		case ACKRESULT_SUCCESS:
@@ -433,7 +408,7 @@ void CSend::Exit(unsigned int Result)
 			MsgBoxService(NULL, (LPARAM)&m_box);
 			err = false;
 			break;
-		case GC_RESULT_WRONGVER:	//.You appear to be using the wrong version of GC API.
+		case GC_RESULT_WRONGVER:	// You appear to be using the wrong version of GC API.
 			Error(L"%s (%i):\nYou appear to be using the wrong version of GC API", TranslateT("GCHAT error"), Result);
 			break;
 		case GC_RESULT_ERROR:		// An internal GC error occurred.
@@ -456,7 +431,7 @@ void CSend::Exit(unsigned int Result)
 		DeleteFile(m_pszFile), m_pszFile = nullptr;
 	}
 	if (m_bAsync)
-		delete this;/// deletes derived class since destructor is virtual (which also auto-calls base dtor)
+		delete this; // deletes derived class since destructor is virtual (which also auto-calls base dtor)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -475,153 +450,6 @@ const char* CSend::GetHTMLContent(char* str, const char* startTag, const char* e
 		if (end) *end = 0;
 	}
 	return begin;
-}
-
-int JSON_ParseData_(const char** jsondata, size_t jsonlen, const char** rawdata)
-{
-	const char* c = *jsondata;
-	const char* jsonend = *jsondata + jsonlen;
-	int len = 0;
-	*rawdata = nullptr;
-	if (c == jsonend)
-		return 0;
-	if (*c == '{') { // scope (object)
-		*rawdata = c;
-		do {
-			if (*c == '{') ++len;
-			else if (*c == '}') --len;
-			if (++c == jsonend)
-				return 0;
-		} while (len > 0);
-		len = c - *rawdata;
-		if (*c == ',') ++c;
-	}
-	else if (*c == '"' || *c == '\'') { // string
-		char needle = *c;
-		if (++c == jsonend)
-			return 0;
-		*rawdata = c;
-		do {
-			if (c == jsonend || (*c == '\\' && ++c == jsonend))
-				return 0;
-		} while (*c++ != needle);
-		len = c - *rawdata - 1;
-		if (*c == ',') ++c;
-	}
-	else { // other
-		for (*rawdata = c; c < jsonend && *c++ != ',';);
-		len = c - *rawdata;
-		if (c[-1] == ',') --len;
-	}
-	*jsondata = c;
-	return len;
-}
-
-int JSON_Get_(const char* json, size_t jsonlen, const char* variable, const char** value)
-{
-	char needle[32];
-	const char* needlechild;
-	char var[32];
-	char* tmp;
-	const char* c;
-	const char* jsonend = json + jsonlen;
-	/// get needle
-	if (!jsonlen || *json != '{')
-		return 0;
-	for (tmp = needle, c = *variable == '[' ? variable + 1 : variable; *c != '[' && *c != ']'; ++c) {
-		if (c == jsonend)
-			return 0;
-		if (tmp < needle + sizeof(needle) - 1) *tmp++ = *c;
-	}
-	*tmp = '\0';
-	/// get child needle (if any)
-	if (*c == ']') ++c;
-	if (c == jsonend)
-		return 0;
-	needlechild = c;
-	/// parse JSON
-	for (c = json + 1; c < jsonend && (*c == '"' || *c == '\'');) {
-		for (++c, tmp = var; c < jsonend && (*c != '"' && *c != '\''); ++c)
-			if (tmp < var + sizeof(var) - 1) *tmp++ = *c;
-		*tmp = '\0';
-		if (c + 2 >= jsonend || *++c != ':') break;
-		/// read data
-		++c;
-		if (!mir_strcmp(var, needle)) {
-			int datalen = JSON_ParseData_(&c, jsonend - c, value);
-			if (!datalen)
-				return 0;
-			if (*needlechild && **value == '{') { // we need a child value, parse child object
-				return JSON_Get_(*value, datalen, needlechild, value);
-			}
-			return datalen;
-		}
-		else {
-			JSON_ParseData_(&c, jsonend - c, value);
-		}
-	}
-	*value = nullptr;
-	return 0;
-}
-
-int CSend::GetJSONString(const char* json, size_t jsonlen, const char* variable, char* value, size_t valuesize)
-{
-	if (!jsonlen || !valuesize)
-		return 0;
-	const char* rawvalue;
-	int rawlen = JSON_Get_(json, jsonlen, variable, &rawvalue);
-	if (rawlen) {
-		size_t out = 0;
-		--valuesize;
-		/// copy & parse escape sequences
-		for (int in = 0; in < rawlen && out < valuesize; ++in, ++out) {
-			if (rawvalue[in] == '\\') {
-				if (++in == rawlen)
-					break;
-				switch (rawvalue[in]) {
-				case 's': value[out] = ' '; break;
-				case 't': value[out] = '\t'; break;
-				case 'n': value[out] = '\n'; break;
-				case 'r': value[out] = '\r'; break;
-				default: value[out] = rawvalue[in];
-				}
-				continue;
-			}
-			value[out] = rawvalue[in];
-		}
-		value[out] = '\0';
-		return 1;
-	}
-	*value = '\0';
-	return 0;
-}
-
-int CSend::GetJSONInteger(const char* json, size_t jsonlen, const char* variable, int defvalue)
-{
-	const char* rawvalue;
-	int rawlen = JSON_Get_(json, jsonlen, variable, &rawvalue);
-	if (rawlen) {
-		defvalue = 0;
-		for (int offset = 0; offset < rawlen; ++offset) {
-			if (rawvalue[offset]<'0' || rawvalue[offset]>'9') break;
-			defvalue *= 10;
-			defvalue += rawvalue[offset] - '0';
-		}
-	}
-	return defvalue;
-}
-
-bool CSend::GetJSONBool(const char* json, size_t jsonlen, const char* variable)
-{
-	const char* rawvalue;
-	int rawlen = JSON_Get_(json, jsonlen, variable, &rawvalue);
-	if (rawlen) {
-		if (rawlen == 4 && !memcmp(rawvalue, "true", 4))
-			return true;
-		if (*rawvalue > '0' && *rawvalue <= '9')
-			return true;
-	}
-	return false;
 }
 
 static void HTTPFormAppendData(NETLIBHTTPREQUEST* nlhr, size_t* dataMax, char** dataPos, const char* data, size_t len)

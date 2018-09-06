@@ -174,7 +174,7 @@ static int TSAPI RescanSkins(HWND hwndCombobox)
 		for (int i = 1; i < lr; i++) {
 			wchar_t *idata = (wchar_t*)SendMessage(hwndCombobox, CB_GETITEMDATA, i, 0);
 			if (idata && idata != (wchar_t*)CB_ERR) {
-				if (!mir_wstrcmpi(dbv.ptszVal, idata)) {
+				if (!mir_wstrcmpi(dbv.pwszVal, idata)) {
 					SendMessage(hwndCombobox, CB_SETCURSEL, i, 0);
 					break;
 				}
@@ -576,7 +576,7 @@ class COptMainDlg : public CDlgBase
 
 public:
 	COptMainDlg() :
-		CDlgBase(g_hInst, IDD_OPT_MSGDLG),
+		CDlgBase(g_plugin, IDD_OPT_MSGDLG),
 		urlHelp(this, IDC_HELP_GENERAL, "https://wiki.miranda-ng.org/index.php?title=Plugin:TabSRMM/en/General_settings"),
 		btnReset(this, IDC_RESETWARNINGS),
 		spnAvaSize(this, IDC_AVATARSPIN),
@@ -585,17 +585,18 @@ public:
 		btnReset.OnClick = Callback(this, &COptMainDlg::onClick_Reset);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		TreeViewInit(GetDlgItem(m_hwnd, IDC_WINDOWOPTIONS), CTranslator::TREE_MSG, 0, FALSE);
-		
+
 		chkAvaPreserve.SetState(M.GetByte("dontscaleavatars", 0));
 
 		spnAvaSize.SetRange(150);
 		spnAvaSize.SetPosition(M.GetDword("avatarheight", 100));
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		db_set_dw(0, SRMSGMOD_T, "avatarheight", spnAvaSize.GetPosition());
 		db_set_b(0, SRMSGMOD_T, "dontscaleavatars", chkAvaPreserve.GetState());
@@ -604,9 +605,10 @@ public:
 		TreeViewToDB(GetDlgItem(m_hwnd, IDC_WINDOWOPTIONS), CTranslator::TREE_MSG, SRMSGMOD_T, nullptr);
 		PluginConfig.reloadSettings();
 		Srmm_Broadcast(DM_OPTIONSAPPLIED, 1, 0);
+		return true;
 	}
 
-	virtual void OnDestroy() override
+	void OnDestroy() override
 	{
 		TreeViewDestroy(GetDlgItem(m_hwnd, IDC_WINDOWOPTIONS));
 	}
@@ -617,7 +619,7 @@ public:
 		db_set_dw(0, SRMSGMOD_T, "cWarningsH", 0);
 	}
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
 	{
 		if (msg == WM_NOTIFY && ((LPNMHDR)lParam)->idFrom == IDC_WINDOWOPTIONS)
 			return TreeViewHandleClick(m_hwnd, ((LPNMHDR)lParam)->hwndFrom, wParam, lParam);
@@ -656,7 +658,7 @@ class COptLogDlg : public CDlgBase
 
 public:
 	COptLogDlg()
-		: CDlgBase(g_hInst, IDD_OPT_MSGLOG),
+		: CDlgBase(g_plugin, IDD_OPT_MSGLOG),
 		btnModify(this, IDC_MODIFY),
 		btnRtlModify(this, IDC_RTLMODIFY),
 		spnTrim(this, IDC_TRIMSPIN),
@@ -682,7 +684,7 @@ public:
 		have_hpp = ServiceExists("History++/ExtGrid/NewWindow") != 0;
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		DWORD dwFlags = M.GetDword("mwflags", MWF_LOG_DEFAULT);
 
@@ -713,7 +715,7 @@ public:
 
 		spnLoadCount.SetRange(100);
 		spnLoadCount.SetPosition(db_get_w(0, SRMSGMOD, SRMSGSET_LOADCOUNT, SRMSGDEFSET_LOADCOUNT));
-		
+
 		spnLoadTime.SetRange(24 * 60);
 		spnLoadTime.SetPosition(db_get_w(0, SRMSGMOD, SRMSGSET_LOADTIME, SRMSGDEFSET_LOADTIME));
 
@@ -744,9 +746,10 @@ public:
 
 		SetDlgItemText(m_hwnd, IDC_EXPLAINMSGLOGSETTINGS, TranslateT("You have chosen to use an external plugin for displaying the message history in the chat window. Most of the settings on this page are for the standard message log viewer only and will have no effect. To change the appearance of the message log, you must configure either IEView or History++."));
 		ShowHide();
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		LRESULT msglogmode = cmbLogDisplay.GetCurSel();
 		DWORD dwFlags = M.GetDword("mwflags", MWF_LOG_DEFAULT);
@@ -790,9 +793,10 @@ public:
 			db_set_dw(0, SRMSGMOD_T, "maxhist", 0);
 		PluginConfig.reloadSettings();
 		Srmm_Broadcast(DM_OPTIONSAPPLIED, 1, 0);
+		return true;
 	}
 
-	virtual void OnDestroy() override
+	void OnDestroy() override
 	{
 		TreeViewDestroy(GetDlgItem(m_hwnd, IDC_LOGOPTIONS));
 	}
@@ -833,7 +837,7 @@ public:
 		ShowHide();
 	}
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
 	{
 		if (msg == WM_NOTIFY && ((LPNMHDR)lParam)->idFrom == IDC_LOGOPTIONS)
 			return TreeViewHandleClick(m_hwnd, ((LPNMHDR)lParam)->hwndFrom, wParam, lParam);
@@ -895,7 +899,7 @@ class COptTypingDlg : public CDlgBase
 
 public:
 	COptTypingDlg()
-		: CDlgBase(g_hInst, IDD_OPT_MSGTYPE),
+		: CDlgBase(g_plugin, IDD_OPT_MSGTYPE),
 		urlHelp(this, IDC_MTN_HELP, "https://wiki.miranda-ng.org/index.php?title=Plugin:TabSRMM/en/Advanced_tweaks"),
 		chkWin(this, IDC_TYPEWIN),
 		chkNoWin(this, IDC_TYPENOWIN),
@@ -910,7 +914,7 @@ public:
 		chkNotifyPopup.OnChange = Callback(this, &COptTypingDlg::onCheck_NotifyPopup);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		CLCINFOITEM cii = { sizeof(cii) };
 		cii.flags = CLCIIF_GROUPFONT | CLCIIF_CHECKBOX;
@@ -951,9 +955,10 @@ public:
 			Utils::showDlgControl(m_hwnd, IDC_STATIC111, SW_HIDE);
 			Utils::showDlgControl(m_hwnd, IDC_MTN_POPUPMODE, SW_HIDE);
 		}
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		SaveList();
 		db_set_b(0, SRMSGMOD, SRMSGSET_SHOWTYPING, (BYTE)IsDlgButtonChecked(m_hwnd, IDC_SHOWNOTIFY));
@@ -965,9 +970,10 @@ public:
 		db_set_b(0, SRMSGMOD, "ShowTypingPopup", (BYTE)IsDlgButtonChecked(m_hwnd, IDC_NOTIFYPOPUP));
 		db_set_b(0, SRMSGMOD_T, "MTN_PopupMode", (BYTE)SendDlgItemMessage(m_hwnd, IDC_MTN_POPUPMODE, CB_GETCURSEL, 0, 0));
 		PluginConfig.reloadSettings();
+		return true;
 	}
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
 	{
 		if (msg == WM_NOTIFY && ((NMHDR*)lParam)->idFrom == IDC_CLIST) {
 			switch (((NMHDR*)lParam)->code) {
@@ -1023,7 +1029,7 @@ class COptTabbedDlg : public CDlgBase
 
 public:
 	COptTabbedDlg() :
-		CDlgBase(g_hInst, IDD_OPT_TABBEDMSG),
+		CDlgBase(g_plugin, IDD_OPT_TABBEDMSG),
 		chkLimit(this, IDC_CUT_TABTITLE),
 		edtLimit(this, IDC_CUT_TITLEMAX),
 		spnLimit(this, IDC_CUT_TITLEMAXSPIN),
@@ -1035,7 +1041,7 @@ public:
 		chkLimit.OnChange = Callback(this, &COptTabbedDlg::onChange_Cut);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		TreeViewInit(GetDlgItem(m_hwnd, IDC_TABMSGOPTIONS), CTranslator::TREE_TAB, 0, FALSE);
 
@@ -1043,34 +1049,35 @@ public:
 		spnLimit.SetRange(20, 5);
 		spnLimit.SetPosition(db_get_w(0, SRMSGMOD_T, "cut_at", 15));
 		onChange_Cut(&chkLimit);
-		
+
 		cmbEscMode.AddString(TranslateT("Normal - close tab, if last tab is closed also close the window"));
 		cmbEscMode.AddString(TranslateT("Minimize the window to the task bar"));
 		cmbEscMode.AddString(TranslateT("Close or hide window, depends on the close button setting above"));
 		cmbEscMode.SetCurSel(PluginConfig.m_EscapeCloses);
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		db_set_w(0, SRMSGMOD_T, "cut_at", spnLimit.GetPosition());
 		db_set_b(0, SRMSGMOD_T, "cuttitle", chkLimit.GetState());
 		db_set_b(0, SRMSGMOD_T, "escmode", cmbEscMode.GetCurSel());
 
 		TreeViewToDB(GetDlgItem(m_hwnd, IDC_TABMSGOPTIONS), CTranslator::TREE_TAB, SRMSGMOD_T, nullptr);
-		
+
 		PluginConfig.reloadSettings();
 		Srmm_Broadcast(DM_OPTIONSAPPLIED, 0, 0);
+		return true;
 	}
 
-	virtual void OnDestroy() override
+	void OnDestroy() override
 	{
 		TreeViewDestroy(GetDlgItem(m_hwnd, IDC_TABMSGOPTIONS));
 	}
 
 	void onClick_Setup(CCtrlButton*)
 	{
-		HWND hwndNew = CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_CHOOSESTATUSMODES), m_hwnd, DlgProcSetupStatusModes, M.GetDword("autopopupmask", -1));
-		SendMessage(hwndNew, DM_SETPARENTDIALOG, 0, (LPARAM)m_hwnd);
+		CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_CHOOSESTATUSMODES), m_hwnd, DlgProcSetupStatusModes, M.GetDword("autopopupmask", -1));
 	}
 
 	void onChange_Cut(CCtrlCheck*)
@@ -1080,7 +1087,7 @@ public:
 		spnLimit.Enable(bEnabled);
 	}
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
 	{
 		if (msg == WM_COMMAND && wParam == DM_STATUSMASKSET)
 			db_set_dw(0, SRMSGMOD_T, "autopopupmask", (DWORD)lParam);
@@ -1114,7 +1121,7 @@ class COptContainersDlg : public CDlgBase
 
 public:
 	COptContainersDlg()
-		: CDlgBase(g_hInst, IDD_OPT_CONTAINERS),
+		: CDlgBase(g_plugin, IDD_OPT_CONTAINERS),
 		urlHelp(this, IDC_HELP_CONTAINERS, "https://wiki.miranda-ng.org/index.php?title=Plugin:TabSRMM/en/Containers"),
 		spnNumFlash(this, IDC_NRFLASHSPIN),
 		spnTabLimit(this, IDC_TABLIMITSPIN),
@@ -1131,7 +1138,7 @@ public:
 		chkLimits.OnChange = chkSingle.OnChange = chkGroup.OnChange = chkDefault.OnChange = Callback(this, &COptContainersDlg::onChangeLimits);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		chkGroup.SetState(M.GetByte("useclistgroups", 0));
 		chkLimits.SetState(M.GetByte("limittabs", 0));
@@ -1139,7 +1146,7 @@ public:
 		spnTabLimit.SetRange(1000, 1);
 		spnTabLimit.SetPosition(M.GetDword("maxtabs", 1));
 		onChangeLimits(nullptr);
-		
+
 		chkSingle.SetState(M.GetByte("singlewinmode", 0));
 		chkDefault.SetState(!(chkGroup.GetState() || chkLimits.GetState() || chkSingle.GetState()));
 
@@ -1156,14 +1163,15 @@ public:
 			cmbAeroEffect.InsertString(TranslateW(CSkin::m_aeroEffects[i].tszName), -1);
 		cmbAeroEffect.SetCurSel(CSkin::m_aeroEffect);
 		cmbAeroEffect.Enable(PluginConfig.m_bIsVista);
-		
+
 		chkUseAero.Enable(PluginConfig.m_bIsVista);
 		chkUseAeroPeek.Enable(PluginConfig.m_bIsWin7);
 		if (PluginConfig.m_bIsVista)
 			Utils::enableDlgControl(m_hwnd, IDC_AEROEFFECT, chkUseAero.GetState() != 0);
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		bool fOldAeroState = M.getAeroState();
 
@@ -1175,13 +1183,14 @@ public:
 		db_set_b(0, SRMSGMOD_T, "nrflash", spnNumFlash.GetPosition());
 		db_set_b(0, SRMSGMOD_T, "useAero", chkUseAero.GetState());
 		db_set_b(0, SRMSGMOD_T, "useAeroPeek", chkUseAeroPeek.GetState());
-		
+
 		CSkin::setAeroEffect(cmbAeroEffect.GetCurSel());
 		if (M.getAeroState() != fOldAeroState) {
 			SendMessage(PluginConfig.g_hwndHotkeyHandler, WM_DWMCOMPOSITIONCHANGED, 0, 0);	// simulate aero state change
 			SendMessage(PluginConfig.g_hwndHotkeyHandler, WM_DWMCOLORIZATIONCOLORCHANGED, 0, 0);	// simulate aero state change
 		}
 		BuildContainerMenu();
+		return true;
 	}
 };
 
@@ -1196,7 +1205,7 @@ class COptAdvancedDlg : public CDlgBase
 
 public:
 	COptAdvancedDlg() :
-		CDlgBase(g_hInst, IDD_OPTIONS_PLUS),
+		CDlgBase(g_plugin, IDD_OPTIONS_PLUS),
 		urlHelp(this, IDC_PLUS_HELP, "https://wiki.miranda-ng.org/index.php?title=Plugin:TabSRMM/en/Typing_notifications"),
 		btnRevert(this, IDC_PLUS_REVERT),
 		spnTimeout(this, IDC_TIMEOUTSPIN),
@@ -1205,7 +1214,7 @@ public:
 		btnRevert.OnClick = Callback(this, &COptAdvancedDlg::onClick_Revert);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		TreeViewInit(GetDlgItem(m_hwnd, IDC_PLUS_CHECKTREE), CTranslator::TREE_MODPLUS, 0, FALSE);
 
@@ -1214,9 +1223,10 @@ public:
 
 		spnHistSize.SetRange(255, 15);
 		spnHistSize.SetPosition(M.GetByte("historysize", 0));
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		TreeViewToDB(GetDlgItem(m_hwnd, IDC_PLUS_CHECKTREE), CTranslator::TREE_MODPLUS, SRMSGMOD_T, nullptr);
 
@@ -1226,14 +1236,15 @@ public:
 
 		db_set_b(0, SRMSGMOD_T, "historysize", spnHistSize.GetPosition());
 		PluginConfig.reloadAdv();
+		return true;
 	}
 
-	virtual void OnDestroy() override
+	void OnDestroy() override
 	{
 		TreeViewDestroy(GetDlgItem(m_hwnd, IDC_PLUS_CHECKTREE));
 	}
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
 	{
 		if (msg == WM_NOTIFY && ((LPNMHDR)lParam)->idFrom == IDC_PLUS_CHECKTREE)
 			return TreeViewHandleClick(m_hwnd, ((LPNMHDR)lParam)->hwndFrom, wParam, lParam);
@@ -1286,84 +1297,59 @@ static int OptInitialise(WPARAM wParam, LPARAM lParam)
 	if (PluginConfig.g_bPopupAvail)
 		TN_OptionsInitialize(wParam, lParam);
 
+	// message sessions' options
 	OPTIONSDIALOGPAGE odpnew = {};
 	odpnew.position = 910000000;
-	odpnew.hInstance = g_hInst;
 	odpnew.flags = ODPF_BOLDGROUPS;
 	odpnew.szTitle.a = LPGEN("Message sessions");
 
 	odpnew.szTab.a = LPGEN("General");
 	odpnew.pDialog = new COptMainDlg();
-	Options_AddPage(wParam, &odpnew);
+	g_plugin.addOptions(wParam, &odpnew);
 
 	odpnew.szTab.a = LPGEN("Tabs and layout");
 	odpnew.pDialog = new COptTabbedDlg();
-	Options_AddPage(wParam, &odpnew);
+	g_plugin.addOptions(wParam, &odpnew);
 
 	odpnew.szTab.a = LPGEN("Containers");
 	odpnew.pDialog = new COptContainersDlg();
-	Options_AddPage(wParam, &odpnew);
+	g_plugin.addOptions(wParam, &odpnew);
 
 	odpnew.szTab.a = LPGEN("Message log");
 	odpnew.pDialog = new COptLogDlg();
-	Options_AddPage(wParam, &odpnew);
+	g_plugin.addOptions(wParam, &odpnew);
 
 	odpnew.szTab.a = LPGEN("Advanced tweaks");
 	odpnew.pDialog = new COptAdvancedDlg();
-	Options_AddPage(wParam, &odpnew);
+	g_plugin.addOptions(wParam, &odpnew);
 
 	odpnew.szGroup.a = LPGEN("Message sessions");
 	odpnew.szTitle.a = LPGEN("Typing notify");
 	odpnew.pDialog = new COptTypingDlg();
-	Options_AddPage(wParam, &odpnew);
+	g_plugin.addOptions(wParam, &odpnew);
 
+	// skin options
 	OPTIONSDIALOGPAGE odp = {};
-	odp.hInstance = g_hInst;
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.position = 910000000;
-
-	if (ServiceExists(MS_POPUP_ADDPOPUPT)) {
-		odp.pszTemplate = MAKEINTRESOURCEA(IDD_POPUP_OPT);
-		odp.szTitle.a = LPGEN("Event notifications");
-		odp.szGroup.a = LPGEN("Popups");
-		odp.pfnDlgProc = DlgProcPopupOpts;
-		Options_AddPage(wParam, &odp);
-	}
+	odp.szGroup.a = LPGEN("Skins");
+	odp.szTitle.a = LPGEN("Message window");
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_SKIN);
-	odp.szTitle.a = LPGEN("Message window");
 	odp.szTab.a = LPGEN("Load and apply");
 	odp.pfnDlgProc = DlgProcSkinOpts;
-	odp.szGroup.a = LPGEN("Skins");
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_TABCONFIG);
 	odp.szTab.a = LPGEN("Window layout tweaks");
 	odp.pfnDlgProc = DlgProcTabConfig;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
+
+	// popup options
+	Popup_Options(wParam);
 
 	// group chats
-	odp.szGroup.a = LPGEN("Message sessions");
-	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS1);
-	odp.szTitle.a = LPGEN("Group chats");
-	odp.szTab.a = LPGEN("Settings");
-	odp.pfnDlgProc = DlgProcOptions1;
-	Options_AddPage(wParam, &odp);
-
-	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS2);
-	odp.szTab.a = LPGEN("Log formatting");
-	odp.pfnDlgProc = DlgProcOptions2;
-	Options_AddPage(wParam, &odp);
-
-	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS3);
-	odp.szTab.a = LPGEN("Events and filters");
-	odp.pfnDlgProc = DlgProcOptions3;
-	Options_AddPage(wParam, &odp);
-
-	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS4);
-	odp.szTab.a = LPGEN("Highlighting");
-	odp.pfnDlgProc = CMUCHighlight::dlgProc;
-	Options_AddPage(wParam, &odp);
+	Chat_Options(wParam);
 	return 0;
 }
 
@@ -1487,7 +1473,6 @@ INT_PTR CALLBACK DlgProcSetupStatusModes(HWND hwndDlg, UINT msg, WPARAM wParam, 
 {
 	DWORD dwStatusMask = GetWindowLongPtr(hwndDlg, GWLP_USERDATA);
 	static DWORD dwNewStatusMask = 0;
-	static HWND hwndParent = nullptr;
 
 	switch (msg) {
 	case WM_INITDIALOG:
@@ -1509,10 +1494,6 @@ INT_PTR CALLBACK DlgProcSetupStatusModes(HWND hwndDlg, UINT msg, WPARAM wParam, 
 		ShowWindow(hwndDlg, SW_SHOWNORMAL);
 		return TRUE;
 
-	case DM_SETPARENTDIALOG:
-		hwndParent = (HWND)lParam;
-		break;
-
 	case DM_GETSTATUSMASK:
 		if (IsDlgButtonChecked(hwndDlg, IDC_ALWAYS))
 			dwNewStatusMask = -1;
@@ -1526,13 +1507,14 @@ INT_PTR CALLBACK DlgProcSetupStatusModes(HWND hwndDlg, UINT msg, WPARAM wParam, 
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 		case IDOK:
+			SendMessage(hwndDlg, DM_GETSTATUSMASK, 0, 0);
+			SendMessage(GetParent(hwndDlg), DM_STATUSMASKSET, 0, (LPARAM)dwNewStatusMask);
+			__fallthrough;
+
 		case IDCANCEL:
-			if (LOWORD(wParam) == IDOK) {
-				SendMessage(hwndDlg, DM_GETSTATUSMASK, 0, 0);
-				SendMessage(hwndParent, DM_STATUSMASKSET, 0, (LPARAM)dwNewStatusMask);
-			}
 			DestroyWindow(hwndDlg);
 			break;
+
 		case IDC_ALWAYS:
 			for (int i = ID_STATUS_ONLINE; i <= ID_STATUS_OUTTOLUNCH; i++)
 				Utils::enableDlgControl(hwndDlg, i, !IsDlgButtonChecked(hwndDlg, IDC_ALWAYS));

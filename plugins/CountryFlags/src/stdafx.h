@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <commctrl.h>  /* for ImageList functions */
 
 #include <win2k.h>
+
 #include <newpluginapi.h>
 #include <m_langpack.h>
 #include <m_icolib.h>
@@ -42,7 +43,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "resource.h"
 #include "version.h"
 
-extern HINSTANCE hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 extern int nCountriesCount;
 extern CountryListEntry *countries;
 

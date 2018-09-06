@@ -3,6 +3,31 @@
 ;  Module: Miranda Core
 ;  Version: 0.95.9
 ;============================================================
+;file \src\core\stdautoaway\res\resource.rc
+[Become idle if the following is left unattended:]
+Přejít do stavu nečinnosti pokud se nic neděje v:
+[Become idle if the screen saver is active]
+Přejít do stavu nečinnosti pokud běží spořič obrazovky
+[Become idle if the computer is locked]
+Přejít do stavu nečinnosti pokud je počítač uzamčen
+[Become idle if a terminal session is disconnected]
+Přejít do stavu nečinnosti po odpojení vzdáleného uživatele
+[Do not let protocols report any idle information]
+Zakázat protokolům poskytovat informaci o nečinnosti
+[minute(s)]
+min.
+[for]
+po dobu
+[Change my status mode to:]
+Změnit stav na:
+[Do not set status back to online when returning from idle]
+Po příchodu zpět neměnit stav na 'Online'
+[Idle options]
+Možnosti při nečinnosti
+[Become idle if application full screen]
+Přejít do stavu nečinnosti v celoobrazovkovém režimu
+[Disable sounds on idle]
+Vypnout zvuky při nečinnosti
 ;file \src\core\stdaway\res\resource.rc
 [%s message for %s]
 Stav: '%s', uživatel: %s
@@ -223,32 +248,6 @@ Shodná šířka všech položek
 Zobrazit efekt zkosení panelů
 [Show resize grip indicator]
 Zobrazit tlač. změny velik.
-[&Main menu]
-&Hlavní nabídka
-[E&xit]
-U&končit
-[&Status]
-&Stav
-[&Offline\tCtrl+0]
-&Offline\tCtrl+0
-[On&line\tCtrl+1]
-On&line\tCtrl+1
-[&Away\tCtrl+2]
-N&a chvíli pryč\tCtrl+2
-[&Not available\tCtrl+3]
-&Nejsem tady\tCtrl+3
-[Occ&upied\tCtrl+4]
-N&emám čas\tCtrl+4
-[&Do not disturb\tCtrl+5]
-Ne&rušit!\tCtrl+5
-[&Free for chat\tCtrl+6]
-&Mám volno\tCtrl+6
-[&Invisible\tCtrl+7]
-Nev&iditelný\tCtrl+7
-[On the &phone\tCtrl+8]
-Na &telefonu\tCtrl+8
-[Out to &lunch\tCtrl+9]
-Na o&bědě\tCtrl+9
 ;file \src\core\stdfile\res\resource.rc
 [Send file(s)]
 Poslat soubory
@@ -376,31 +375,6 @@ Zeptat se
 Přejmenovat (přidá " (1)" atd.)
 [You will always be asked about files from people not on your contact list]
 Příjem souborů od lidí, kteří nejsou mezi kontakty, podléhá vždy dotazu.
-;file \src\core\stdidle\res\resource.rc
-[Become idle if the following is left unattended:]
-Přejít do stavu nečinnosti pokud se nic neděje v:
-[Become idle if the screen saver is active]
-Přejít do stavu nečinnosti pokud běží spořič obrazovky
-[Become idle if the computer is locked]
-Přejít do stavu nečinnosti pokud je počítač uzamčen
-[Become idle if a terminal session is disconnected]
-Přejít do stavu nečinnosti po odpojení vzdáleného uživatele
-[Do not let protocols report any idle information]
-Zakázat protokolům poskytovat informaci o nečinnosti
-[minute(s)]
-min.
-[for]
-po dobu
-[Change my status mode to:]
-Změnit stav na:
-[Do not set status back to online when returning from idle]
-Po příchodu zpět neměnit stav na 'Online'
-[Idle options]
-Možnosti při nečinnosti
-[Become idle if application full screen]
-Přejít do stavu nečinnosti v celoobrazovkovém režimu
-[Disable sounds on idle]
-Vypnout zvuky při nečinnosti
 ;file \src\core\stdmsg\res\resource.rc
 [Automatically popup window when:]
 Automaticky vyvolat okno při:
@@ -418,8 +392,8 @@ Použít v liště okna ikonu aktuálního stavu
 Uložit velikost a umístění okna pro každý kontakt zvlášť
 [Cascade new windows]
 Skládat okna kaskádně
-[Support CTRL+Up/Down in message area to show previously sent messages]
-Použít kombinaci kláves CTRL+Nahoru/Dolů k zobrazení předešlých zpráv
+[Support Ctrl+Up/Down in message area to show previously sent messages]
+Použít kombinaci kláves Ctrl+Nahoru/Dolů k zobrazení předešlých zpráv
 [Delete temporary contacts when closing message window]
 Smazat dočasné kontakty po zavření okna pro rozhovor
 [Enable avatar support in the message window]
@@ -433,11 +407,11 @@ Zobrazit počet napsaných znaků
 [Show toolbar buttons on top row]
 Zobrazit nahoře lištu s tlačítky
 [Send message on double 'Enter']
-Odeslat zprávu dvojitým ENTER
+Odeslat zprávu dvojitým Enter
 [Send message on 'Enter']
-Odeslat zprávu klávesou ENTER
+Odeslat zprávu klávesou Enter
 [Send message on 'Ctrl+Enter']
-Odeslat zprávu CTRL+ENTER
+Odeslat zprávu Ctrl+Enter
 [Show warning when message has not been received after]
 Zobrazit upozornění v případě, že zpráva nebyla doručena do
 [Send error]
@@ -474,8 +448,6 @@ min.
 Použít systém záložek
 [Close tab on double click]
 Zavřít záložku dvojím kliknutím
-[Restore previously open tabs when showing the window]
-Obnovit všechny záložky z poslední relace
 [Show tabs at the bottom]
 Zobrazit záložky v dolní části okna
 [Send typing notifications to the following users when you are typing a message to them:]
@@ -1049,8 +1021,8 @@ Doplňková barva:
 Zvolte doplňkové ikony, které budou zobrazeny v seznamu kontaktů:
 [*only the first %d icons will be shown]
 *bude zobrazeno pouze prvních %d ikon
-[You can group/ungroup icons by selecting them (CTRL+left click) and using the popup menu (right click)]
-Můžete vytvořit nebo zrušit skupinu ikon jejich vybráním (CTRL+levé tlačítko) a použitím kontextového menu (pravé tlačítko)
+[You can group/ungroup icons by selecting them (Ctrl+left click) and using the popup menu (right click)]
+Můžete vytvořit nebo zrušit skupinu ikon jejich vybráním (Ctrl+levé tlačítko) a použitím kontextového menu (pravé tlačítko)
 [Add to existing metacontact]
 Přidat k existujícímu metakontaktu
 [Please select a metacontact:]
@@ -1137,6 +1109,8 @@ Poděkování >
 Oznamovací oblast
 [&Hide/Show]
 Skrýt/Zo&brazit
+[E&xit]
+U&končit
 [Nowhere]
 Nikde
 [&New group]
@@ -1193,6 +1167,35 @@ Wikipedia (en)
 Mapy Google
 [Google Translate]
 Překladač Google
+[&Main menu]
+&Hlavní nabídka
+[&Status]
+&Stav
+[&Offline\tCtrl+0]
+&Offline\tCtrl+0
+[On&line\tCtrl+1]
+On&line\tCtrl+1
+[&Away\tCtrl+2]
+N&a chvíli pryč\tCtrl+2
+[&Not available\tCtrl+3]
+&Nejsem tady\tCtrl+3
+[Occ&upied\tCtrl+4]
+N&emám čas\tCtrl+4
+[&Do not disturb\tCtrl+5]
+Ne&rušit!\tCtrl+5
+[&Free for chat\tCtrl+6]
+&Mám volno\tCtrl+6
+[&Invisible\tCtrl+7]
+Nev&iditelný\tCtrl+7
+[On the &phone\tCtrl+8]
+Na &telefonu\tCtrl+8
+[Out to &lunch\tCtrl+9]
+Na o&bědě\tCtrl+9
+;file \src\core\stdautoaway\src\options.cpp
+[Status]
+Stavy
+[Idle]
+Nečinnost
 ;file \src\core\stdaway\src\awaymsg.cpp
 [Re&ad %s message]
 Přečíst &automatickou odpověď
@@ -1221,8 +1224,6 @@ Právě telefonuji
 Mňam... jídlo
 [idleeeeeeee]
 Chrrrrrrrrrrrr
-[Status]
-Stavy
 ;file \src\core\stdclist\src\clcfonts.cpp
 [Standard contacts]
 Standardní kontakty
@@ -1386,9 +1387,6 @@ Přenos a kontrola antivirem dokončena
 ;file \src\core\stdfile\src\ftmanager.cpp
 [Outgoing]
 Odchozí
-;file \src\core\stdidle\src\options.cpp
-[Idle]
-Nečinnost
 ;file \src\core\stdmsg\src\chat_manager.cpp
 [Message sessions]
 Komunikace
@@ -1704,40 +1702,40 @@ Zpráva od: %s
 %s píše zprávu
 [Typing notification]
 Upozornění na psaní zprávy
-[View user's history (CTRL+H)]
+[View user's history (Ctrl+H)]
 
 [&Bold]
 &Tučné
-[Make the text bold (CTRL+B)]
-Změní styl písma na tučné (CTRL+B)
+[Make the text bold (Ctrl+B)]
+Změní styl písma na tučné (Ctrl+B)
 [&Italic]
 &Kurzíva
-[Make the text italicized (CTRL+I)]
-Změní styl písma na kurzívu (CTRL+I)
+[Make the text italicized (Ctrl+I)]
+Změní styl písma na kurzívu (Ctrl+I)
 [&Underline]
 Pod&tržené
-[Make the text underlined (CTRL+U)]
-Změní styl písma na podtržené (CTRL+U)
+[Make the text underlined (Ctrl+U)]
+Změní styl písma na podtržené (Ctrl+U)
 [&Color]
 &Barva
-[Select a foreground color for the text (CTRL+K)]
-Změní barvu textu (CTRL+K)
+[Select a foreground color for the text (Ctrl+K)]
+Změní barvu textu (Ctrl+K)
 [&Background color]
 Barva &pozadí
-[Select a background color for the text (CTRL+L)]
-Změní barvu pozadí textu (CTRL+L)
+[Select a background color for the text (Ctrl+L)]
+Změní barvu pozadí textu (Ctrl+L)
 [&Room settings]
 &Správa místnosti
-[Control this room (CTRL+O)]
-Možnosti řízení kanálu (CTRL+O)
+[Control this room (Ctrl+O)]
+Možnosti řízení kanálu (Ctrl+O)
 [&Show/hide nick list]
 &Přepnout seznam účastníků
-[Show/hide the nick list (CTRL+N)]
-Zobrazí/skryje seznam účastníků (CTRL+N)
+[Show/hide the nick list (Ctrl+N)]
+Zobrazí/skryje seznam účastníků (Ctrl+N)
 [&Filter]
 &Filtr
-[Enable/disable the event filter (CTRL+F)]
-Aktivuje/deaktivuje filtrování událostí (CTRL+F)
+[Enable/disable the event filter (Ctrl+F)]
+Aktivuje/deaktivuje filtrování událostí (Ctrl+F)
 [Miranda could not load the built-in message module, msftedit.dll is missing. Press 'Yes' to continue loading Miranda.]
 Miranda nemůže načíst vestavěný komunikační modul, msftedit.dll nebyl nalezen. Stiskněte 'Ano' pro pokračování ve spouštění Mirandy.
 [Instant messages]
@@ -3195,8 +3193,6 @@ Zambie
 Zimbabwe
 ;file \src\mir_app\src\visibility.cpp
 ;file \src\mir_core\src\bitmaps.cpp
-[All Files]
-Všechny soubory
 [Windows bitmaps]
 Obrázky typu BMP
 [JPEG bitmaps]

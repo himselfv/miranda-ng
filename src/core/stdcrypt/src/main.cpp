@@ -22,10 +22,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 int LoadEncryptionModule(void);
 
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	MIRANDA_VERSION_DWORD,
@@ -38,27 +39,17 @@ PLUGININFOEX pluginInfo = {
 	{ 0xd3637189, 0xa5a5, 0x41f5, {0xbc, 0x72, 0x67, 0xa2, 0xf8, 0xaf, 0x1b, 0x6f}}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_CRYPTO, MIID_LAST };
 
-extern "C" int __declspec(dllexport) Load(void)
-{
-	mir_getLP(&pluginInfo);
+/////////////////////////////////////////////////////////////////////////////////////////
 
+int CMPlugin::Load()
+{
 	return LoadEncryptionModule();
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
-	return 0;
 }

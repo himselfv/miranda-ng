@@ -55,7 +55,7 @@ static wchar_t* Proto_GetContactInfoSettingStr(bool proto_service, MCONTACT hCon
 	if (CallProtoService(szModule, PS_GETINFOSETTING, hContact, (LPARAM)&cgs))
 		return nullptr;
 
-	return dbv.ptszVal;
+	return dbv.pwszVal;
 }
 
 static void SetValue(HWND hwndDlg, int idCtrl, MCONTACT hContact, char *szModule, char *szSetting, int special)
@@ -152,7 +152,7 @@ static void SetValue(HWND hwndDlg, int idCtrl, MCONTACT hContact, char *szModule
 					char szSettingName[100];
 					mir_snprintf(szSettingName, "%sName", szSetting);
 					if (!db_get_ws(hContact, szModule, szSettingName, &dbv)) {
-						ptstr = dbv.ptszVal;
+						ptstr = dbv.pwszVal;
 						unspecified = false;
 						break;
 					}
@@ -187,14 +187,14 @@ static void SetValue(HWND hwndDlg, int idCtrl, MCONTACT hContact, char *szModule
 			unspecified = (special == SVS_ZEROISUNSPEC && dbv.pszVal[0] == '\0');
 			if (!unspecified) {
 				WCHAR *wszStr;
-				Utf8Decode(dbv.pszVal, &wszStr);
+				mir_utf8decode(dbv.pszVal, &wszStr);
 				SetDlgItemTextW(hwndDlg, idCtrl, TranslateW(wszStr));
 				mir_free(wszStr);
 				goto LBL_Exit;
 			}
 
 			pstr = dbv.pszVal;
-			Utf8Decode(dbv.pszVal, nullptr);
+			mir_utf8decode(dbv.pszVal, nullptr);
 			break;
 
 		default:
@@ -551,7 +551,7 @@ static INT_PTR CALLBACK NotesDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
 			HFONT hFont = CreateFontIndirect(&lf);
 			SendDlgItemMessage(hwndDlg, IDC_ABOUT, WM_SETFONT, (WPARAM)hFont, MAKELPARAM(TRUE, 0));
 
-			ptrW szNotes(db_get_wsa(lParam, "UserInfo", "MyNotes"));
+			ptrW szNotes(db_get_wsa(lParam, MODULENAME, "MyNotes"));
 			if (szNotes != nullptr)
 				SetDlgItemText(hwndDlg, IDC_MYNOTES, szNotes);
 		}
@@ -576,9 +576,9 @@ static INT_PTR CALLBACK NotesDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
 				if (GetWindowTextLength(GetDlgItem(hwndDlg, IDC_MYNOTES))) {
 					char text[2048];
 					GetDlgItemTextA(hwndDlg, IDC_MYNOTES, text, _countof(text));
-					db_set_s(hContact, "UserInfo", "MyNotes", text);
+					db_set_s(hContact, MODULENAME, "MyNotes", text);
 				}
-				else db_unset(hContact, "UserInfo", "MyNotes");
+				else db_unset(hContact, MODULENAME, "MyNotes");
 				break;
 			}
 			break;
@@ -607,43 +607,41 @@ int DetailsInit(WPARAM wParam, LPARAM lParam)
 	if (GetContactProto(lParam) == nullptr)
 		return 0;
 
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = hInst;
-
+	OPTIONSDIALOGPAGE odp = {};
 	odp.pfnDlgProc = SummaryDlgProc;
 	odp.position = -2100000000;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_INFO_SUMMARY);
 	odp.szTitle.a = LPGEN("Summary");
-	UserInfo_AddPage(wParam, &odp);
+	g_plugin.addUserInfo(wParam, &odp);
 
 	odp.pfnDlgProc = ContactDlgProc;
 	odp.position = -1800000000;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_INFO_CONTACT);
 	odp.szTitle.a = LPGEN("Contact");
-	UserInfo_AddPage(wParam, &odp);
+	g_plugin.addUserInfo(wParam, &odp);
 
 	odp.pfnDlgProc = LocationDlgProc;
 	odp.position = -1500000000;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_INFO_LOCATION);
 	odp.szTitle.a = LPGEN("Location");
-	UserInfo_AddPage(wParam, &odp);
+	g_plugin.addUserInfo(wParam, &odp);
 
 	odp.pfnDlgProc = WorkDlgProc;
 	odp.position = -1200000000;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_INFO_WORK);
 	odp.szTitle.a = LPGEN("Work");
-	UserInfo_AddPage(wParam, &odp);
+	g_plugin.addUserInfo(wParam, &odp);
 
 	odp.pfnDlgProc = BackgroundDlgProc;
 	odp.position = -900000000;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_INFO_BACKGROUND);
 	odp.szTitle.a = LPGEN("Background info");
-	UserInfo_AddPage(wParam, &odp);
+	g_plugin.addUserInfo(wParam, &odp);
 
 	odp.pfnDlgProc = NotesDlgProc;
 	odp.position = 0;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_INFO_NOTES);
 	odp.szTitle.a = LPGEN("Notes");
-	UserInfo_AddPage(wParam, &odp);
+	g_plugin.addUserInfo(wParam, &odp);
 	return 0;
 }

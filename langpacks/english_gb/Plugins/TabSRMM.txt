@@ -2,7 +2,7 @@
 ;============================================================
 ;  File: TabSRMM.dll
 ;  Plugin: TabSRMM
-;  Version: 3.5.0.9
+;  Version: 3.5.0.12
 ;  Authors: The Miranda developers team and contributors
 ;============================================================
 [Customize the panel]
@@ -19,8 +19,8 @@ Vertical maximise
 Enable popups if minimised
 [Play sounds when minimized]
 Play sounds when minimised
-[ESC key behavior]
-ESC key behaviour
+[Esc key behavior]
+Esc key behaviour
 [Use contact list groups for organizing tabs (one window per group)]
 Use contact list groups for organising tabs (one window per group)
 [U&se Popup colors]
@@ -67,10 +67,10 @@ One of your popup actions is set to DISMISS EVENT.\nNote that this options may h
 Do not synchronise the panel height with IM windows
 [Do not synchronize the panel height with group chat windows]
 Do not synchronise the panel height with group chat windows
-[UID: %s (SHIFT click -> copy to clipboard)\nClick for user's details\nRight click for metacontact control\nClick dropdown to add or remove user from your favorites.]
-UID: %s (SHIFT click -> copy to clipboard)\nClick for user's details\nRight click for metacontact control\nClick dropdown to add or remove user from your favourites.
-[UID: %s (SHIFT click -> copy to clipboard)\nClick for user's details\nClick dropdown to change this contact's favorite status.]
-UID: %s (SHIFT click -> copy to clipboard)\nClick for user's details\nClick dropdown to change this contact's favourite status.
+[UID: %s (Shift+click -> copy to clipboard)\nClick for user's details\nRight click for metacontact control\nClick dropdown to add or remove user from your favorites.]
+UID: %s (Shift click -> copy to clipboard)\nClick for user's details\nRight click for metacontact control\nClick dropdown to add or remove user from your favourites.
+[UID: %s (Shift+click -> copy to clipboard)\nClick for user's details\nClick dropdown to change this contact's favorite status.]
+UID: %s (Shift click -> copy to clipboard)\nClick for user's details\nClick dropdown to change this contact's favourite status.
 [Minimize the window to the task bar]
 Minimise the window to the task bar
 [Font color]

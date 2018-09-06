@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma hdrstop
 
-extern IconItemT iconItem[];
+extern IconItem iconItem[];
 void InitIconLibMenuIcons();
 
 INT_PTR CloseAction(WPARAM, LPARAM)
@@ -37,7 +37,7 @@ INT_PTR CloseAction(WPARAM, LPARAM)
 	cfg::shutDown = 1;
 
 	if (Miranda_OkToExit()) {
-		DestroyWindow(pcli->hwndContactList);
+		DestroyWindow(g_clistApi.hwndContactList);
 		PostQuitMessage(0);
 		Sleep(0);
 	}
@@ -66,14 +66,14 @@ static INT_PTR CALLBACK IgnoreDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 			SendMessage(hWnd, WM_USER + 100, hContact, dwMask);
 			SendMessage(hWnd, WM_USER + 120, 0, 0);
 			TranslateDialogDefault(hWnd);
-			hwndAdd = GetDlgItem(hWnd, IDC_IGN_ADDPERMANENTLY); // CreateWindowEx(0, L"CLCButtonClass", L"FOO", WS_VISIBLE | BS_PUSHBUTTON | WS_CHILD | WS_TABSTOP, 200, 276, 106, 24, hWnd, (HMENU)IDC_IGN_ADDPERMANENTLY, g_hInst, NULL);
+			hwndAdd = GetDlgItem(hWnd, IDC_IGN_ADDPERMANENTLY); // CreateWindowEx(0, L"CLCButtonClass", L"FOO", WS_VISIBLE | BS_PUSHBUTTON | WS_CHILD | WS_TABSTOP, 200, 276, 106, 24, hWnd, (HMENU)IDC_IGN_ADDPERMANENTLY, g_plugin.getInst(), NULL);
 			CustomizeButton(hwndAdd, false, true, false);
 
 			SendMessage(hwndAdd, BM_SETIMAGE, IMAGE_ICON, (LPARAM)Skin_LoadIcon(SKINICON_OTHER_ADDCONTACT));
 			SetWindowText(hwndAdd, TranslateT("Add permanently"));
 			EnableWindow(hwndAdd, db_get_b(hContact, "CList", "NotOnList", 0));
 
-			hwndAdd = GetDlgItem(hWnd, IDC_DSP_LOADDEFAULT); // CreateWindowEx(0, L"CLCButtonClass", L"FOO", WS_VISIBLE | BS_PUSHBUTTON | WS_CHILD | WS_TABSTOP, 200, 276, 106, 24, hWnd, (HMENU)IDC_IGN_ADDPERMANENTLY, g_hInst, NULL);
+			hwndAdd = GetDlgItem(hWnd, IDC_DSP_LOADDEFAULT); // CreateWindowEx(0, L"CLCButtonClass", L"FOO", WS_VISIBLE | BS_PUSHBUTTON | WS_CHILD | WS_TABSTOP, 200, 276, 106, 24, hWnd, (HMENU)IDC_IGN_ADDPERMANENTLY, g_plugin.getInst(), NULL);
 			CustomizeButton(hwndAdd, false, true, false);
 
 			SendMessage(hwndAdd, BM_SETIMAGE, IMAGE_ICON, (LPARAM)Skin_LoadIcon(SKINICON_OTHER_DELETE));
@@ -91,7 +91,7 @@ static INT_PTR CALLBACK IgnoreDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 			SendDlgItemMessage(hWnd, IDC_SECONDLINEMODE, CB_INSERTSTRING, -1, (LPARAM)TranslateT("When needed by status message"));
 
 			if (cfg::clcdat) {
-				Clist_FindItem(pcli->hwndContactTree, cfg::clcdat, hContact, &contact, nullptr, nullptr);
+				Clist_FindItem(g_clistApi.hwndContactTree, cfg::clcdat, hContact, &contact, nullptr, nullptr);
 				if (contact && contact->type != CLCIT_CONTACT) {
 					DestroyWindow(hWnd);
 					return FALSE;
@@ -147,7 +147,7 @@ static INT_PTR CALLBACK IgnoreDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 		case IDC_IGN_PRIORITY:
-			SendMessage(pcli->hwndContactTree, CLM_TOGGLEPRIORITYCONTACT, hContact, 0);
+			SendMessage(g_clistApi.hwndContactTree, CLM_TOGGLEPRIORITYCONTACT, hContact, 0);
 			return 0;
 
 		case IDC_IGN_ALL:
@@ -198,7 +198,7 @@ static INT_PTR CALLBACK IgnoreDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 					DWORD dwFlags = db_get_dw(hContact, "CList", "CLN_Flags", 0), dwXMask = 0;
 					LRESULT  checked = 0;
 
-					Clist_FindItem(pcli->hwndContactTree, cfg::clcdat, hContact, &contact, nullptr, nullptr);
+					Clist_FindItem(g_clistApi.hwndContactTree, cfg::clcdat, hContact, &contact, nullptr, nullptr);
 					if (iSel != CB_ERR) {
 						dwFlags &= ~(ECF_FORCEAVATAR | ECF_HIDEAVATAR);
 
@@ -285,7 +285,7 @@ static INT_PTR CALLBACK IgnoreDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 	case WM_USER + 120:	// set visibility status
 		{
 			ClcContact *contact = nullptr;
-			if (Clist_FindItem(pcli->hwndContactTree, cfg::clcdat, hContact, &contact, nullptr, nullptr)) {
+			if (Clist_FindItem(g_clistApi.hwndContactTree, cfg::clcdat, hContact, &contact, nullptr, nullptr)) {
 				if (contact) {
 					WORD wApparentMode = db_get_w(contact->hContact, contact->pce->szProto, "ApparentMode", 0);
 
@@ -300,7 +300,7 @@ static INT_PTR CALLBACK IgnoreDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 		{
 			ClcContact *contact = nullptr;
 
-			if (Clist_FindItem(pcli->hwndContactTree, cfg::clcdat, hContact, &contact, nullptr, nullptr)) {
+			if (Clist_FindItem(g_clistApi.hwndContactTree, cfg::clcdat, hContact, &contact, nullptr, nullptr)) {
 				if (contact) {
 					WORD wApparentMode = 0;
 
@@ -346,7 +346,7 @@ static INT_PTR SetContactIgnore(WPARAM wParam, LPARAM)
 	hWnd = WindowList_Find(hWindowListIGN, wParam);
 	if (wParam) {
 		if (hWnd == nullptr)
-			CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_QUICKIGNORE), nullptr, IgnoreDialogProc, (LPARAM)wParam);
+			CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_QUICKIGNORE), nullptr, IgnoreDialogProc, (LPARAM)wParam);
 		else if (IsWindow(hWnd))
 			SetFocus(hWnd);
 	}
@@ -360,7 +360,7 @@ int InitCustomMenus(void)
 	CreateServiceFunction("CloseAction", CloseAction);
 	CreateServiceFunction("CList/SetContactIgnore", SetContactIgnore);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0xe3b08c6f, 0x8a01, 0x4c94, 0xb3, 0xf5, 0x9d, 0x38, 0x6, 0x63, 0x7a, 0xa9);
 	mi.position = 200000;
 	mi.pszService = "CList/SetContactIgnore";

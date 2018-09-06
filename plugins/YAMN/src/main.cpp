@@ -29,8 +29,7 @@ static int iDllPlugins = 0;
 
 YAMN_VARIABLES YAMNVar;
 
-CLIST_INTERFACE *pcli;
-int hLangpack;
+CMPlugin	g_plugin;
 
 HANDLE hNewMailHook;
 HANDLE NoWriterEV;
@@ -69,17 +68,11 @@ static void GetProfileDirectory(wchar_t *szPath, int cbPath)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-CMPlugin	g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_PROTOCOL, MIID_LAST };
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-PLUGININFOEX pluginInfo = {
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -92,9 +85,11 @@ PLUGININFOEX pluginInfo = {
 	{0xb047a7e5, 0x27a, 0x4cfc, {0x8b, 0x18, 0xed, 0xa8, 0x34, 0x5d, 0x27, 0x90}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(YAMN_DBMODULE, pluginInfoEx)
 {
-	return &pluginInfo;
+	RegisterProtocol(PROTOTYPE_VIRTUAL);
+	SetUniqueId("Id");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -127,7 +122,7 @@ void CheckMenuItems()
 int SystemModulesLoaded(WPARAM, LPARAM)
 {
 	//Insert "Check mail (YAMN)" item to Miranda's menu
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 
 	SET_UID(mi, 0xa01ff3d9, 0x53cb, 0x4406, 0x85, 0xd9, 0xf1, 0x90, 0x3a, 0x94, 0xed, 0xf4);
 	mi.position = 0xb0000000;
@@ -168,7 +163,7 @@ static IconItem iconList[] =
 
 void LoadIcons()
 {
-	Icon_Register(g_plugin.getInst(), "YAMN", iconList, _countof(iconList));
+	g_plugin.registerIcon("YAMN", iconList);
 }
 
 HANDLE WINAPI g_GetIconHandle(int idx)
@@ -237,11 +232,8 @@ static void LoadPlugins()
 	}
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
 	YAMN_STATUS = ID_STATUS_OFFLINE;
 
 	//	we get the Miranda Root Path
@@ -299,8 +291,8 @@ extern "C" int __declspec(dllexport) Load(void)
 
 	CreateServiceFunctions();
 
-	Skin_AddSound(YAMN_NEWMAILSOUND, L"YAMN", YAMN_NEWMAILSNDDESC);
-	Skin_AddSound(YAMN_CONNECTFAILSOUND, L"YAMN", YAMN_CONNECTFAILSNDDESC);
+	g_plugin.addSound(YAMN_NEWMAILSOUND, L"YAMN", YAMN_NEWMAILSNDDESC);
+	g_plugin.addSound(YAMN_CONNECTFAILSOUND, L"YAMN", YAMN_CONNECTFAILSNDDESC);
 
 	HookEvents();
 
@@ -313,7 +305,7 @@ extern "C" int __declspec(dllexport) Load(void)
 	hkd.szSection.a = YAMN_DBMODULE;
 	hkd.szDescription.a = LPGEN("Check mail");
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL, VK_F11);
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	//Create thread that will be executed every second
 	if (!(SecTimer = SetTimer(nullptr, 0, 1000, TimerProc)))
@@ -338,7 +330,7 @@ static void UnloadPlugins()
 	hDllPlugins = nullptr;
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 #ifdef _DEBUG
 	UnInitDebug();

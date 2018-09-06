@@ -47,7 +47,7 @@ static INT_PTR SendFileCommand(WPARAM hContact, LPARAM)
 	struct FileSendData fsd;
 	fsd.hContact = hContact;
 	fsd.ppFiles = nullptr;
-	return (INT_PTR)CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_FILESEND), NULL, DlgProcSendFile, (LPARAM)&fsd);
+	return (INT_PTR)CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_FILESEND), NULL, DlgProcSendFile, (LPARAM)&fsd);
 }
 
 static INT_PTR SendSpecificFiles(WPARAM hContact, LPARAM lParam)
@@ -65,7 +65,7 @@ static INT_PTR SendSpecificFiles(WPARAM hContact, LPARAM lParam)
 		fsd.ppFiles[i] = mir_a2u(ppFiles[i]);
 	fsd.ppFiles[count] = nullptr;
 
-	HWND hWnd = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_FILESEND), NULL, DlgProcSendFile, (LPARAM)&fsd);
+	HWND hWnd = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_FILESEND), NULL, DlgProcSendFile, (LPARAM)&fsd);
 	for (int j = 0; j < count; j++)
 		mir_free((void*)fsd.ppFiles[j]);
 	return (INT_PTR)hWnd;
@@ -76,7 +76,7 @@ static INT_PTR SendSpecificFilesT(WPARAM hContact, LPARAM lParam)
 	FileSendData fsd;
 	fsd.hContact = hContact;
 	fsd.ppFiles = (const wchar_t**)lParam;
-	return (INT_PTR)CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_FILESEND), NULL, DlgProcSendFile, (LPARAM)&fsd);
+	return (INT_PTR)CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_FILESEND), NULL, DlgProcSendFile, (LPARAM)&fsd);
 }
 
 static INT_PTR GetReceivedFilesFolder(WPARAM wParam, LPARAM lParam)
@@ -91,7 +91,7 @@ static INT_PTR GetReceivedFilesFolder(WPARAM wParam, LPARAM lParam)
 
 static INT_PTR RecvFileCommand(WPARAM, LPARAM lParam)
 {
-	CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_FILERECV), NULL, DlgProcRecvFile, lParam);
+	CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_FILERECV), NULL, DlgProcRecvFile, lParam);
 	return 0;
 }
 
@@ -101,8 +101,8 @@ void PushFileEvent(MCONTACT hContact, MEVENT hdbe, LPARAM lParam)
 	cle.hContact = hContact;
 	cle.hDbEvent = hdbe;
 	cle.lParam = lParam;
-	if (db_get_b(NULL, "SRFile", "AutoAccept", 0) && !db_get_b(hContact, "CList", "NotOnList", 0)) {
-		CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_FILERECV), NULL, DlgProcRecvFile, (LPARAM)&cle);
+	if (db_get_b(NULL, MODULENAME, "AutoAccept", 0) && !db_get_b(hContact, "CList", "NotOnList", 0)) {
+		CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_FILERECV), NULL, DlgProcRecvFile, (LPARAM)&cle);
 	}
 	else {
 		Skin_PlaySound("RecvFile");
@@ -114,7 +114,7 @@ void PushFileEvent(MCONTACT hContact, MEVENT hdbe, LPARAM lParam)
 		cle.flags |= CLEF_UNICODE;
 		cle.hIcon = Skin_LoadIcon(SKINICON_EVENT_FILE);
 		cle.pszService = "SRFile/RecvFile";
-		pcli->pfnAddEvent(&cle);
+		g_clistApi.pfnAddEvent(&cle);
 	}
 }
 
@@ -306,16 +306,16 @@ static int SRFileProtoAck(WPARAM, LPARAM lParam)
 	ACKDATA *ack = (ACKDATA*)lParam;
 	if (ack->type == ACKTYPE_FILE) {
 		int iEvent = 0;
-		while (CLISTEVENT *cle = pcli->pfnGetEvent(ack->hContact, iEvent++))
+		while (CLISTEVENT *cle = g_clistApi.pfnGetEvent(ack->hContact, iEvent++))
 			if (cle->lParam == (LPARAM)ack->hProcess)
-				pcli->pfnRemoveEvent(ack->hContact, cle->hDbEvent);
+				g_clistApi.pfnRemoveEvent(ack->hContact, cle->hDbEvent);
 	}
 	return 0;
 }
 
 static int SRFileModulesLoaded(WPARAM, LPARAM)
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x7f8dcf77, 0xe448, 0x4505, 0xb0, 0x56, 0xb, 0xb1, 0xab, 0xac, 0x64, 0x9d);
 	mi.position = -2000020000;
 	mi.hIcolibItem = Skin_GetIconHandle(SKINICON_EVENT_FILE);
@@ -372,9 +372,9 @@ static INT_PTR Proto_RecvFileT(WPARAM, LPARAM lParam)
 	if (bUnicode) {
 		pszFiles = (char**)alloca(pre->fileCount * sizeof(char*));
 		for (int i = 0; i < pre->fileCount; i++)
-			pszFiles[i] = Utf8EncodeW(pre->files.w[i]);
+			pszFiles[i] = mir_utf8encodeW(pre->files.w[i]);
 		
-		szDescr = Utf8EncodeW(pre->descr.w);
+		szDescr = mir_utf8encodeW(pre->descr.w);
 	}
 	else {
 		pszFiles = pre->files.a;
@@ -414,7 +414,7 @@ int LoadSendRecvFileModule(void)
 {
 	CreateServiceFunction("FtMgr/Show", FtMgrShowCommand);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x75794ab5, 0x2573, 0x48f4, 0xb4, 0xa0, 0x93, 0xd6, 0xf5, 0xe0, 0xf3, 0x32);
 	mi.hIcolibItem = Skin_GetIconHandle(SKINICON_EVENT_FILE);
 	mi.position = 1900000000;
@@ -442,9 +442,9 @@ int LoadSendRecvFileModule(void)
 	CreateServiceFunction("SRFile/OpenContRecDir", openContRecDir);
 	CreateServiceFunction("SRFile/OpenRecDir", openRecDir);
 
-	Skin_AddSound("RecvFile",   LPGENW("File"), LPGENW("Incoming"));
-	Skin_AddSound("FileDone",   LPGENW("File"), LPGENW("Complete"));
-	Skin_AddSound("FileFailed", LPGENW("File"), LPGENW("Error"));
-	Skin_AddSound("FileDenied", LPGENW("File"), LPGENW("Denied"));
+	g_plugin.addSound("RecvFile",   LPGENW("File"), LPGENW("Incoming"));
+	g_plugin.addSound("FileDone",   LPGENW("File"), LPGENW("Complete"));
+	g_plugin.addSound("FileFailed", LPGENW("File"), LPGENW("Error"));
+	g_plugin.addSound("FileDenied", LPGENW("File"), LPGENW("Denied"));
 	return 0;
 }

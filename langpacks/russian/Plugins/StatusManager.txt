@@ -2,11 +2,12 @@
 ;============================================================
 ;  File: StatusManager.dll
 ;  Plugin: Status manager
-;  Version: 1.2.0.1
+;  Version: 1.2.0.4
 ;  Authors: P Boon
 ;============================================================
 [A connection checker and auto away module. Also allows you to define the status Miranda should set on startup, configurable per protocol.]
 Проверяет наличие подключения к сети и автоматически повторно подключает при разрывах. Предоставляет управление режимом ожидания с расширенным набором функций. Начальный статус, позволяет вам устанавливать, какой статус будет выставлен при запуске Miranda у каждого протокола.
+;file \plugins\StatusManager\res\resource.rc
 [Available modules]
 Доступные модули
 [Keep status]
@@ -55,8 +56,10 @@
 Профиль
 [Message]
 Сообщение
-[Account]
-Учётная запись
+[Account:]
+Учётная запись:
+[Away mode]
+Отсутствие
 [Set]
 Выбрать
 [when full-screen mode is active]
@@ -65,10 +68,14 @@
 при запуске заставки
 [when workstation is locked]
 при блокировке компьютера
+[when terminal session is disconnected]
+при завершении удалённой сессии
 [after]
 через
 [minutes of inactivity]
 минут неактивности
+[After away]
+Дальнейшее отсутствие
 [minutes of level 1 mode]
 минут режима 1
 [only set when inactive]
@@ -79,6 +86,8 @@
 Восстановить статус при возвращении
 [Confirm resetting status]
 Подтвердить сброс статуса
+[Enter idle mode]
+Входить в режим ожидания
 [Only set if current status is]
 Только если статус:
 [Command line]
@@ -201,13 +210,11 @@ Cтатус-профиль
 Интервал проверки (сек)
 [Confirm dialog timeout (secs)]
 Интервал подтверждения (сек)
-[This options are ignored because you enabled "Change my status mode to" in the "Idle" options dialog.]
-Эти настройки будут проигнорированы, поскольку вы включили функцию смены статуса в разделе настроек "Ожидание".
 [Monitor keyboard activity]
 Следить за активностью клавиатуры
 [Monitor mouse activity]
 Следить за активностью мыши
-[Ignore CTRL, ALT, SHIFT, TAB, ESC and Windows keys]
+[Ignore Ctrl, Alt, Shift, Tab, Esc and Windows keys]
 Игнорировать клавиши Ctrl, Alt, Shift, Tab, Esc, Win
 [Ignore any key combination with above keys]
 Игнорировать комбинации с упомянутыми клавишами
@@ -219,6 +226,8 @@ Cтатус-профиль
 Откл. проверку
 [Set status message]
 Установить сообщение статуса
+[Account]
+Учётная запись
 [Status]
 Статус
 [Add...]
@@ -269,8 +278,32 @@ Cтатус-профиль
 неудачных пингов
 [Continuously check interval (secs)]
 Интервал проверки (сек)
+[Entering first auto-away status]
+
+[Entering second auto-away status]
+
+[Leaving first auto-away status]
+
 [Pre-conditions]
 Предварительные условия
+[Status: The status the account will change to\r\nAccount: The account changing state]
+
+[TriggerData]
+
+[Becoming active without status change]
+
+[Leaving second auto-away status]
+
+;file \plugins\StatusManager\src\aaa_options.cpp
+[minutes of %s mode]
+минут режима "%s"
+[Auto away]
+Отсутствие
+[Rules]
+Правила
+[Status messages]
+Сообщения статуса
+;file \plugins\StatusManager\src\confirmdialog.cpp
 [Set %s message for %s.]
 Установить %s сообщение для %s.
 [<last>]
@@ -283,16 +316,7 @@ Cтатус-профиль
 Протокол
 [Closing in %d]
 Закрыть (%d)
-[Status manager]
-Менеджер статусов
-[minutes of %s mode]
-минут режима "%s"
-[Auto away]
-Отсутствие
-[Rules]
-Правила
-[Status messages]
-Сообщения статуса
+;file \plugins\StatusManager\src\keepstatus.cpp
 [%s connected from another location]
 %s подключён из другого места
 [%s login error, cancel reconnecting]
@@ -317,6 +341,7 @@ Cтатус-профиль
 Статус установлен
 [Giving up]
 Прекращаю
+;file \plugins\StatusManager\src\ks_options.cpp
 [You broke the Internet!]
 Соединение с Интернет разорвано!
 [Basic]
@@ -325,8 +350,20 @@ Cтатус-профиль
 Дополнительно
 [Popups]
 Всплывающие окна
+;file \plugins\StatusManager\src\options.cpp
+[Status manager]
+Менеджер статусов
+;file \plugins\StatusManager\src\ss_options.cpp
 [<unknown>]
 <неизвестно>
+[default]
+по умолчанию
+[Hidden]
+Скрытый
+[Minimized]
+Свёрнуто
+[Normal]
+Нормальный
 [Right]
 Справа
 [None]
@@ -335,23 +372,19 @@ Cтатус-профиль
 размер: %d x %d
 [loc: %d x %d]
 позиция: %d x %d
-[Hidden]
-Скрытый
-[Minimized]
-Свёрнуто
-[Normal]
-Нормальный
 [Create a status menu item]
 Создать пункт в меню
-[default]
-по умолчанию
 [unknown]
 неизвестно
 [At least one profile must exist]
 Минимум один профиль должен существовать
 [Your default profile will be changed]
 Профиль по умолчанию будет изменён
+;file \plugins\StatusManager\src\ss_profiles.cpp
+;file \plugins\StatusManager\src\ss_toolbars.cpp
 [Pressed toolbar icon]
 Нажатый значок панели
 [Released toolbar icon]
 Отпущенный значок панели
+[Toolbar]
+Панель кнопок

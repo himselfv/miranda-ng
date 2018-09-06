@@ -25,47 +25,40 @@ HANDLE hPipe = nullptr;
 /////////////////////////////////////////////////////////////////////////////////////
 void LoadOptions()
 {
-	PopupOptions.DefColors = db_get_b(NULL, MODNAME, "DefColors", DEFAULT_COLORS);
-	PopupOptions.LeftClickAction= db_get_b(NULL, MODNAME, "LeftClickAction", DEFAULT_POPUP_LCLICK);
-	PopupOptions.RightClickAction = db_get_b(NULL, MODNAME, "RightClickAction", DEFAULT_POPUP_RCLICK);
-	PopupOptions.Timeout = db_get_dw(NULL, MODNAME, "Timeout", DEFAULT_TIMEOUT_VALUE);
+	PopupOptions.DefColors = db_get_b(NULL, MODULENAME, "DefColors", DEFAULT_COLORS);
+	PopupOptions.LeftClickAction= db_get_b(NULL, MODULENAME, "LeftClickAction", DEFAULT_POPUP_LCLICK);
+	PopupOptions.RightClickAction = db_get_b(NULL, MODULENAME, "RightClickAction", DEFAULT_POPUP_RCLICK);
+	PopupOptions.Timeout = db_get_dw(NULL, MODULENAME, "Timeout", DEFAULT_TIMEOUT_VALUE);
 
-	opts.bUpdateOnStartup = db_get_b(NULL, MODNAME, "UpdateOnStartup", DEFAULT_UPDATEONSTARTUP);
-	opts.bOnlyOnceADay = db_get_b(NULL, MODNAME, "OnlyOnceADay", DEFAULT_ONLYONCEADAY);
-	opts.bUpdateOnPeriod = db_get_b(NULL, MODNAME, "UpdateOnPeriod", DEFAULT_UPDATEONPERIOD);
-	opts.Period = db_get_dw(NULL, MODNAME, "Period", DEFAULT_PERIOD);
-	opts.bPeriodMeasure = db_get_b(NULL, MODNAME, "PeriodMeasure", DEFAULT_PERIODMEASURE);
-	opts.bForceRedownload = db_get_b(NULL, MODNAME, DB_SETTING_REDOWNLOAD, 0);
-	opts.bSilentMode = db_get_b(NULL, MODNAME, "SilentMode", 0);
-	opts.bBackup = db_get_b(NULL, MODNAME, "Backup", 0);
-	opts.bChangePlatform = db_get_b(NULL, MODNAME, DB_SETTING_CHANGEPLATFORM, 0);
+	opts.bUpdateOnStartup = db_get_b(NULL, MODULENAME, "UpdateOnStartup", DEFAULT_UPDATEONSTARTUP);
+	opts.bOnlyOnceADay = db_get_b(NULL, MODULENAME, "OnlyOnceADay", DEFAULT_ONLYONCEADAY);
+	opts.bUpdateOnPeriod = db_get_b(NULL, MODULENAME, "UpdateOnPeriod", DEFAULT_UPDATEONPERIOD);
+	opts.Period = db_get_dw(NULL, MODULENAME, "Period", DEFAULT_PERIOD);
+	opts.bPeriodMeasure = db_get_b(NULL, MODULENAME, "PeriodMeasure", DEFAULT_PERIODMEASURE);
+	opts.bForceRedownload = db_get_b(NULL, MODULENAME, DB_SETTING_REDOWNLOAD, 0);
+	opts.bSilentMode = db_get_b(NULL, MODULENAME, "SilentMode", 0);
+	opts.bBackup = db_get_b(NULL, MODULENAME, "Backup", 0);
+	opts.bChangePlatform = db_get_b(NULL, MODULENAME, DB_SETTING_CHANGEPLATFORM, 0);
 }
 
-#if MIRANDA_VER >= 0x0A00
-IconItemT iconList[] =
+IconItem iconList[] =
 {
-	{ LPGENW("Check for updates"),"check_update", IDI_MENU },
-	{ LPGENW("Plugin info"), "info", IDI_INFO },
-	{ LPGENW("Component list"),"plg_list", IDI_PLGLIST }
+	{ LPGEN("Check for updates"),"check_update", IDI_MENU },
+	{ LPGEN("Plugin info"), "info", IDI_INFO },
+	{ LPGEN("Component list"),"plg_list", IDI_PLGLIST }
 };
 
 void InitIcoLib()
 {
-	Icon_RegisterT(hInst,MODULE,iconList, _countof(iconList));
+	g_plugin.registerIcon(MODULEA, iconList);
 }
-#endif
 
 void InitNetlib()
 {
 	NETLIBUSER nlu = {};
 	nlu.flags = NUF_OUTGOING | NUF_INCOMING | NUF_HTTPCONNS | NUF_UNICODE;
-	#if MIRANDA_VER >= 0x0A00
-		nlu.szDescriptiveName.w = TranslateT("Plugin Updater HTTP connections");
-	#else
-		nlu.cbSize = sizeof(nlu);
-		nlu.ptszDescriptiveName = TranslateT("Plugin Updater HTTP connections");
-	#endif
-	nlu.szSettingsModule = MODNAME;
+	nlu.szDescriptiveName.w = TranslateT("Plugin Updater HTTP connections");
+	nlu.szSettingsModule = MODULENAME;
 	hNetlibUser = Netlib_RegisterUser(&nlu);
 }
 
@@ -136,23 +129,14 @@ int CompareHashes(const ServListEntry *p1, const ServListEntry *p2)
 bool ParseHashes(const wchar_t *ptszUrl, ptrW &baseUrl, SERVLIST &arHashes)
 {
 	REPLACEVARSARRAY vars[2];
-#if MIRANDA_VER >=0x0A00
 	vars[0].key.w = L"platform";
-#ifdef _WIN64
-	vars[0].value.w = L"64";
-#else
-	vars[0].value.w = L"32";
-#endif
+	#ifdef _WIN64
+		vars[0].value.w = L"64";
+	#else
+		vars[0].value.w = L"32";
+	#endif
 	vars[1].key.w = vars[1].value.w = nullptr;
-#else
-	vars[0].lptzKey = L"platform";
-#ifdef _WIN64
-	vars[0].lptzValue = L"64";
-#else
-	vars[0].lptzValue = L"32";
-#endif
-	vars[1].lptzKey = vars[1].lptzValue = 0;
-#endif
+
 	baseUrl = Utils_ReplaceVarsW(ptszUrl, 0, vars);
 
 	// Download version info
@@ -221,14 +205,14 @@ bool ParseHashes(const wchar_t *ptszUrl, ptrW &baseUrl, SERVLIST &arHashes)
 	DeleteFile(tszTmpIni);
 
 	if (bDoNotSwitchToStable) {
-		db_set_b(NULL, MODNAME, DB_SETTING_DONT_SWITCH_TO_STABLE, 1);
+		db_set_b(NULL, MODULENAME, DB_SETTING_DONT_SWITCH_TO_STABLE, 1);
 		// Reset setting if needed
-		int UpdateMode = db_get_b(NULL, MODNAME, DB_SETTING_UPDATE_MODE, UPDATE_MODE_STABLE);
+		int UpdateMode = db_get_b(NULL, MODULENAME, DB_SETTING_UPDATE_MODE, UPDATE_MODE_STABLE);
 		if (UpdateMode == UPDATE_MODE_STABLE)
-			db_set_b(NULL, MODNAME, DB_SETTING_UPDATE_MODE, UPDATE_MODE_TRUNK);
+			db_set_b(NULL, MODULENAME, DB_SETTING_UPDATE_MODE, UPDATE_MODE_TRUNK);
 	}
 	else
-		db_set_b(NULL, MODNAME, DB_SETTING_DONT_SWITCH_TO_STABLE, 0);
+		db_set_b(NULL, MODULENAME, DB_SETTING_DONT_SWITCH_TO_STABLE, 0);
 
 	return true;
 }
@@ -237,15 +221,8 @@ bool ParseHashes(const wchar_t *ptszUrl, ptrW &baseUrl, SERVLIST &arHashes)
 bool DownloadFile(FILEURL *pFileURL, HNETLIBCONN &nlc)
 {
 	NETLIBHTTPREQUEST nlhr = {0};
-#if MIRANDA_VER < 0x0A00
-	nlhr.cbSize = NETLIBHTTPREQUEST_V1_SIZE;
-	nlhr.flags = NLHRF_DUMPASTEXT | NLHRF_HTTP11;
-	if (g_mirandaVersion >= PLUGIN_MAKE_VERSION(0, 9, 0, 0))
-		nlhr.flags |= NLHRF_PERSISTENT;
-#else
 	nlhr.cbSize = sizeof(nlhr);
 	nlhr.flags = NLHRF_DUMPASTEXT | NLHRF_HTTP11 | NLHRF_PERSISTENT;
-#endif
 	nlhr.requestType = REQUEST_GET;
 	nlhr.nlc = nlc;
 	char *szUrl = mir_u2a(pFileURL->tszDownloadURL);
@@ -321,9 +298,7 @@ bool DownloadFile(FILEURL *pFileURL, HNETLIBCONN &nlc)
 
 void __stdcall OpenPluginOptions(void*)
 {
-	#if MIRANDA_VER >= 0x0A00
-		Options_Open(nullptr, L"Plugins");
-	#endif
+	g_plugin.openOptions(nullptr, L"Plugins");
 }
 
 //   FUNCTION: IsRunAsAdmin()
@@ -608,7 +583,7 @@ int SafeCreateDirectory(const wchar_t *pFolder)
 	return TransactPipe(4, pFolder, nullptr);
 }
 
-int SafeCreateFilePath(wchar_t *pFolder)
+int SafeCreateFilePath(const wchar_t *pFolder)
 {
 	if (hPipe == nullptr) {
 		CreatePathToFileW(pFolder);

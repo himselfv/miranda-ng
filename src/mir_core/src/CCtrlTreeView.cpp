@@ -253,6 +253,7 @@ BOOL CCtrlTreeView::OnNotify(int, NMHDR *pnmh)
 	TEventInfo evt = { this, pnmh };
 
 	switch (pnmh->code) {
+	case NM_RCLICK:			 OnRightClick(&evt);      return TRUE;
 	case TVN_BEGINLABELEDIT: OnBeginLabelEdit(&evt);  return TRUE;
 	case TVN_BEGINRDRAG:     OnBeginRDrag(&evt);      return TRUE;
 	case TVN_DELETEITEM:     OnDeleteItem(&evt);      return TRUE;
@@ -335,7 +336,7 @@ void CCtrlTreeView::TranslateItem(HTREEITEM hItem)
 	TVITEMEX tvi;
 	wchar_t buf[128];
 	GetItem(hItem, &tvi, buf, _countof(buf));
-	tvi.pszText = TranslateW(tvi.pszText);
+	tvi.pszText = TranslateW_LP(tvi.pszText);
 	SetItem(&tvi);
 }
 

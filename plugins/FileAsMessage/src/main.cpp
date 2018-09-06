@@ -1,23 +1,8 @@
 #include "stdafx.h"
 
-PLUGININFOEX pluginInfo =
-{
-	sizeof(PLUGININFOEX),
-	__PLUGIN_NAME,
-	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
-	__DESCRIPTION,
-	__AUTHOR,
-	__COPYRIGHT,
-	__AUTHORWEB,
-	UNICODE_AWARE,
-	// {34B5A402-1B79-4246-B041-43D0B590AE2C}
-	{ 0x34b5a402, 0x1b79, 0x4246, { 0xb0, 0x41, 0x43, 0xd0, 0xb5, 0x90, 0xae, 0x2c } }
-};
+CMPlugin g_plugin;
 
-CLIST_INTERFACE *pcli;
 MWindowList hFileList;
-HINSTANCE hInst;
-int hLangpack;
 
 char *szServiceTitle = SERVICE_TITLE;
 char *szServicePrefix = SERVICE_PREFIX;
@@ -36,10 +21,30 @@ IconItem iconList[] =
 
 int iIconId[5] = { 3, 2, 4, 1, 0 };
 
-//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx =
+{
+	sizeof(PLUGININFOEX),
+	__PLUGIN_NAME,
+	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
+	__DESCRIPTION,
+	__AUTHOR,
+	__COPYRIGHT,
+	__AUTHORWEB,
+	UNICODE_AWARE,
+	// {34B5A402-1B79-4246-B041-43D0B590AE2C}
+	{ 0x34b5a402, 0x1b79, 0x4246, { 0xb0, 0x41, 0x43, 0xd0, 0xb5, 0x90, 0xae, 0x2c } }
+};
+
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 //  wParam - Section name
 //  lParam - Icon ID
-//
+
 int OnSkinIconsChanged(WPARAM, LPARAM)
 {
 	for (int indx = 0; indx < _countof(hIcons); indx++)
@@ -104,7 +109,7 @@ INT_PTR OnSendFile(WPARAM wParam, LPARAM)
 		if (hwnd != nullptr) WindowList_Remove(hFileList, hwnd);
 		FILEECHO *fe = new FILEECHO(wParam);
 		fe->inSend = TRUE;
-		hwnd = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_MAIN), nullptr, DialogProc, (LPARAM)fe);
+		hwnd = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_MAIN), nullptr, DialogProc, (LPARAM)fe);
 		if (hwnd == nullptr)
 		{
 			delete fe;
@@ -130,7 +135,7 @@ INT_PTR OnRecvMessage(WPARAM wParam, LPARAM lParam)
 		if (hwnd != nullptr) WindowList_Remove(hFileList, hwnd);
 		FILEECHO *fe = new FILEECHO(ccs->hContact);
 		fe->inSend = FALSE;
-		hwnd = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_MAIN), nullptr, DialogProc, (LPARAM)fe);
+		hwnd = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_MAIN), nullptr, DialogProc, (LPARAM)fe);
 		if (hwnd == nullptr)
 		{
 			delete fe;
@@ -146,23 +151,13 @@ INT_PTR OnRecvMessage(WPARAM wParam, LPARAM lParam)
 int OnOptInitialise(WPARAM wParam, LPARAM)
 {
 	OPTIONSDIALOGPAGE odp = {};
-	odp.hInstance = hInst;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
 	odp.szTitle.a = SERVICE_TITLE;
 	odp.szGroup.a = LPGEN("Events");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = OptionsDlgProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
-}
-
-//
-// MirandaPluginInfo()
-// Called by Miranda to get Version
-//
-extern "C" __declspec(dllexport) PLUGININFOEX *MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
 }
 
 //
@@ -176,33 +171,30 @@ static int OnModulesLoaded(WPARAM, LPARAM)
 
 	hHookSkinIconsChanged = HookEvent(ME_SKIN2_ICONSCHANGED, OnSkinIconsChanged);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0xe4a98d2a, 0xa54a, 0x4db1, 0x8d, 0x29, 0xd, 0x5c, 0xf1, 0x10, 0x69, 0x35);
 	mi.position = 200011;
 	mi.hIcolibItem = iconList[ICON_MAIN].hIcolib;
 	mi.name.a = LPGEN("File As Message...");
-	mi.pszService = SERVICE_NAME "/FESendFile";
+	mi.pszService = MODULENAME "/FESendFile";
 	mi.flags = CMIF_NOTOFFLINE;
 	Menu_AddContactMenuItem(&mi);
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
 	InitCRC32();
 
-	Icon_Register(hInst, "fileAsMessage", iconList, _countof(iconList));
+	g_plugin.registerIcon("fileAsMessage", iconList);
 
 	hFileList = WindowList_Create();
 
-	CreateServiceFunction(SERVICE_NAME PSR_MESSAGE, OnRecvMessage);
-	CreateServiceFunction(SERVICE_NAME "/FESendFile", OnSendFile);
-	CreateServiceFunction(SERVICE_NAME "/FERecvFile", OnRecvFile);
+	CreateServiceFunction(MODULENAME PSR_MESSAGE, OnRecvMessage);
+	CreateServiceFunction(MODULENAME "/FESendFile", OnSendFile);
+	CreateServiceFunction(MODULENAME "/FERecvFile", OnRecvFile);
 
-	Proto_RegisterModule(PROTOTYPE_FILTER, SERVICE_NAME);
+	Proto_RegisterModule(PROTOTYPE_FILTER, MODULENAME);
 
 	HookEvent(ME_OPT_INITIALISE, OnOptInitialise);
 	HookEvent(ME_SYSTEM_MODULESLOADED, OnModulesLoaded);
@@ -216,7 +208,7 @@ extern "C" __declspec(dllexport) int Load(void)
 // Unload()
 // Called by Miranda when Plugin is unloaded.
 //
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	WindowList_Destroy(hFileList);
 	if (hHookSkinIconsChanged != nullptr)
@@ -225,13 +217,4 @@ extern "C" __declspec(dllexport) int Unload(void)
 	UnhookEvent(hHookContactAdded);
 
 	return 0;
-}
-
-//
-// DllMain()
-//
-int WINAPI DllMain(HINSTANCE hInstance, DWORD, LPVOID)
-{
-	hInst = hInstance;
-	return TRUE;
 }

@@ -12,4 +12,12 @@
 #include "version.h"
 
 #define SUB_KEY L"Software\\Microsoft\\Windows\\CurrentVersion\\Run"
-#define ModuleName LPGEN("Autorun")
+
+#define MODULENAME LPGEN("Autorun")
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};

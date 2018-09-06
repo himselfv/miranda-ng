@@ -2,7 +2,7 @@
 ;============================================================
 ;  File: Clist_nicer.dll
 ;  Plugin: Clist nicer
-;  Version: 0.9.3.1
+;  Version: 0.9.3.2
 ;  Authors: Pixel, egoDust, cyreve, Nightwish
 ;============================================================
 [Displays contacts, event notifications, protocol status.]
@@ -67,7 +67,6 @@
 [Move events to the top of list or group]
 [Do not separate offline contacts]
 [Hide as offline]
-[Tree hide offline]
 [Right align contacts]
 [Avatars]
 [Show avatars]
@@ -132,7 +131,6 @@
 [milliseconds]
 [Hide vertical scroll bar]
 [Gray out entire list when:]
-[Tree gray out]
 [Contact list background]
 [Use Windows colors]
 [Use background image]
@@ -218,19 +216,6 @@
 [Show 2nd line:]
 [Draw overlay icon on avatar]
 [Show local time]
-[&Main menu]
-[E&xit]
-[&Status]
-[&Offline\tCtrl+0]
-[On&line\tCtrl+1]
-[&Away\tCtrl+2]
-[&Not available\tCtrl+3]
-[Occ&upied\tCtrl+4]
-[&Do not disturb\tCtrl+5]
-[&Free for chat\tCtrl+6]
-[&Invisible\tCtrl+7]
-[On the &phone\tCtrl+8]
-[Out to &lunch\tCtrl+9]
 ;file \plugins\Clist_nicer\src\CLCButton.cpp
 [Show menu]
 [Show/Hide offline contacts]
@@ -374,6 +359,8 @@
 [Draw sunken frame]
 [&Hide/show]
 [&Find/add contacts...]
+[&Main menu]
+[&Status]
 [Appearance]
 [&Options...]
 ;file \plugins\Clist_nicer\src\viewmodes.cpp

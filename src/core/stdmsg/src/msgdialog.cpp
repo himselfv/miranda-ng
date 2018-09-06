@@ -97,7 +97,7 @@ CSrmmWindow::CSrmmWindow(CTabbedWindow *pOwner, MCONTACT hContact) :
 	m_splitter.OnChange = Callback(this, &CSrmmWindow::OnSplitterMoved);
 }
 
-void CSrmmWindow::OnInitDialog()
+bool CSrmmWindow::OnInitDialog()
 {
 	CSuper::OnInitDialog();
 
@@ -219,8 +219,8 @@ void CSrmmWindow::OnInitDialog()
 	if (m_hContact) {
 		DBVARIANT dbv;
 		if (!db_get_ws(m_hContact, SRMSGMOD, DBSAVEDMSG, &dbv)) {
-			if (dbv.ptszVal[0]) {
-				m_message.SetText(dbv.ptszVal);
+			if (dbv.pwszVal[0]) {
+				m_message.SetText(dbv.pwszVal);
 				m_btnOk.Enable(true);
 				UpdateReadChars();
 				PostMessage(m_message.GetHwnd(), EM_SETSEL, -1, -1);
@@ -251,6 +251,7 @@ void CSrmmWindow::OnInitDialog()
 
 	SendMessage(m_hwnd, DM_GETAVATAR, 0, 0);
 	NotifyEvent(MSG_WINDOW_EVT_OPEN);
+	return true;
 }
 
 void CSrmmWindow::OnDestroy()
@@ -456,7 +457,7 @@ int CSrmmWindow::GetImageId() const
 	if (m_nFlash & 1)
 		return 0;
 
-	return (WORD)pcli->pfnIconFromStatusMode(m_szProto, m_wStatus, m_hContact);
+	return (WORD)g_clistApi.pfnIconFromStatusMode(m_szProto, m_wStatus, m_hContact);
 }
 
 void CSrmmWindow::NotifyTyping(int mode)
@@ -864,7 +865,7 @@ LRESULT CSrmmWindow::WndProc_Message(UINT msg, WPARAM wParam, LPARAM lParam)
 			mwpd.hContact = m_hContact;
 			mwpd.hwnd = m_message.GetHwnd();
 
-			HMENU hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_CONTEXT));
+			HMENU hMenu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_CONTEXT));
 
 			mwpd.hMenu = GetSubMenu(hMenu, 1);
 			TranslateMenu(mwpd.hMenu);
@@ -898,7 +899,7 @@ LRESULT CSrmmWindow::WndProc_Message(UINT msg, WPARAM wParam, LPARAM lParam)
 			}
 
 			// First notification
-			NotifyEventHooks(pci->hevWinPopup, 0, (LPARAM)&mwpd);
+			NotifyEventHooks(g_chatApi.hevWinPopup, 0, (LPARAM)&mwpd);
 
 			// Someone added items?
 			if (GetMenuItemCount(mwpd.hMenu) > 0) {
@@ -909,7 +910,7 @@ LRESULT CSrmmWindow::WndProc_Message(UINT msg, WPARAM wParam, LPARAM lParam)
 
 			// Second notification
 			mwpd.uType = MSG_WINDOWPOPUP_SELECTED;
-			NotifyEventHooks(pci->hevWinPopup, 0, (LPARAM)&mwpd);
+			NotifyEventHooks(g_chatApi.hevWinPopup, 0, (LPARAM)&mwpd);
 
 			switch (mwpd.selection) {
 			case IDM_UNDO:
@@ -1136,10 +1137,6 @@ INT_PTR CSrmmWindow::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		return TRUE;
 
-	case DM_APPENDTOLOG:
-		StreamInEvents(wParam, 1, 1);
-		break;
-
 	case DM_REMAKELOG:
 		StreamInEvents(m_hDbEventFirst, -1, 0);
 		break;
@@ -1157,7 +1154,7 @@ INT_PTR CSrmmWindow::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if (DbEventIsShown(&dbei)) {
 				// Sounds *only* for sent messages, not for custom events
 				if (isMessage && !isSent) {
-					if (GetForegroundWindow() == m_pOwner->GetHwnd())
+					if (isActive)
 						Skin_PlaySound("RecvMsgActive");
 					else
 						Skin_PlaySound("RecvMsgInactive");
@@ -1166,8 +1163,9 @@ INT_PTR CSrmmWindow::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 					m_lastMessage = dbei.timestamp;
 					UpdateLastMessage();
 				}
+
 				if (hDbEvent != m_hDbEventFirst && db_event_next(m_hContact, hDbEvent) == 0)
-					SendMessage(m_hwnd, DM_APPENDTOLOG, hDbEvent, 0);
+					StreamInEvents(hDbEvent, 1, 1);
 				else
 					SendMessage(m_hwnd, DM_REMAKELOG, 0, 0);
 
@@ -1339,7 +1337,7 @@ INT_PTR CSrmmWindow::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 				case WM_RBUTTONUP:
 					CHARRANGE all = { 0, -1 };
-					HMENU hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_CONTEXT));
+					HMENU hMenu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_CONTEXT));
 					HMENU hSubMenu = GetSubMenu(hMenu, 0);
 					TranslateMenu(hSubMenu);
 					SendMessage(((NMHDR *)lParam)->hwndFrom, EM_EXGETSEL, 0, (LPARAM)&sel);

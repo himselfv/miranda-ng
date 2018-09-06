@@ -44,7 +44,7 @@ static INT_PTR CALLBACK DlgProc_AnniversaryEditor(HWND hDlg, UINT uMsg, WPARAM w
 		SetUserData(hDlg, lParam);
 
 		// set icons
-		if (db_get_b(NULL, MODNAME, SET_ICONS_BUTTONS, 1)) {
+		if (db_get_b(NULL, MODULENAME, SET_ICONS_BUTTONS, 1)) {
 			SendDlgItemMessage(hDlg, IDOK, BM_SETIMAGE, IMAGE_ICON, (LPARAM)IcoLib_GetIcon(ICO_BTN_OK));
 			SendDlgItemMessage(hDlg, IDCANCEL, BM_SETIMAGE, IMAGE_ICON, (LPARAM)IcoLib_GetIcon(ICO_BTN_CANCEL));
 		}
@@ -199,7 +199,7 @@ INT_PTR CALLBACK PSPProcAnniversary(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM 
 		case BTN_ADD:
 			if (HIWORD(wParam) == BN_CLICKED && PtrIsValid(pDateCtrl)) {
 				MAnnivDate Date;
-				if (IDOK == DialogBoxParam(ghInst, MAKEINTRESOURCE(IDD_ANNIVERSARY_EDITOR), hDlg, DlgProc_AnniversaryEditor, (LPARAM)&Date)) {
+				if (IDOK == DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_ANNIVERSARY_EDITOR), hDlg, DlgProc_AnniversaryEditor, (LPARAM)&Date)) {
 					SendMessage(GetParent(hDlg), PSM_CHANGED, NULL, NULL);
 					if (!pDateCtrl->AddDate(Date))
 						pDateCtrl->SetCurSel(pDateCtrl->NumDates() - 1);
@@ -217,7 +217,7 @@ INT_PTR CALLBACK PSPProcAnniversary(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM 
 				if (!pDate)
 					MsgErr(hDlg, LPGENW("No valid date selected for editing!"));
 				else if (
-					IDOK == DialogBoxParam(ghInst, MAKEINTRESOURCE(IDD_ANNIVERSARY_EDITOR), hDlg, DlgProc_AnniversaryEditor, (LPARAM)pDate) &&
+					IDOK == DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_ANNIVERSARY_EDITOR), hDlg, DlgProc_AnniversaryEditor, (LPARAM)pDate) &&
 					(pDate->Flags() & (MAnnivDate::MADF_CHANGED | MAnnivDate::MADF_REMINDER_CHANGED)))
 				{
 					SendMessage(GetParent(hDlg), PSM_CHANGED, NULL, NULL);

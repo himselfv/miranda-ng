@@ -32,7 +32,7 @@
 
 #include <newpluginapi.h>
 #include <m_clist.h>
-#include <m_system.h>
+#include <m_protosvc.h>
 #include <m_database.h>
 #include <m_genmenu.h>
 #include <m_options.h>
@@ -49,7 +49,15 @@
 #include "Engine/MyCodeCvt.h"
 #include "Engine/Mind.h"
 
-#define BOLTUN_KEY  "Boltun"
+#define BOLTUN_KEY "Boltun"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 //Service names
 #define SERV_CONTACT_AUTO_CHAT "Boltun/ContactAutoChat"

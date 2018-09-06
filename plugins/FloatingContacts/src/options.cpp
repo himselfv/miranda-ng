@@ -181,7 +181,7 @@ static INT_PTR APIENTRY OptSknWndProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 		{
 			DBVARIANT dbv;
 			if (!db_get_ws(NULL, MODULE, "BkBitmap", &dbv)) {
-				SetDlgItemText(hwndDlg, IDC_FILENAME, dbv.ptszVal);
+				SetDlgItemText(hwndDlg, IDC_FILENAME, dbv.pwszVal);
 				db_free(&dbv);
 			}
 
@@ -243,25 +243,25 @@ static INT_PTR APIENTRY OptSknWndProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 			break;
 
 		case IDC_BROWSE:
-			{
-				wchar_t str[MAX_PATH], filter[512];
-				GetDlgItemText(hwndDlg, IDC_FILENAME, str, _countof(str));
-				Bitmap_GetFilter(filter, _countof(filter));
+		{
+			wchar_t str[MAX_PATH], filter[512];
+			GetDlgItemText(hwndDlg, IDC_FILENAME, str, _countof(str));
+			Bitmap_GetFilter(filter, _countof(filter));
 
-				OPENFILENAME ofn = { 0 };
-				ofn.lStructSize = sizeof(ofn);
-				ofn.hwndOwner = hwndDlg;
-				ofn.lpstrFilter = filter;
-				ofn.lpstrFile = str;
-				ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
-				ofn.nMaxFile = _countof(str);
-				ofn.nMaxFileTitle = MAX_PATH;
-				ofn.lpstrDefExt = L"bmp";
-				if (!GetOpenFileName(&ofn))
-					return FALSE;
-				SetDlgItemText(hwndDlg, IDC_FILENAME, str);
-			}
-			break;
+			OPENFILENAME ofn = { 0 };
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = hwndDlg;
+			ofn.lpstrFilter = filter;
+			ofn.lpstrFile = str;
+			ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+			ofn.nMaxFile = _countof(str);
+			ofn.nMaxFileTitle = MAX_PATH;
+			ofn.lpstrDefExt = L"bmp";
+			if (!GetOpenFileName(&ofn))
+				return FALSE;
+			SetDlgItemText(hwndDlg, IDC_FILENAME, str);
+		}
+		break;
 
 		case IDC_FILENAME:
 			if (EN_CHANGE != HIWORD(wParam) || (HWND)lParam != GetFocus())
@@ -332,19 +332,18 @@ static INT_PTR APIENTRY OptSknWndProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 
 int OnOptionsInitialize(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_FLTCONT);
 	odp.szTitle.a = LPGEN("Floating Contacts");
 	odp.szGroup.a = LPGEN("Contact list");
 	odp.szTab.a = LPGEN("Main Features");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = OptWndProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_SKIN);
 	odp.szTab.a = LPGEN("Appearance");
 	odp.pfnDlgProc = OptSknWndProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

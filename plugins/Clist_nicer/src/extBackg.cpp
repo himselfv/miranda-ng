@@ -387,8 +387,8 @@ void SetButtonToSkinned()
 			CustomizeButton(BTNS[i].hwndButton, bSkinned, !bSkinned, bFlat, true);
 	}
 
-	CustomizeButton(GetDlgItem(pcli->hwndContactList, IDC_TBMENU), bSkinned, !bSkinned, bSkinned);
-	CustomizeButton(GetDlgItem(pcli->hwndContactList, IDC_TBGLOBALSTATUS), bSkinned, !bSkinned, bSkinned);
+	CustomizeButton(GetDlgItem(g_clistApi.hwndContactList, IDC_TBMENU), bSkinned, !bSkinned, bSkinned);
+	CustomizeButton(GetDlgItem(g_clistApi.hwndContactList, IDC_TBGLOBALSTATUS), bSkinned, !bSkinned, bSkinned);
 	SendMessage(g_hwndViewModeFrame, WM_USER + 100, 0, 0);
 }
 
@@ -769,7 +769,7 @@ void IMG_ReadItem(const char *itemname, const char *szFileName)
 	ImageItem tmpItem, *newItem = nullptr;
 	char buffer[512], szItemNr[30];
 	char szFinalName[MAX_PATH];
-	HDC hdc = GetDC(pcli->hwndContactList);
+	HDC hdc = GetDC(g_clistApi.hwndContactList);
 	int n;
 	BOOL alloced = FALSE;
 	char szDrive[MAX_PATH], szPath[MAX_PATH];
@@ -817,7 +817,7 @@ done_with_glyph:
 			tmpItem.dwFlags |= IMAGE_PERPIXEL_ALPHA;
 			tmpItem.bf.AlphaFormat = AC_SRC_ALPHA;
 			if (tmpItem.inner_height <= 0 || tmpItem.inner_width <= 0) {
-				ReleaseDC(pcli->hwndContactList, hdc);
+				ReleaseDC(g_clistApi.hwndContactList, hdc);
 				return;
 			}
 		}
@@ -929,7 +929,7 @@ done_with_glyph:
 		}
 	}
 imgread_done:
-	ReleaseDC(pcli->hwndContactList, hdc);
+	ReleaseDC(g_clistApi.hwndContactList, hdc);
 }
 
 void IMG_DeleteItems()
@@ -1170,7 +1170,7 @@ static void BTN_ReadItem(char *itemName, char *file)
 		newItem->nextItem = nullptr;
 		curItem->nextItem = newItem;
 	}
-	newItem->hWnd = CreateWindowEx(0, MIRANDABUTTONCLASS, L"", BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD | WS_TABSTOP, 0, 0, 5, 5, pcli->hwndContactList, (HMENU)newItem->uId, g_hInst, nullptr);
+	newItem->hWnd = CreateWindowEx(0, MIRANDABUTTONCLASS, L"", BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD | WS_TABSTOP, 0, 0, 5, 5, g_clistApi.hwndContactList, (HMENU)newItem->uId, g_plugin.getInst(), nullptr);
 	CustomizeButton(newItem->hWnd, false, false, true);
 	SendMessage(newItem->hWnd, BUTTONSETBTNITEM, 0, (LPARAM)newItem);
 	if (newItem->dwFlags & BUTTON_ISTOGGLE)
@@ -1188,7 +1188,7 @@ void IMG_LoadItems()
 		return;
 
 	wchar_t tszFileName[MAX_PATH];
-	MY_pathToAbsolute(dbv.ptszVal, tszFileName);
+	MY_pathToAbsolute(dbv.pwszVal, tszFileName);
 
 	// TODO: rewrite the skin loading in wchar_t manner
 	char szFileName[MAX_PATH];
@@ -1219,7 +1219,7 @@ void IMG_LoadItems()
 			BTN_ReadItem(p, szFileName);
 		p += (mir_strlen(p) + 1);
 	}
-	if (pcli && pcli->hwndContactList)
+	if (g_clistApi.hwndContactList)
 		SetButtonStates();
 	free(szSections);
 
@@ -1233,8 +1233,8 @@ void IMG_LoadItems()
 		db_set_b(NULL, "CLUI", "fulltransparent", (BYTE)cfg::dat.bFullTransparent);
 		db_set_b(NULL, "CLUI", "WindowStyle", SETTING_WINDOWSTYLE_NOBORDER);
 		ApplyCLUIBorderStyle();
-		SetWindowLongPtr(pcli->hwndContactList, GWL_EXSTYLE, GetWindowLongPtr(pcli->hwndContactList, GWL_EXSTYLE) | WS_EX_LAYERED);
-		SetLayeredWindowAttributes(pcli->hwndContactList, cfg::dat.colorkey, 0, LWA_COLORKEY);
+		SetWindowLongPtr(g_clistApi.hwndContactList, GWL_EXSTYLE, GetWindowLongPtr(g_clistApi.hwndContactList, GWL_EXSTYLE) | WS_EX_LAYERED);
+		SetLayeredWindowAttributes(g_clistApi.hwndContactList, cfg::dat.colorkey, 0, LWA_COLORKEY);
 	}
 	CoolSB_SetupScrollBar();
 }
@@ -1451,8 +1451,8 @@ void extbk_import(char *file, HWND hwndDlg)
 		CallService(MS_CLNSE_FILLBYCURRENTSEL, (WPARAM)hwndDlg, 0);
 	Clist_ClcOptionsChanged();
 	ConfigureCLUIGeometry(1);
-	SendMessage(pcli->hwndContactList, WM_SIZE, 0, 0);
-	RedrawWindow(pcli->hwndContactList, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_FRAME | RDW_UPDATENOW | RDW_ALLCHILDREN);
+	SendMessage(g_clistApi.hwndContactList, WM_SIZE, 0, 0);
+	RedrawWindow(g_clistApi.hwndContactList, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_FRAME | RDW_UPDATENOW | RDW_ALLCHILDREN);
 }
 
 static void ApplyCLUISkin()
@@ -1461,7 +1461,7 @@ static void ApplyCLUISkin()
 	wchar_t tszFinalName[MAX_PATH];
 	char szFinalName[MAX_PATH];
 	if (!db_get_ws(NULL, "CLC", "AdvancedSkin", &dbv)) {
-		MY_pathToAbsolute(dbv.ptszVal, tszFinalName);
+		MY_pathToAbsolute(dbv.pwszVal, tszFinalName);
 
 		WideCharToMultiByte(CP_ACP, 0, tszFinalName, MAX_PATH, szFinalName, MAX_PATH, nullptr, nullptr);
 
@@ -1471,10 +1471,10 @@ static void ApplyCLUISkin()
 			db_set_b(NULL, "CLUI", "skin_changed", 0);
 		}
 		IMG_LoadItems();
-		ShowWindow(pcli->hwndContactList, SW_SHOWNORMAL);
-		SetWindowPos(pcli->hwndContactList, nullptr, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
-		SendMessage(pcli->hwndContactList, WM_SIZE, 0, 0);
-		RedrawWindow(pcli->hwndContactList, nullptr, nullptr, RDW_FRAME | RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN | RDW_ERASE);
+		ShowWindow(g_clistApi.hwndContactList, SW_SHOWNORMAL);
+		SetWindowPos(g_clistApi.hwndContactList, nullptr, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+		SendMessage(g_clistApi.hwndContactList, WM_SIZE, 0, 0);
+		RedrawWindow(g_clistApi.hwndContactList, nullptr, nullptr, RDW_FRAME | RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN | RDW_ERASE);
 		db_free(&dbv);
 	}
 }
@@ -1514,7 +1514,7 @@ static INT_PTR CALLBACK DlgProcSkinOpts(HWND hwndDlg, UINT msg, WPARAM wParam, L
 				Utils::enableDlgControl(hwndDlg, IDC_RELOAD, FALSE);
 			CheckDlgButton(hwndDlg, IDC_USESKIN, db_get_b(NULL, "CLUI", "useskin", 0) ? BST_CHECKED : BST_UNCHECKED);
 			if (!db_get_ws(NULL, "CLC", "AdvancedSkin", &dbv)) {
-				SetDlgItemText(hwndDlg, IDC_SKINFILENAME, dbv.ptszVal);
+				SetDlgItemText(hwndDlg, IDC_SKINFILENAME, dbv.pwszVal);
 				db_free(&dbv);
 			}
 			else
@@ -1534,8 +1534,8 @@ static INT_PTR CALLBACK DlgProcSkinOpts(HWND hwndDlg, UINT msg, WPARAM wParam, L
 			IMG_DeleteItems();
 			ConfigureFrame();
 			SetButtonStates();
-			SendMessage(pcli->hwndContactList, WM_SIZE, 0, 0);
-			PostMessage(pcli->hwndContactList, CLUIINTM_REDRAW, 0, 0);
+			SendMessage(g_clistApi.hwndContactList, WM_SIZE, 0, 0);
+			PostMessage(g_clistApi.hwndContactList, CLUIINTM_REDRAW, 0, 0);
 			break;
 
 		case IDC_GETSKINS:
@@ -1565,7 +1565,7 @@ static INT_PTR CALLBACK DlgProcSkinOpts(HWND hwndDlg, UINT msg, WPARAM wParam, L
 					DBVARIANT dbv = { 0 };
 
 					if (!db_get_ws(NULL, "CLC", "AdvancedSkin", &dbv)) {
-						if (mir_wstrcmp(dbv.ptszVal, final_path))
+						if (mir_wstrcmp(dbv.pwszVal, final_path))
 							skinChanged = TRUE;
 						db_free(&dbv);
 					}
@@ -1609,7 +1609,7 @@ static INT_PTR CALLBACK DlgProcSkinOpts(HWND hwndDlg, UINT msg, WPARAM wParam, L
 			case PSN_APPLY:
 				SaveNonStatusItemsSettings(hwndDlg);
 				Clist_ClcOptionsChanged();
-				PostMessage(pcli->hwndContactList, CLUIINTM_REDRAW, 0, 0);
+				PostMessage(g_clistApi.hwndContactList, CLUIINTM_REDRAW, 0, 0);
 				return TRUE;
 			}
 			break;
@@ -1636,7 +1636,7 @@ INT_PTR CALLBACK OptionsDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
 			TCITEM tci;
 			tci.mask = TCIF_PARAM | TCIF_TEXT;
-			tci.lParam = (LPARAM)CreateDialog(g_hInst, MAKEINTRESOURCE(IDD_OPT_SKIN), hwnd, DlgProcSkinOpts);
+			tci.lParam = (LPARAM)CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(IDD_OPT_SKIN), hwnd, DlgProcSkinOpts);
 			tci.pszText = TranslateT("Load and apply");
 			TabCtrl_InsertItem(GetDlgItem(hwnd, IDC_OPTIONSTAB), 0, &tci);
 			MoveWindow((HWND)tci.lParam, 5, 25, rcClient.right - 9, rcClient.bottom - 60, 1);
@@ -1654,7 +1654,7 @@ INT_PTR CALLBACK OptionsDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 				sd.lastItem = ID_STATUS_OFFLINE + arStatusItems.getCount();
 				sd.firstItem = ID_STATUS_OFFLINE;
 				sd.pfnClcOptionsChanged = &Clist_ClcOptionsChanged;
-				sd.hwndCLUI = pcli->hwndContactList;
+				sd.hwndCLUI = g_clistApi.hwndContactList;
 				hwndSkinEdit = (HWND)CallService(MS_CLNSE_INVOKE, 0, (LPARAM)&sd);
 			}
 
@@ -1788,14 +1788,14 @@ int CoolSB_SetupScrollBar()
 		cfg::dat.bSkinnedScrollbar = FALSE;
 
 	if (db_get_b(NULL, "CLC", "NoVScrollBar", 0)) {
-		UninitializeCoolSB(pcli->hwndContactTree);
+		UninitializeCoolSB(g_clistApi.hwndContactTree);
 		return 0;
 	}
 
 	if (cfg::dat.bSkinnedScrollbar) {
-		InitializeCoolSB(pcli->hwndContactTree);
-		CoolSB_SetStyle(pcli->hwndContactTree, SB_VERT, CSBS_HOTTRACKED);
+		InitializeCoolSB(g_clistApi.hwndContactTree);
+		CoolSB_SetStyle(g_clistApi.hwndContactTree, SB_VERT, CSBS_HOTTRACKED);
 	}
-	else UninitializeCoolSB(pcli->hwndContactTree);
+	else UninitializeCoolSB(g_clistApi.hwndContactTree);
 	return 0;
 }

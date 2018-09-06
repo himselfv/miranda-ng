@@ -17,9 +17,11 @@
 #include "stdafx.h"
 
 //global variables
-int hLangpack = 0;
+CMPlugin g_plugin;
 
-PLUGININFOEX pluginInfo={
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -32,18 +34,11 @@ PLUGININFOEX pluginInfo={
 	{ 0x4227c050, 0x8d97, 0x48d2, { 0x91, 0xec, 0x6a, 0x95, 0x2b, 0x3d, 0xab, 0x94 } }
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	globals.hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
-
+/////////////////////////////////////////////////////////////////////////////////////////
 
 INT_PTR LoadKey(WPARAM w, LPARAM l);
 INT_PTR ToggleEncryption(WPARAM w, LPARAM l);
@@ -56,34 +51,34 @@ void InitIconLib();
 
 void init_vars()
 {
-	globals.bAppendTags = db_get_b(NULL, szGPGModuleName, "bAppendTags", 0) != 0;
-	globals.bStripTags = db_get_b(NULL, szGPGModuleName, "bStripTags", 0) != 0;
-	globals.inopentag = UniGetContactSettingUtf(NULL, szGPGModuleName, "szInOpenTag", L"<GPGdec>");
-	globals.inclosetag = UniGetContactSettingUtf(NULL, szGPGModuleName, "szInCloseTag", L"</GPGdec>");
-	globals.outopentag = UniGetContactSettingUtf(NULL, szGPGModuleName, "szOutOpenTag", L"<GPGenc>");
-	globals.outclosetag = UniGetContactSettingUtf(NULL, szGPGModuleName, "szOutCloseTag", L"</GPGenc>");
-	globals.bDebugLog = db_get_b(NULL, szGPGModuleName, "bDebugLog", 0) != 0;
-	globals.bAutoExchange = db_get_b(NULL, szGPGModuleName, "bAutoExchange", 0) != 0;
-	globals.bSameAction = db_get_b(NULL, szGPGModuleName, "bSameAction", 0) != 0;
-	globals.password = UniGetContactSettingUtf(NULL, szGPGModuleName, "szKeyPassword", L"");
+	globals.bAppendTags = db_get_b(NULL, MODULENAME, "bAppendTags", 0) != 0;
+	globals.bStripTags = db_get_b(NULL, MODULENAME, "bStripTags", 0) != 0;
+	globals.inopentag = UniGetContactSettingUtf(NULL, MODULENAME, "szInOpenTag", L"<GPGdec>");
+	globals.inclosetag = UniGetContactSettingUtf(NULL, MODULENAME, "szInCloseTag", L"</GPGdec>");
+	globals.outopentag = UniGetContactSettingUtf(NULL, MODULENAME, "szOutOpenTag", L"<GPGenc>");
+	globals.outclosetag = UniGetContactSettingUtf(NULL, MODULENAME, "szOutCloseTag", L"</GPGenc>");
+	globals.bDebugLog = db_get_b(NULL, MODULENAME, "bDebugLog", 0) != 0;
+	globals.bAutoExchange = db_get_b(NULL, MODULENAME, "bAutoExchange", 0) != 0;
+	globals.bSameAction = db_get_b(NULL, MODULENAME, "bSameAction", 0) != 0;
+	globals.password = UniGetContactSettingUtf(NULL, MODULENAME, "szKeyPassword", L"");
 	globals.debuglog.init();
-	globals.bJabberAPI = db_get_b(NULL, szGPGModuleName, "bJabberAPI", true) != 0;
-	globals.bPresenceSigning = db_get_b(NULL, szGPGModuleName, "bPresenceSigning", 0) != 0;
-	globals.bFileTransfers = db_get_b(NULL, szGPGModuleName, "bFileTransfers", 0) != 0;
-	globals.firstrun_rect.left = db_get_dw(NULL, szGPGModuleName, "FirstrunWindowX", 0);
-	globals.firstrun_rect.top = db_get_dw(NULL, szGPGModuleName, "FirstrunWindowY", 0);
-	globals.key_password_rect.left = db_get_dw(NULL, szGPGModuleName, "PasswordWindowX", 0);
-	globals.key_password_rect.top = db_get_dw(NULL, szGPGModuleName, "PasswordWindowY", 0);
-	globals.key_gen_rect.left = db_get_dw(NULL, szGPGModuleName, "KeyGenWindowX", 0);
-	globals.key_gen_rect.top = db_get_dw(NULL, szGPGModuleName, "KeyGenWindowY", 0);
-	globals.load_key_rect.left = db_get_dw(NULL, szGPGModuleName, "LoadKeyWindowX", 0);
-	globals.load_key_rect.top = db_get_dw(NULL, szGPGModuleName, "LoadKeyWindowY", 0);
-	globals.import_key_rect.left = db_get_dw(NULL, szGPGModuleName, "ImportKeyWindowX", 0);
-	globals.import_key_rect.top = db_get_dw(NULL, szGPGModuleName, "ImportKeyWindowY", 0);
-	globals.new_key_rect.left = db_get_dw(NULL, szGPGModuleName, "NewKeyWindowX", 0);
-	globals.new_key_rect.top = db_get_dw(NULL, szGPGModuleName, "NewKeyWindowY", 0);
-	globals.load_existing_key_rect.left = db_get_dw(NULL, szGPGModuleName, "LoadExistingKeyWindowX", 0);
-	globals.load_existing_key_rect.top = db_get_dw(NULL, szGPGModuleName, "LoadExistingKeyWindowY", 0);
+	globals.bJabberAPI = db_get_b(NULL, MODULENAME, "bJabberAPI", true) != 0;
+	globals.bPresenceSigning = db_get_b(NULL, MODULENAME, "bPresenceSigning", 0) != 0;
+	globals.bFileTransfers = db_get_b(NULL, MODULENAME, "bFileTransfers", 0) != 0;
+	globals.firstrun_rect.left = db_get_dw(NULL, MODULENAME, "FirstrunWindowX", 0);
+	globals.firstrun_rect.top = db_get_dw(NULL, MODULENAME, "FirstrunWindowY", 0);
+	globals.key_password_rect.left = db_get_dw(NULL, MODULENAME, "PasswordWindowX", 0);
+	globals.key_password_rect.top = db_get_dw(NULL, MODULENAME, "PasswordWindowY", 0);
+	globals.key_gen_rect.left = db_get_dw(NULL, MODULENAME, "KeyGenWindowX", 0);
+	globals.key_gen_rect.top = db_get_dw(NULL, MODULENAME, "KeyGenWindowY", 0);
+	globals.load_key_rect.left = db_get_dw(NULL, MODULENAME, "LoadKeyWindowX", 0);
+	globals.load_key_rect.top = db_get_dw(NULL, MODULENAME, "LoadKeyWindowY", 0);
+	globals.import_key_rect.left = db_get_dw(NULL, MODULENAME, "ImportKeyWindowX", 0);
+	globals.import_key_rect.top = db_get_dw(NULL, MODULENAME, "ImportKeyWindowY", 0);
+	globals.new_key_rect.left = db_get_dw(NULL, MODULENAME, "NewKeyWindowX", 0);
+	globals.new_key_rect.top = db_get_dw(NULL, MODULENAME, "NewKeyWindowY", 0);
+	globals.load_existing_key_rect.left = db_get_dw(NULL, MODULENAME, "LoadExistingKeyWindowX", 0);
+	globals.load_existing_key_rect.top = db_get_dw(NULL, MODULENAME, "LoadExistingKeyWindowY", 0);
 	globals.tabsrmm_used = isTabsrmmUsed();
 	globals.bold_font = CreateFont(14, 0, 0, 0, 600, 0, 0, 0, DEFAULT_CHARSET, 0, 0, 0, 0, L"Arial");
 }
@@ -105,21 +100,21 @@ static int OnModulesLoaded(WPARAM, LPARAM)
 	void InitCheck();
 	void FirstRun();
 	FirstRun();
-	if(!db_get_b(NULL, szGPGModuleName, "FirstRun", 1))
+	if(!db_get_b(NULL, MODULENAME, "FirstRun", 1))
 		InitCheck();
 
 	StatusIconData sid = {};
-	sid.szModule = szGPGModuleName;
+	sid.szModule = MODULENAME;
 	sid.flags = MBF_HIDDEN;
 	sid.dwId = 0x00000001;
 	sid.hIcon = IcoLib_GetIcon("secured");
 	sid.szTooltip = LPGEN("GPG Turn off encryption");
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 
 	sid.dwId = 0x00000002;
 	sid.hIcon = IcoLib_GetIcon("unsecured");
 	sid.szTooltip = LPGEN("GPG Turn on encryption");
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 
 	if(globals.bJabberAPI)
 		GetJabberInterface(0,0);
@@ -136,19 +131,17 @@ static int OnModulesLoaded(WPARAM, LPARAM)
 	HookEvent(ME_MSG_WINDOWEVENT, onWindowEvent);
 	HookEvent(ME_MSG_ICONPRESSED, onIconPressed);
 
-	Proto_RegisterModule(PROTOTYPE_ENCRYPTION, szGPGModuleName);
+	Proto_RegisterModule(PROTOTYPE_ENCRYPTION, MODULENAME);
 	
-	CreateProtoServiceFunction(szGPGModuleName, PSR_MESSAGE, RecvMsgSvc);
-	CreateProtoServiceFunction(szGPGModuleName, PSS_MESSAGE, SendMsgSvc);
-	CreateProtoServiceFunction(szGPGModuleName, PSS_FILE,    onSendFile);
+	CreateProtoServiceFunction(MODULENAME, PSR_MESSAGE, RecvMsgSvc);
+	CreateProtoServiceFunction(MODULENAME, PSS_MESSAGE, SendMsgSvc);
+	CreateProtoServiceFunction(MODULENAME, PSS_FILE,    onSendFile);
 	clean_temp_dir();
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, OnModulesLoaded);
 
 	init_vars();
@@ -158,7 +151,7 @@ extern "C" int __declspec(dllexport) Load()
 	CreateServiceFunction("/ExportGPGKeys",ExportGpGKeys);
 	CreateServiceFunction("/ImportGPGKeys",ImportGpGKeys);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 
 	SET_UID(mi, 0xbd22e3f8, 0xc19c, 0x45a8, 0xb7, 0x37, 0x6b, 0x3b, 0x27, 0xf0, 0x8c, 0xbb);
 	mi.position = -0x7FFFFFFF;
@@ -198,12 +191,14 @@ extern "C" int __declspec(dllexport) Load()
 
 	InitIconLib();
 
-	globals.g_hCLIcon = ExtraIcon_RegisterCallback(szGPGModuleName, Translate("GPG encryption status"), "secured", onExtraImageListRebuilding, onExtraImageApplying);
+	globals.g_hCLIcon = ExtraIcon_RegisterCallback(MODULENAME, Translate("GPG encryption status"), "secured", onExtraImageListRebuilding, onExtraImageApplying);
 	return 0;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////
+
 extern list<wstring> transfers;
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	if(!transfers.empty())
 	{

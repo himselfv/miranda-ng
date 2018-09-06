@@ -7,6 +7,7 @@
 ;============================================================
 [Displays contacts, event notifications, protocol status with advanced visual modifications. Supported multi-window modifications, enhanced metacontact cooperation.]
 Показує контакти, події, статуси протоколів з розширеними функціями оформлення (скіни). Мультивіконна модифікація, розширена підтримка метаконтактів.
+;file \plugins\Clist_modern\res\resource.rc
 [Settings]
 Налаштування
 [Background color:]
@@ -83,6 +84,8 @@
 секунд
 [View mode options]
 Налаштування режиму перегляду
+[Editing view mode]
+
 [Last message]
 Останнє повідомлення
 [Status bar]
@@ -541,38 +544,15 @@ xСтатус: xПовідомлення
 Ширина:
 [Container height:]
 Висота:
+[Layered]
+
 [Move up]
 Вище
 [Move down]
 Нижче
 [OPTION PAGE IS UNDER CONSTRUCTION Please DO NOT notice about any issues here.\n Only high-level design comments are applicable.]
 Ця сторінка розробляється. Будь ласка, НЕ ПОВІДОМЛЯЙТЕ про помилки. Приймаються лише зауваження щодо дизайну.
-[&Main menu]
-&Головне меню
-[E&xit]
-Ви&хід
-[&Status]
-&Статус
-[&Offline\tCtrl+0]
-Не в м&ережі\tCtrl+0
-[On&line\tCtrl+1]
-В &мережі\tCtrl+1
-[&Away\tCtrl+2]
-&Відсутній\tCtrl+2
-[&Not available\tCtrl+3]
-Не&доступний\tCtrl+3
-[Occ&upied\tCtrl+4]
-&Зайнятий\tCtrl+4
-[&Do not disturb\tCtrl+5]
-Не т&урбувати\tCtrl+5
-[&Free for chat\tCtrl+6]
-&Готовий до чату\tCtrl+6
-[&Invisible\tCtrl+7]
-&Невидимий\tCtrl+7
-[On the &phone\tCtrl+8]
-&Телефоную\tCtrl+8
-[Out to &lunch\tCtrl+9]
-Обід&аю\tCtrl+9
+;file \plugins\Clist_modern\src\cluiframes.cpp
 [&Visible]
 &Показувати
 [&Show title]
@@ -607,16 +587,22 @@ xСтатус: xПовідомлення
 Показати назви
 [Hide all title bars]
 Сховати назви
+;file \plugins\Clist_modern\src\groupmenu.cpp
 [&Hide/show]
 С&ховати/Показати
 [&Find/add contacts...]
 Додати &контакти...
+[&Main menu]
+&Головне меню
+[&Status]
+&Статус
 [&Options...]
 &Налаштування...
 [&About]
 Про &програму
 [&Show offline users in here]
 Показати відключених у групі
+;file \plugins\Clist_modern\src\modern_clc.cpp
 [Do you want contact '%s' to be converted to metacontact and '%s' be added to it?]
 Хочете конвертувати '%s' в метаконтакт і додати до нього '%s'?
 [Converting to metacontact]
@@ -655,6 +641,7 @@ xСтатус: xПовідомлення
 Фон панелі статусів
 [Frames title bar background]
 Фон заголовка фреймів
+;file \plugins\Clist_modern\src\modern_clcopts.cpp
 [Contact names]
 Контакти
 [Row items]
@@ -773,12 +760,14 @@ xСтатус: xПовідомлення
 Список
 [Window]
 Вікно
+;file \plugins\Clist_modern\src\modern_clistevents.cpp
 [No events]
 Немає подій
 [Event area background]
 Фон області подій
 [Event area]
 Область подій
+;file \plugins\Clist_modern\src\modern_clistmenus.cpp
 [&Contact rate]
 Рейтинг &контакту
 [None]
@@ -799,6 +788,7 @@ xСтатус: xПовідомлення
 Рейтинг контакту: Високий
 [Show even if offline]
 Показувати навіть якщо не в мережі
+;file \plugins\Clist_modern\src\modern_clistopts.cpp
 [Avatar]
 Аватар
 [Icon]
@@ -815,8 +805,12 @@ xСтатус: xПовідомлення
 Імена груп праворуч
 [Row]
 Рядок
+[Row design]
+
+;file \plugins\Clist_modern\src\modern_clistsettings.cpp
 [(Unknown contact)]
 (Невідомий контакт)
+;file \plugins\Clist_modern\src\modern_clui.cpp
 [Show avatar]
 Показати аватар
 [Hide avatar]
@@ -829,6 +823,7 @@ xСтатус: xПовідомлення
 Мої контакти
 [My Contacts]
 Мої контакти
+;file \plugins\Clist_modern\src\modern_keyboard.cpp
 [Main]
 Головний
 [Close Miranda]
@@ -837,8 +832,22 @@ xСтатус: xПовідомлення
 Відновити останній статус
 [Show/Hide offline users]
 Показати/сховати відключених
+;file \plugins\Clist_modern\src\modern_rowtemplateopt.cpp
+[Empty %s cell]
+
+[column]
+
+[line]
+
+[columns]
+
+[lines]
+
 [%s, contain %s]
 %s, містить %s
+[ layered]
+
+;file \plugins\Clist_modern\src\modern_skinopt.cpp
 [( unknown )]
 (невідомо)
 [%s\n\n%s\n\nAuthor(s):\t %s\nContact:\t %s\nWeb:\t %s\n\nFile:\t %s]
@@ -869,6 +878,8 @@ Angeli-Ka (графіка), FYR (шаблон)
 Стандартний скін
 [%Default Skin%]
 %Стандартний скін%
+;file \plugins\Clist_modern\src\modern_statusbar.cpp
+;file \plugins\Clist_modern\src\modern_statusbar_options.cpp
 [<<Global>>]
 <<Спільне>>
 [Left]
@@ -881,6 +892,7 @@ Angeli-Ka (графіка), FYR (шаблон)
 Вгорі
 [Bottom]
 Внизу
+;file \plugins\Clist_modern\src\modern_toolbar.cpp
 [Main menu]
 Головне меню
 [Status menu]
@@ -915,6 +927,7 @@ Angeli-Ka (графіка), FYR (шаблон)
 Фон панелі кнопок
 [Toolbar upgrade]
 Оновлення панелі кнопок
+;file \plugins\Clist_modern\src\modern_viewmodebar.cpp
 [Ungrouped contacts]
 Контакти поза групами
 [And]

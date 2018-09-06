@@ -2,11 +2,12 @@
 ;============================================================
 ;  File: Scriver.dll
 ;  Plugin: Scriver
-;  Version: 3.0.1.8
+;  Version: 3.0.1.10
 ;  Authors: Miranda NG team
 ;============================================================
 [Scriver - send and receive instant messages.]
 Плагін асабістых і гуртавых гутарак для Miranda NG.
+;file \plugins\Scriver\res\resource.rc
 [Behavior]
 Паводзіны
 [Automatically pop up the window when]
@@ -29,12 +30,8 @@
 Паведамляць, калі паведамленне не атрымалася адправіць на працягу
 [seconds]
 секунд
-[Send message on 'Enter']
-Пасылаць па "Enter"
-[Send message on double 'Enter']
-Пасылаць па падвойным "Enter"
-[Send message on 'Ctrl+Enter']
-Пасылаць па "Ctrl+Enter"
+[Send message on:]
+Пасылаць па:
 [Tabs]
 Укладкі
 [Enable tabs]
@@ -283,10 +280,12 @@ KB
 Зачыніць іншыя ўкладкі
 [Close tab]
 Зачыніць укладку
+;file \plugins\Scriver\src\chat_main.cpp
 [Messaging]
 Паведамленні
 [Group chats]
 Чаты
+;file \plugins\Scriver\src\chat_options.cpp
 [Flash when someone speaks]
 Міргаць, калі хтосьці кажа
 [Flash when a word is highlighted]
@@ -455,6 +454,7 @@ ID бягучага кантакту (калі вызначаны). Напрык
 Паказаць у новым вакне, калі 'Фільтр падзей' уключаны
 [Select folder]
 Абраць тэчку
+;file \plugins\Scriver\src\chat_window.cpp
 [%s: chat room (%u user)]
 %s: Чат (%u удзельнік)
 [%s: chat room (%u users)]
@@ -469,6 +469,7 @@ ID бягучага кантакту (калі вызначаны). Напрык
 Асабісты конт
 [Status]
 Статус
+;file \plugins\Scriver\src\globals.cpp
 [Add contact]
 Дадаць кантакт
 [User's details]
@@ -591,6 +592,7 @@ ID бягучага кантакту (калі вызначаны). Напрык
 В'етнамскі
 [Korean (Johab)]
 Карэйскі (Johab)
+;file \plugins\Scriver\src\input.cpp
 [Navigate: Previous tab]
 Навігацыя: Папярэдняя ўкладка
 [Navigate: Next tab]
@@ -617,6 +619,7 @@ ID бягучага кантакту (калі вызначаны). Напрык
 Дзеянне: Паслаць усім
 [Action: Paste and send]
 Дзеянне: Уставіць і адправіць
+;file \plugins\Scriver\src\msgdialog.cpp
 [Sending in progress: %d message(s) left...]
 Адпраўка паведамлення: %d засталося...
 [%s is typing a message...]
@@ -629,6 +632,7 @@ ID бягучага кантакту (калі вызначаны). Напрык
 Няма слоў для пошуку
 [User menu - %s]
 Меню кантакта - %s
+;file \plugins\Scriver\src\msglog.cpp
 [Me]
 Я
 [O Lord, bless this Thy hand grenade that with it Thou mayest blow Thine enemies]
@@ -653,6 +657,7 @@ ID бягучага кантакту (калі вызначаны). Напрык
 URL адасланы
 [URL received]
 URL атрыманы
+;file \plugins\Scriver\src\msgoptions.cpp
 [Outgoing messages]
 Выходныя паведамленні
 [Outgoing background]
@@ -709,6 +714,14 @@ URL атрыманы
 Абедаю
 [On the phone]
 На тэлефоне
+[Enter]
+Enter
+[Double 'Enter']
+падвойным "Enter"
+[Ctrl+Enter]
+Ctrl+Enter
+[Shift+Enter]
+Shift+Enter
 [** New contacts **]
 ** Новыя кантакты **
 [** Unknown contacts **]
@@ -723,6 +736,7 @@ URL атрыманы
 Набірае тэкст
 [Popups]
 Усплывальныя вокны
+;file \plugins\Scriver\src\msgs.cpp
 [Message from %s]
 Паведамленне ад %s
 [%s is typing a message]
@@ -747,40 +761,40 @@ URL атрыманы
 Пра кантакт
 [&History]
 Гісторыя
-[View user's history (CTRL+H)]
-Гісторыя паведамленняў (CTRL+H)
+[View user's history (Ctrl+H)]
+Гісторыя паведамленняў (Ctrl+H)
 [&Bold]
 Тлусты
-[Make the text bold (CTRL+B)]
-Зрабіць тэкст тоўстым (CTRL+B)
+[Make the text bold (Ctrl+B)]
+Зрабіць тэкст тоўстым (Ctrl+B)
 [&Italic]
 Курсіў
-[Make the text italicized (CTRL+I)]
-Зрабіць тэкст курсівам (CTRL+I)
+[Make the text italicized (Ctrl+I)]
+Зрабіць тэкст курсівам (Ctrl+I)
 [&Underline]
 Падкрэсліць
-[Make the text underlined (CTRL+U)]
-Падкрэсліць тэкст (CTRL+U)
+[Make the text underlined (Ctrl+U)]
+Падкрэсліць тэкст (Ctrl+U)
 [&Color]
 Колер
-[Select a foreground color for the text (CTRL+K)]
-Абраць колер тэксту (CTRL+K)
+[Select a foreground color for the text (Ctrl+K)]
+Абраць колер тэксту (Ctrl+K)
 [&Background color]
 колер фона
-[Select a background color for the text (CTRL+L)]
-Абраць фон тэксту (CTRL+L)
+[Select a background color for the text (Ctrl+L)]
+Абраць фон тэксту (Ctrl+L)
 [&Room settings]
 Налады
-[Control this room (CTRL+O)]
-Кантраляваць гэты чат (CTRL+O)
+[Control this room (Ctrl+O)]
+Кантраляваць гэты чат (Ctrl+O)
 [&Show/hide nick list]
 Паказаць/Схаваць спіс мянушак
-[Show/hide the nick list (CTRL+N)]
-Паказаць/схаваць спіс кантактаў (CTRL+N)
+[Show/hide the nick list (Ctrl+N)]
+Паказаць/схаваць спіс кантактаў (Ctrl+N)
 [&Filter]
 фільтр
-[Enable/disable the event filter (CTRL+F)]
-Уключыць/выключыць фільтр падзей (CTRL+F)
+[Enable/disable the event filter (Ctrl+F)]
+Уключыць/выключыць фільтр падзей (Ctrl+F)
 [&Message]
 &Паведамленне
 [Miranda could not load the built-in message module, Msftedit.dll is missing. If you are using WINE, please make sure you have Msftedit.dll installed. Press 'Yes' to continue loading Miranda.]
@@ -799,9 +813,12 @@ Miranda не змагла загрузіць убудаваную сістэму
 Кантакт пачаў пісаць
 [Contact stopped typing]
 Кантакт скончыў пісаць
+;file \plugins\Scriver\src\msgtimedout.cpp
 [An unknown error has occurred.]
 Невядомая памылка.
+;file \plugins\Scriver\src\sendqueue.cpp
 [The message send timed out.]
 Затрымка адпраўкі паведамлення
+;file \plugins\Scriver\src\tabs.cpp
 [Always on top]
 Па-над усімі вокнамі

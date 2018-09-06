@@ -42,7 +42,6 @@ static settings[] =
 	{ IDC_GROUP_QQ, TRUE, "GroupQQ" },
 	{ IDC_GROUP_RSS, TRUE, "GroupRSS" },
 	{ IDC_GROUP_WEATHER, TRUE, "GroupWeather" },
-	{ IDC_GROUP_YAHOO, TRUE, "GroupYahoo" },
 	{ IDC_GROUP_FACEBOOK, TRUE, "GroupFacebook" },
 	{ IDC_GROUP_VK, TRUE, "GroupVK" },
 
@@ -93,7 +92,7 @@ static INT_PTR CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 		break;
 
 	case WM_NOTIFY:
-		NMHDR *hdr = (NMHDR *)lParam;
+		NMHDR * hdr = (NMHDR *)lParam;
 		if (hdr && hdr->code == PSN_APPLY) {
 			for (auto &it : settings)
 				StoreDBCheckState(hwndDlg, it.idCtrl, it.szSetName);
@@ -111,13 +110,12 @@ static INT_PTR CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 
 int OnOptInitialise(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szGroup.w = LPGENW("Icons");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_DIALOG);
 	odp.szTitle.w = LPGENW("Fingerprint");
 	odp.pfnDlgProc = DlgProcOptions;
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

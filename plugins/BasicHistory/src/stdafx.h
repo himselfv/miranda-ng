@@ -58,6 +58,14 @@
 #include "m_smileyadd.h"
 #include "m_metacontacts.h"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 #include "../../libs/zlib/src/zconf.h"
 #include "../../libs/zlib/src/ioapi.h"
 #include "../../libs/zlib/src/zip.h"
@@ -89,3 +97,6 @@
 #define HISTORY_HK_ALLCONTACTS 117
 
 HICON LoadIconEx(int iconId, bool big = false);
+
+#define MODULENAME "BasicHistory"
+

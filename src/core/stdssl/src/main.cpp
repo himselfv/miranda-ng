@@ -24,10 +24,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 int LoadSslModule(void);
 void UnloadSslModule(void);
 
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
-PLUGININFOEX pluginInfo = {
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	MIRANDA_VERSION_DWORD,
@@ -40,27 +39,18 @@ PLUGININFOEX pluginInfo = {
 	{ 0x312C4F84, 0x75BE, 0x4404, {0xBC, 0xB1, 0xC1, 0x03, 0xDB, 0xE5, 0xA3, 0xB8 }}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
 
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_SSL, MIID_LAST };
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	return LoadSslModule();
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	UnloadSslModule();
 	return 0;

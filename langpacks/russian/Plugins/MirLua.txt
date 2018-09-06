@@ -2,11 +2,12 @@
 ;============================================================
 ;  File: MirLua.dll
 ;  Plugin: MirLua
-;  Version: 0.11.8.9
+;  Version: 0.11.9.1
 ;  Authors: Miranda NG team
 ;============================================================
 [Extends Miranda NG functionality with Lua scripts.]
 Расширяет функциональность Miranda NG с помощью скриптов на языке Lua.
+;file \plugins\MirLua\res\resource.rc
 [Reload all]
 Перезагрузить всё
 [Scripts]
@@ -17,6 +18,11 @@
 Общее
 [Popup on obsolete methods]
 Показать всплывающее окно при вызове устаревших методов
+[Auto evaluation]
+Автоматическое вычисление
+[Evaluate]
+Вычислить
+;file \plugins\MirLua\src\icons.cpp
 [Script]
 Скрипт
 [Loaded]
@@ -27,8 +33,12 @@
 Открыть
 [Reload]
 Перегрузить
+[Compile]
+Собрать
+;file \plugins\MirLua\src\options.cpp
 [Common scripts]
 Общие скрипты
+;file \plugins\MirLua\src\plugin.cpp
 [Services]
 Службы
 [C libs folder]

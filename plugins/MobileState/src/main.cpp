@@ -19,11 +19,18 @@
 
 #include "stdafx.h"
 
-HINSTANCE g_hInst;
-int hLangpack;
+CMPlugin g_plugin;
+
 HANDLE hExtraIcon = nullptr;
 
-PLUGININFOEX pluginInfo = {
+static IconItem iconList[] = 
+{
+	{ LPGEN("Mobile State"), "mobile_icon", IDI_MOBILE }
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -36,18 +43,11 @@ PLUGININFOEX pluginInfo = {
 	{ 0xf0ba32d0, 0xcd07, 0x4a9c, { 0x92, 0x6b, 0x5a, 0x1f, 0xf2, 0x1c, 0x3c, 0x10 } }
 };
 
-static IconItem icon = { LPGEN("Mobile State"), "mobile_icon", IDI_MOBILE };
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	g_hInst = hinstDLL;
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 bool hasMobileClient(MCONTACT hContact, LPARAM)
 {
@@ -67,7 +67,9 @@ bool hasMobileClient(MCONTACT hContact, LPARAM)
 	return false;
 }
 
-int ExtraIconsApply(WPARAM wParam, LPARAM lParam)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static int ExtraIconsApply(WPARAM wParam, LPARAM lParam)
 {
 	if (wParam == NULL)
 		return 0;
@@ -80,7 +82,7 @@ int ExtraIconsApply(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-int onContactSettingChanged(WPARAM wParam, LPARAM lParam)
+static int onContactSettingChanged(WPARAM wParam, LPARAM lParam)
 {	
 	char *proto = GetContactProto(wParam);
 	if (!proto)
@@ -93,7 +95,7 @@ int onContactSettingChanged(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-int onModulesLoaded(WPARAM, LPARAM)
+static int onModulesLoaded(WPARAM, LPARAM)
 {
 	// Set initial value for all contacts
 	for (auto &hContact : Contacts())
@@ -102,23 +104,16 @@ int onModulesLoaded(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, onModulesLoaded);
 	HookEvent(ME_DB_CONTACT_SETTINGCHANGED, onContactSettingChanged);
 	HookEvent(ME_CLIST_EXTRA_IMAGE_APPLY, ExtraIconsApply);
 
 	// IcoLib support
-	Icon_Register(g_hInst, "Mobile State", &icon, 1);
+	g_plugin.registerIcon("Mobile State", iconList);
 
 	// Extra icons
 	hExtraIcon = ExtraIcon_RegisterIcolib("mobilestate", LPGEN("Mobile State"), "mobile_icon");
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

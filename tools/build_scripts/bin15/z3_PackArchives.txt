@@ -49,7 +49,6 @@ Core\StdClist.dll
 Core\StdCrypt.dll
 Core\StdEmail.dll
 Core\StdFile.dll
-Core\StdIdle.dll
 Core\StdMsg.dll
 Core\StdSSL.dll
 Core\StdUIHist.dll
@@ -60,9 +59,9 @@ Libs\freeimage.mir
 Libs\libaxolotl.mir
 Libs\libeay32.mir
 Libs\libjson.mir
+Libs\libmdbx.mir
 Libs\mir_app.mir
 Libs\mir_core.mir
-Libs\Pcre16.mir
 Libs\sqlite3.mir
 Libs\ssleay32.mir
 Libs\Zlib.mir
@@ -81,6 +80,7 @@ Icons\xStatus_Jabber.dll
 Plugins\AVS.dll
 Plugins\Clist_modern.dll
 Plugins\CrashDumper.dll
+Plugins\Db_autobackups.dll
 Plugins\Dbx_mdbx.dll
 Plugins\Dbx_mmap.dll
 Plugins\Dummy.dll

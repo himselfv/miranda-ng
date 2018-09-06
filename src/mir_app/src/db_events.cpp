@@ -96,7 +96,7 @@ static wchar_t* getEventString(DBEVENTINFO *dbei, LPSTR &buf)
 {
 	LPSTR in = buf;
 	buf += mir_strlen(buf) + 1;
-	return (dbei->flags & DBEF_UTF) ? Utf8DecodeW(in) : mir_a2u(in);
+	return (dbei->flags & DBEF_UTF) ? mir_utf8decodeW(in) : mir_a2u(in);
 }
 
 static INT_PTR DbEventGetTextWorker(DBEVENTINFO *dbei, int codepage, int datatype)
@@ -166,12 +166,17 @@ static INT_PTR DbEventGetTextWorker(DBEVENTINFO *dbei, int codepage, int datatyp
 		char *buf = LPSTR(dbei->pBlob) + sizeof(DWORD);
 		ptrW tszFileName(getEventString(dbei, buf));
 		ptrW tszDescription(getEventString(dbei, buf));
-		ptrW &ptszText = (mir_wstrlen(tszDescription) == 0) ? tszFileName : tszDescription;
+		CMStringW wszText(tszFileName);
+		if (mir_wstrlen(tszDescription) > 0) {
+			wszText.Append(L": ");
+			wszText.Append(tszDescription);
+		}
+		
 		switch (datatype) {
 		case DBVT_WCHAR:
-			return (INT_PTR)ptszText.detach();
+			return (INT_PTR)wszText.Detach();
 		case DBVT_ASCIIZ:
-			return (INT_PTR)mir_u2a(ptszText);
+			return (INT_PTR)mir_u2a(wszText);
 		}
 		return 0;
 	}
@@ -184,7 +189,7 @@ static INT_PTR DbEventGetTextWorker(DBEVENTINFO *dbei, int codepage, int datatyp
 
 		if (dbei->flags & DBEF_UTF) {
 			WCHAR *msg = nullptr;
-			Utf8DecodeCP(str, codepage, &msg);
+			mir_utf8decodecp(str, codepage, &msg);
 			if (msg)
 				return (INT_PTR)msg;
 		}
@@ -195,7 +200,7 @@ static INT_PTR DbEventGetTextWorker(DBEVENTINFO *dbei, int codepage, int datatyp
 	if (datatype == DBVT_ASCIIZ) {
 		char *msg = mir_strdup((char*)dbei->pBlob);
 		if (dbei->flags & DBEF_UTF)
-			Utf8DecodeCP(msg, codepage, nullptr);
+			mir_utf8decodecp(msg, codepage, nullptr);
 
 		return (INT_PTR)msg;
 	}
@@ -256,7 +261,7 @@ MIR_APP_DLL(HICON) DbEvent_GetIcon(DBEVENTINFO *dbei, int flags)
 MIR_APP_DLL(wchar_t*) DbEvent_GetString(DBEVENTINFO *dbei, const char *str)
 {
 	if (dbei->flags & DBEF_UTF)
-		return Utf8DecodeW(str);
+		return mir_utf8decodeW(str);
 
 	return mir_a2u(str);
 }

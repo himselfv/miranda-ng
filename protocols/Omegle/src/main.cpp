@@ -24,13 +24,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // TODO: Make following as "globals" structure?
 
-CLIST_INTERFACE* pcli;
-int hLangpack;
+CMPlugin g_plugin;
 
 std::string g_strUserAgent;
 DWORD g_mirandaVersion;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -43,17 +44,11 @@ PLUGININFOEX pluginInfo = {
 	{ 0x9e1d9244, 0x606c, 0x4ef4, { 0x99, 0xa0, 0x1d, 0x7d, 0x23, 0xcb, 0x76, 0x1 } }
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD mirandaVersion)
+CMPlugin::CMPlugin() :
+	ACCPROTOPLUGIN<OmegleProto>("Omegle", pluginInfoEx)
 {
-	g_mirandaVersion = mirandaVersion;
-	return &pluginInfo;
+	SetUniqueId("Nick");
 }
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-CMPlugin g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Interface information
@@ -63,11 +58,8 @@ extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_PROTOC
 /////////////////////////////////////////////////////////////////////////////////////////
 // Load
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
 	InitIcons();
 
 	// Init native User-Agent
@@ -90,13 +82,5 @@ extern "C" int __declspec(dllexport) Load(void)
 		g_strUserAgent = agent.str();
 	}
 
-	return 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-// Unload
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

@@ -36,8 +36,8 @@ void UpgradeDb();
 //===== Initializations =================================================================
 static int OkToExit(WPARAM, LPARAM);
 bool OptionLoaded = false;
-int hLangpack = 0;
-CLIST_INTERFACE *pcli;
+
+CMPlugin g_plugin;
 
 //===== Global variables ================================================================
 HMODULE  hUserDll = nullptr;
@@ -61,42 +61,41 @@ HANDLE   hTTButton;
 
 static int OptionsInitialize(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 100000000;
-	odp.hInstance = hInst;
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.szTitle.a = MODULNAME_PLU;
 
 	odp.szTab.a = LPGEN("General");
 	odp.pfnDlgProc = DlgProcPopupGeneral;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_POPUP_GENERAL);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Classes");
 	odp.pfnDlgProc = DlgProcOptsClasses;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_NOTIFICATIONS);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Actions");
 	odp.pfnDlgProc = DlgProcPopupActions;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_ACTIONS);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Contacts");
 	odp.pfnDlgProc = DlgProcContactOpts;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_CONTACTS);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Advanced");
 	odp.pfnDlgProc = DlgProcPopupAdvOpts;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_POPUP_ADVANCED);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szGroup.a = LPGEN("Skins");
 	odp.szTab.a = LPGEN(MODULNAME_PLU);
 	odp.pfnDlgProc = DlgProcPopSkinsOpts;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_SKIN2);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -134,7 +133,7 @@ static int TTBLoaded(WPARAM, LPARAM)
 	ttb.hIconHandleDn = GetIconHandle(IDI_POPUP);
 	ttb.pszTooltipUp = LPGEN("Enable Popups");
 	ttb.pszTooltipDn = LPGEN("Disable Popups");
-	hTTButton = TopToolbar_AddButton(&ttb);
+	hTTButton = g_plugin.addTTB(&ttb);
 	return 0;
 }
 
@@ -173,13 +172,13 @@ INT_PTR svcShowHistory(WPARAM, LPARAM)
 
 void InitMenuItems(void)
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.flags = CMIF_UNICODE;
 
 	HANDLE hIcon = GetIconHandle(PopupOptions.ModuleIsEnabled ? IDI_POPUP : IDI_NOPOPUP);
 
 	// Build main menu
-	hMenuRoot = mi.root = Menu_CreateRoot(MO_MAIN, MODULNAME_PLUW, -1000000000, hIcon);
+	hMenuRoot = mi.root = g_plugin.addRootMenu(MO_MAIN, MODULNAME_PLUW, -1000000000, hIcon);
 	Menu_ConfigureItem(mi.root, MCI_OPT_UID, "3F5B5AB5-46D8-469E-8951-50B287C59037");
 
 	// Add item to main menu
@@ -215,13 +214,13 @@ void LoadHotkey()
 	hk.szDescription.w = LPGENW("Toggle Popups");
 	hk.szSection.w = MODULNAME_PLUW;
 	hk.pszService = MENUCOMMAND_SVC;
-	Hotkey_Register(&hk);
+	g_plugin.addHotkey(&hk);
 
 	// 'Popup History' Hotkey
 	hk.pszName = "Popup History";
 	hk.szDescription.w = LPGENW("Popup History");
 	hk.pszService = MENUCOMMAND_HISTORY;
-	Hotkey_Register(&hk);
+	g_plugin.addHotkey(&hk);
 }
 
 // menu
@@ -246,7 +245,7 @@ static int ModulesLoaded(WPARAM, LPARAM)
 
 	// Uninstalling purposes
 	if (ServiceExists("PluginSweeper/Add"))
-		CallService("PluginSweeper/Add", (WPARAM)Translate(MODULNAME), (LPARAM)MODULNAME);
+		CallService("PluginSweeper/Add", (WPARAM)Translate(MODULENAME), (LPARAM)MODULENAME);
 
 	// load fonts / create hook
 	InitFonts();
@@ -278,24 +277,33 @@ static int ModulesLoaded(WPARAM, LPARAM)
 	return 0;
 }
 
-//=== DllMain ===========================================================================
-// DLL entry point, Required to store the instance handle
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
-
 //===== MirandaPluginInfo ===============================================================
 // Called by Miranda to get the information associated to this plugin.
 // It only returns the PLUGININFOEX structure, without any test on the version
 // @param mirandaVersion - The version of the application calling this function
-MIRAPI PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
 
-// called before the app goes into shutdown routine to make sure everyone is happy to exit
+PLUGININFOEX pluginInfoEx =
+{
+	sizeof(PLUGININFOEX),
+	__PLUGIN_NAME,
+	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
+	__DESCRIPTION,
+	__AUTHOR,
+	__COPYRIGHT,
+	__AUTHORWEB,
+	UNICODE_AWARE,
+	//  {26A9125D-7863-4E01-AF0E-D14EF95C5054}
+	{ 0x26a9125d, 0x7863, 0x4e01, { 0xaf, 0xe, 0xd1, 0x4e, 0xf9, 0x5c, 0x50, 0x54 } }
+};
+
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
+//===== Load ============================================================================
+// Initializes the services provided and the link to those needed
+// Called when the plugin is loaded into Miranda
+
 static int OkToExit(WPARAM, LPARAM)
 {
 	closing = TRUE;
@@ -310,18 +318,12 @@ static int OnShutdown(WPARAM, LPARAM)
 	return 0;
 }
 
-//===== Load ============================================================================
-// Initializes the services provided and the link to those needed
-// Called when the plugin is loaded into Miranda
-MIRAPI int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-	pcli = Clist_GetInterface();
-
 	CreateServiceFunction(MS_POPUP_GETSTATUS, GetStatus);
 
 #if defined(_DEBUG)
-	PopupOptions.debug = db_get_b(NULL, MODULNAME, "debug", FALSE);
+	PopupOptions.debug = db_get_b(NULL, MODULENAME, "debug", FALSE);
 #else
 	PopupOptions.debug = false;
 #endif
@@ -349,7 +351,7 @@ MIRAPI int Load(void)
 	HookEvent(ME_SYSTEM_PRESHUTDOWN, OkToExit);
 	HookEvent(ME_SYSTEM_SHUTDOWN, OnShutdown);
 
-	hbmNoAvatar = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_NOAVATAR));
+	hbmNoAvatar = LoadBitmap(g_plugin.getInst(), MAKEINTRESOURCE(IDB_NOAVATAR));
 
 	if (!OptionLoaded)
 		LoadOptions();
@@ -401,7 +403,7 @@ MIRAPI int Load(void)
 // Prepare the plugin to stop
 // Called by Miranda when it will exit or when the plugin gets deselected
 
-MIRAPI int Unload(void)
+int CMPlugin::Unload()
 {
 	DeleteObject(fonts.title);
 	DeleteObject(fonts.clock);
@@ -425,12 +427,12 @@ MIRAPI int Unload(void)
 	PopupHistoryUnload();
 	SrmmMenu_Unload();
 
-	UnregisterClass(MAKEINTATOM(g_wndClass.cPopupWnd2), hInst);
-	UnregisterClass(L"PopupEditBox", hInst);
-	UnregisterClass(MAKEINTATOM(g_wndClass.cPopupMenuHostWnd), hInst);
-	UnregisterClass(MAKEINTATOM(g_wndClass.cPopupThreadManagerWnd), hInst);
-	UnregisterClass(MAKEINTATOM(g_wndClass.cPopupPreviewBoxWndclass), hInst);
-	UnregisterClass(MAKEINTATOM(g_wndClass.cPopupPlusDlgBox), hInst);
+	UnregisterClass(MAKEINTATOM(g_wndClass.cPopupWnd2), g_plugin.getInst());
+	UnregisterClass(L"PopupEditBox", g_plugin.getInst());
+	UnregisterClass(MAKEINTATOM(g_wndClass.cPopupMenuHostWnd), g_plugin.getInst());
+	UnregisterClass(MAKEINTATOM(g_wndClass.cPopupThreadManagerWnd), g_plugin.getInst());
+	UnregisterClass(MAKEINTATOM(g_wndClass.cPopupPreviewBoxWndclass), g_plugin.getInst());
+	UnregisterClass(MAKEINTATOM(g_wndClass.cPopupPlusDlgBox), g_plugin.getInst());
 
 	UnloadGDIPlus();
 

@@ -239,7 +239,7 @@ Catégorie :
 [Past]
 
 [Homepage]
-
+Page web
 [Other]
 Autre
 [Search online users only]
@@ -336,9 +336,9 @@ Prénom
 [Last name]
 Nom
 [Gender]
-
+Sexe
 [About]
-
+À propos
 [Password]
 Mot de passe
 [Contact]
@@ -1833,8 +1833,8 @@ Nom affiché :
 <non spécifié>
 [Member since:]
 Inscrit depuis :
-[%s Details]
-%s détails
+[Details]
+Détails
 ;file \protocols\IcqOscarJ\src\utilities.cpp
 [<invalid>]
 <invalide>

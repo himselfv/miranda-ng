@@ -32,14 +32,20 @@
 #include "utilities.h"
 #include "version.h"
 
-#define szModuleName "Watrack_MPD"
+#define MODULENAME "Watrack_MPD"
 
-extern HINSTANCE hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 extern HNETLIBUSER ghNetlibUser;
 extern BOOL bWatrackService;
 extern wchar_t *gbHost, *gbPassword;
 extern WORD gbPort;
-extern char *date();
 
 extern int WaMpdOptInit(WPARAM, LPARAM);
 extern void RegisterPlayer();

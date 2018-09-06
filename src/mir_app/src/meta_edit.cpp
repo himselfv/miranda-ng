@@ -74,7 +74,7 @@ static void FillContactList(HWND hList)
 					wcsncpy_s(buff, _A2T(dbv.pszVal), _TRUNCATE);
 					break;
 				case DBVT_WCHAR:
-					wcsncpy_s(buff, dbv.ptszVal, _TRUNCATE);
+					wcsncpy_s(buff, dbv.pwszVal, _TRUNCATE);
 					break;
 				case DBVT_BYTE:
 					_itow(dbv.bVal, buff, 10);
@@ -446,6 +446,6 @@ static INT_PTR CALLBACK Meta_EditDialogProc(HWND hwndDlg, UINT msg, WPARAM wPara
 
 INT_PTR Meta_Edit(WPARAM wParam, LPARAM)
 {
-	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_METAEDIT), cli.hwndContactList, Meta_EditDialogProc, (LPARAM)wParam);
+	DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_METAEDIT), g_clistApi.hwndContactList, Meta_EditDialogProc, (LPARAM)wParam);
 	return 0;
 }

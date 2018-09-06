@@ -36,7 +36,7 @@ Retirer
 
 [Only critical data are encrypted (passwords, security tokens, etc). All other settings and history remains unencrypted. Fast and effective, suitable for the most cases]
 
-[All string settings and all events in histories are encrypted. It also makes Miranda much slower and creates a risk of losing everything you've stored in a profile in case of losing password. Recommended only for paranoid users]
+[All string settings and all events in histories are encrypted. It also makes Miranda much slower and creates a risk of losing everything you've stored in a database in case of losing password. Recommended only for paranoid users]
 
 [Set password]
 Mot de passe du profil
@@ -65,6 +65,10 @@ Panique dans la Base de données !
 [To open this database you need to install the dbx_mdbx plugin. Click Yes to download it from Miranda NG's site or No to return back]
 
 [To open this database you need to install the Import plugin. Click Yes to download it from Miranda NG's site or No to return back]
+
+[Cannot move old profile '%s' to '%s': error %d]
+
+[Attempt to create database '%s' failed with error code %d]
 
 ;file \plugins\Db3x_mmap\src\ui.cpp
 [Logo]

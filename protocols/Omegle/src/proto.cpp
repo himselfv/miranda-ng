@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "stdafx.h"
 
 OmegleProto::OmegleProto(const char* proto_name, const wchar_t* username) :
-PROTO<OmegleProto>(proto_name, username)
+	PROTO<OmegleProto>(proto_name, username)
 {
 	this->facy.parent = this;
 
@@ -57,10 +57,10 @@ PROTO<OmegleProto>(proto_name, username)
 
 	facy.set_handle(m_hNetlibUser);
 
-	Skin_AddSound("StrangerTyp", m_tszUserName, LPGENW("Stranger is typing"));
-	Skin_AddSound("StrangerTypStop", m_tszUserName, LPGENW("Stranger stopped typing"));
-	Skin_AddSound("StrangerChange", m_tszUserName, LPGENW("Changing stranger"));
-	Skin_AddSound("StrangerMessage", m_tszUserName, LPGENW("Receive message"));
+	g_plugin.addSound("StrangerTyp", m_tszUserName, LPGENW("Stranger is typing"));
+	g_plugin.addSound("StrangerTypStop", m_tszUserName, LPGENW("Stranger stopped typing"));
+	g_plugin.addSound("StrangerChange", m_tszUserName, LPGENW("Changing stranger"));
+	g_plugin.addSound("StrangerMessage", m_tszUserName, LPGENW("Receive message"));
 }
 
 OmegleProto::~OmegleProto()
@@ -113,20 +113,17 @@ int OmegleProto::SetStatus(int new_status)
 
 	m_iDesiredStatus = new_status;
 
-	if (new_status == m_iStatus) {
+	if (new_status == m_iStatus)
 		return 0;
-	}
 
-	if (m_iStatus == ID_STATUS_CONNECTING && new_status != ID_STATUS_OFFLINE) {
+	if (m_iStatus == ID_STATUS_CONNECTING && new_status != ID_STATUS_OFFLINE)
 		return 0;
-	}
 
-	if (new_status == ID_STATUS_OFFLINE) {
+	if (new_status == ID_STATUS_OFFLINE)
 		ForkThread(&OmegleProto::SignOff, this);
-	}
-	else {
+	else
 		ForkThread(&OmegleProto::SignOn, this);
-	}
+
 	return 0;
 }
 
@@ -157,8 +154,7 @@ void OmegleProto::OnShutdown()
 
 int OmegleProto::OnOptionsInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_plugin.getInst();
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szTitle.w = m_tszUserName;
 	odp.dwInitParam = LPARAM(this);
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE | ODPF_DONTTRANSLATE;
@@ -168,7 +164,7 @@ int OmegleProto::OnOptionsInit(WPARAM wParam, LPARAM)
 	odp.szTab.w = LPGENW("Account");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
 	odp.pfnDlgProc = OmegleOptionsProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 

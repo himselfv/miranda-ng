@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h>
 #include <time.h>
 
+#include <memory>
+
 #include <win2k.h>
 #include <newpluginapi.h>
 #include <m_langpack.h>
@@ -41,6 +43,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <m_db_int.h>
 #include <m_metacontacts.h>
 #include <m_import.h>
+#include <m_gui.h>
 
 #include "version.h"
 #include "resource.h"
@@ -51,8 +54,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // Global constants
 
-#define IMPORT_MODULE  "MIMImport"        // Module name
-#define IMPORT_SERVICE "MIMImport/Import" // Service for menu item
+#define IMPORT_MODULE  "MIMImport"
+
+#define MS_IMPORT_SERVICE "MIMImport/Import"        // Service for main menu item
+#define MS_IMPORT_CONTACT "MIMImport/ImportContact" // Service for contact menu item
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
 
 // Keys
 #define IMP_KEY_FR     "FirstRun"         // First run
@@ -73,6 +85,7 @@ struct WizardDlgParam
 	LPARAM lParam;
 };
 
+INT_PTR CALLBACK WizardDlgProc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK WizardIntroPageProc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK ProgressPageProc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK MirandaPageProc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam);
@@ -84,12 +97,37 @@ bool IsDuplicateEvent(MCONTACT hContact, DBEVENTINFO dbei);
 
 int CreateGroup(const wchar_t *name, MCONTACT hContact);
 
-extern HINSTANCE hInst;
-extern HWND hwndWizard, hwndAccMerge;
-extern int nImportOptions;
-extern wchar_t importFile[];
+extern HWND g_hwndWizard, g_hwndAccMerge;
+extern wchar_t importFile[MAX_PATH];
 extern time_t dwSinceDate;
 extern bool g_bServiceMode, g_bSendQuit;
+extern int g_iImportOptions;
+extern MCONTACT g_hImportContact;
 
 HANDLE GetIconHandle(int iIconId);
 void   RegisterIcons(void);
+
+void RegisterMContacts();
+void RegisterJson();
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+class CContactImportDlg : public CDlgBase
+{
+	MCONTACT m_hContact;
+	int m_flags = 0;
+
+	CCtrlButton m_btnOpenFile, m_btnOk;
+	CCtrlEdit edtFileName;
+
+public:
+	CContactImportDlg(MCONTACT hContact);
+
+	int getFlags() const { return m_flags; }
+
+	bool OnInitDialog() override;
+	bool OnApply() override;
+
+	void onClick_Ok(CCtrlButton*);
+	void onClick_OpenFile(CCtrlButton*);
+};

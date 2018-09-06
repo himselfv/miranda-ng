@@ -79,7 +79,7 @@ static IconItem iconList[] =
 
 void InitIcons()
 {
-	Icon_Register(g_plugin.getInst(), LPGEN("Protocols") "/" LPGEN("VKontakte"), iconList, _countof(iconList), "VKontakte");
+	g_plugin.registerIcon(LPGEN("Protocols") "/" LPGEN("VKontakte"), iconList, "VKontakte");
 }
 
 HANDLE GetIconHandle(int iCommand)
@@ -784,9 +784,9 @@ void CVkProto::MarkDialogAsRead(MCONTACT hContact)
 		DBEVENTINFO dbei = {};
 		if (!db_event_get(hDBEvent, &dbei) && !mir_strcmp(m_szModuleName, dbei.szModule)) {
 			db_event_markRead(hContact, hDBEvent);
-			pcli->pfnRemoveEvent(hMContact, hDBEvent);
+			g_clistApi.pfnRemoveEvent(hMContact, hDBEvent);
 			if (hContact != hMContact)
-				pcli->pfnRemoveEvent(hContact, hDBEvent);
+				g_clistApi.pfnRemoveEvent(hContact, hDBEvent);
 		}
 
 		hDBEvent = db_event_next(hContact, hDBEvent);

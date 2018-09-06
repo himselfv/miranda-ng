@@ -105,6 +105,7 @@ int LoadDefaultModules(void)
 	if (LoadDatabaseModule()) return 1;
 
 	// database is available here
+	InitIni();
 	if (LoadButtonModule()) return 1;
 	if (LoadIcoLibModule()) return 1;
 	if (LoadSkinIcons()) return 1;
@@ -155,12 +156,14 @@ int LoadDefaultModules(void)
 	if (LoadFindAddModule()) return 1;
 	if (LoadIgnoreModule()) return 1;
 	if (LoadVisibilityModule()) return 1;
+	if (LoadIdleModule()) return 1;
 	if (LoadStdPlugins()) return 1;
 	return 0;
 }
 
 void UnloadDefaultModules(void)
 {
+	UnloadIdleModule();
 	UnloadChatModule();
 	UnloadAccountsModule();
 	UnloadMetacontacts();

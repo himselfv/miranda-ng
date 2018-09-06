@@ -23,9 +23,17 @@
 //=======================================================
 //	Definitions
 //=======================================================
-#define modname			"BuddyPounce"
-#define modFullname		"Buddy Pounce"
-#define msg(a,b)		MessageBox(0,a,b,MB_OK)
+#define MODULENAME   "BuddyPounce"
+#define modFullname  "Buddy Pounce"
+#define msg(a,b)     MessageBox(0,a,b,MB_OK)
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 #define SECONDSINADAY	86400
 
@@ -58,8 +66,6 @@ struct SendPounceDlgProcStruct
 	int timer;
 	wchar_t *message;
 };
-
-extern HINSTANCE hInst;
 
 //=======================================================
 //  Functions

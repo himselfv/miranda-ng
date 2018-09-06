@@ -78,7 +78,7 @@ static INT_PTR CALLBACK ReadAwayMsgDlgProc(HWND hwndDlg, UINT message, WPARAM wP
 			ack.result = ACKRESULT_SUCCESS;
 			SendMessage(hwndDlg, HM_AWAYMSG, 0, (LPARAM)&ack);
 		}
-		Utils_RestoreWindowPosition(hwndDlg, lParam, "SRAway", "AwayMsgDlg");
+		Utils_RestoreWindowPosition(hwndDlg, lParam, MODULENAME, "AwayMsgDlg");
 		return TRUE;
 
 	case HM_AWAYMSG:
@@ -111,7 +111,7 @@ static INT_PTR CALLBACK ReadAwayMsgDlgProc(HWND hwndDlg, UINT message, WPARAM wP
 
 	case WM_DESTROY:
 		if (dat->hAwayMsgEvent) UnhookEvent(dat->hAwayMsgEvent);
-		Utils_SaveWindowPosition(hwndDlg, dat->hContact, "SRAway", "AwayMsgDlg");
+		Utils_SaveWindowPosition(hwndDlg, dat->hContact, MODULENAME, "AwayMsgDlg");
 		WindowList_Remove(hWindowList, hwndDlg);
 		Window_FreeIcon_IcoLib(hwndDlg);
 		mir_free(dat);
@@ -126,7 +126,7 @@ static INT_PTR GetMessageCommand(WPARAM wParam, LPARAM)
 		SetForegroundWindow(hwnd);
 		SetFocus(hwnd);
 	}
-	else CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_READAWAYMSG), NULL, ReadAwayMsgDlgProc, wParam);
+	else CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_READAWAYMSG), NULL, ReadAwayMsgDlgProc, wParam);
 	return 0;
 }
 
@@ -166,7 +166,7 @@ int LoadAwayMsgModule(void)
 	hWindowList = WindowList_Create();
 	CreateServiceFunction(MS_AWAYMSG_SHOWAWAYMSG, GetMessageCommand);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0xd3282acc, 0x9ff1, 0x4ede, 0x8a, 0x1e, 0x36, 0x72, 0x3f, 0x44, 0x4f, 0x84);
 	mi.position = -2000005000;
 	mi.flags = CMIF_NOTOFFLINE;

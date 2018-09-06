@@ -102,7 +102,7 @@ static int MessageEventAdded(WPARAM hContact, LPARAM lParam)
 	if (dbei.flags & DBEF_SENT || !DbEventIsMessageOrCustom(&dbei))
 		return 0;
 
-	pcli->pfnRemoveEvent(hContact, 1);
+	g_clistApi.pfnRemoveEvent(hContact, 1);
 	/* does a window for the contact exist? */
 	if (hwnd == nullptr) {
 		/* new message */
@@ -123,7 +123,7 @@ static int MessageEventAdded(WPARAM hContact, LPARAM lParam)
 		cle.hIcon = Skin_LoadIcon(SKINICON_EVENT_MESSAGE);
 		cle.pszService = MS_MSG_READMESSAGE;
 		cle.szTooltip.w = toolTip;
-		pcli->pfnAddEvent(&cle);
+		g_clistApi.pfnAddEvent(&cle);
 	}
 	return 0;
 }
@@ -197,7 +197,7 @@ static int TypingMessage(WPARAM hContact, LPARAM lParam)
 		wchar_t szTip[256];
 		mir_snwprintf(szTip, TranslateT("%s is typing a message"), Clist_GetContactDisplayName(hContact));
 		if (g_dat.flags2 & SMF2_SHOWTYPINGCLIST) {
-			pcli->pfnRemoveEvent(hContact, 1);
+			g_clistApi.pfnRemoveEvent(hContact, 1);
 
 			CLISTEVENT cle = {};
 			cle.hContact = hContact;
@@ -206,7 +206,7 @@ static int TypingMessage(WPARAM hContact, LPARAM lParam)
 			cle.hIcon = GetCachedIcon("scriver_TYPING");
 			cle.pszService = MS_MSG_TYPINGMESSAGE;
 			cle.szTooltip.w = szTip;
-			pcli->pfnAddEvent(&cle);
+			g_clistApi.pfnAddEvent(&cle);
 		}
 		else Clist_TrayNotifyW(nullptr, TranslateT("Typing notification"), szTip, NIIF_INFO, 1000 * 4);
 	}
@@ -280,7 +280,7 @@ static void RestoreUnreadMessageAlerts(void)
 		mir_snwprintf(toolTip, TranslateT("Message from %s"), Clist_GetContactDisplayName(e->hContact));
 		cle.hContact = e->hContact;
 		cle.hDbEvent = e->hEvent;
-		pcli->pfnAddEvent(&cle);
+		g_clistApi.pfnAddEvent(&cle);
 	}
 }
 
@@ -326,7 +326,7 @@ static int AvatarChanged(WPARAM wParam, LPARAM lParam)
 // CScriverWindow
 
 CScriverWindow::CScriverWindow(int iDialog, SESSION_INFO *si)
-	: CSrmmBaseDialog(g_hInst, iDialog, si)
+	: CSrmmBaseDialog(g_plugin, iDialog, si)
 {
 	m_autoClose = CLOSE_ON_CANCEL;
 }
@@ -403,7 +403,7 @@ static void RegisterStatusIcons()
 	sid.hIcon = GetCachedIcon("scriver_TYPING");
 	sid.hIconDisabled = GetCachedIcon("scriver_TYPINGOFF");
 	sid.flags = MBF_HIDDEN;
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 }
 
 void ChangeStatusIcons()
@@ -442,7 +442,7 @@ int RegisterToolbarIcons(WPARAM, LPARAM)
 	bbd.hIcon = IcoLib_GetIconHandle("scriver_SEND");
 	bbd.pwszText = LPGENW("&OK");
 	bbd.pwszTooltip = LPGENW("Send message");
-	Srmm_AddButton(&bbd);
+	Srmm_AddButton(&bbd, &g_plugin);
 	
 	bbd.bbbFlags = BBBF_ISIMBUTTON | BBBF_CREATEBYID;
 	bbd.dwButtonID = IDC_QUOTE;
@@ -450,7 +450,7 @@ int RegisterToolbarIcons(WPARAM, LPARAM)
 	bbd.hIcon = IcoLib_GetIconHandle("scriver_QUOTE");
 	bbd.pwszText = LPGENW("&Quote");
 	bbd.pwszTooltip = LPGENW("Quote");
-	Srmm_AddButton(&bbd);
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.bbbFlags |= BBBF_ISRSIDEBUTTON;
 	bbd.dwButtonID = IDC_ADD;
@@ -458,29 +458,29 @@ int RegisterToolbarIcons(WPARAM, LPARAM)
 	bbd.hIcon = IcoLib_GetIconHandle("scriver_ADD");
 	bbd.pwszText = LPGENW("&Add");
 	bbd.pwszTooltip = LPGENW("Add contact permanently to list");
-	Srmm_AddButton(&bbd);
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.dwButtonID = IDC_USERMENU;
 	bbd.dwDefPos = 30;
 	bbd.hIcon = Skin_GetIconHandle(SKINICON_OTHER_DOWNARROW);
 	bbd.pwszText = LPGENW("&User menu");
 	bbd.pwszTooltip = LPGENW("User menu");
-	Srmm_AddButton(&bbd);
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.dwButtonID = IDC_DETAILS;
 	bbd.dwDefPos = 40;
 	bbd.hIcon = IcoLib_GetIconHandle("scriver_USERDETAILS");
 	bbd.pwszText = LPGENW("User &details");
 	bbd.pwszTooltip = LPGENW("View user's details");
-	Srmm_AddButton(&bbd);
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.bbbFlags |= BBBF_ISCHATBUTTON | BBBF_ISRSIDEBUTTON;
 	bbd.dwButtonID = IDC_SRMM_HISTORY;
 	bbd.dwDefPos = 50;
 	bbd.hIcon = IcoLib_GetIconHandle("scriver_HISTORY");
 	bbd.pwszText = LPGENW("&History");
-	bbd.pwszTooltip = LPGENW("View user's history (CTRL+H)");
-	Srmm_AddButton(&bbd);
+	bbd.pwszTooltip = LPGENW("View user's history (Ctrl+H)");
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	// chat buttons
 	bbd.bbbFlags = BBBF_ISPUSHBUTTON | BBBF_ISCHATBUTTON | BBBF_CREATEBYID;
@@ -488,58 +488,58 @@ int RegisterToolbarIcons(WPARAM, LPARAM)
 	bbd.dwDefPos = 10;
 	bbd.hIcon = IcoLib_GetIconHandle("chat_bold");
 	bbd.pwszText = LPGENW("&Bold");
-	bbd.pwszTooltip = LPGENW("Make the text bold (CTRL+B)");
-	Srmm_AddButton(&bbd);
+	bbd.pwszTooltip = LPGENW("Make the text bold (Ctrl+B)");
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.dwButtonID = IDC_SRMM_ITALICS;
 	bbd.dwDefPos = 15;
 	bbd.hIcon = IcoLib_GetIconHandle("chat_italics");
 	bbd.pwszText = LPGENW("&Italic");
-	bbd.pwszTooltip = LPGENW("Make the text italicized (CTRL+I)");
-	Srmm_AddButton(&bbd);
+	bbd.pwszTooltip = LPGENW("Make the text italicized (Ctrl+I)");
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.dwButtonID = IDC_SRMM_UNDERLINE;
 	bbd.dwDefPos = 20;
 	bbd.hIcon = IcoLib_GetIconHandle("chat_underline");
 	bbd.pwszText = LPGENW("&Underline");
-	bbd.pwszTooltip = LPGENW("Make the text underlined (CTRL+U)");
-	Srmm_AddButton(&bbd);
+	bbd.pwszTooltip = LPGENW("Make the text underlined (Ctrl+U)");
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.dwButtonID = IDC_SRMM_COLOR;
 	bbd.dwDefPos = 25;
 	bbd.hIcon = IcoLib_GetIconHandle("chat_fgcol");
 	bbd.pwszText = LPGENW("&Color");
-	bbd.pwszTooltip = LPGENW("Select a foreground color for the text (CTRL+K)");
-	Srmm_AddButton(&bbd);
+	bbd.pwszTooltip = LPGENW("Select a foreground color for the text (Ctrl+K)");
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.dwButtonID = IDC_SRMM_BKGCOLOR;
 	bbd.dwDefPos = 30;
 	bbd.hIcon = IcoLib_GetIconHandle("chat_bkgcol");
 	bbd.pwszText = LPGENW("&Background color");
-	bbd.pwszTooltip = LPGENW("Select a background color for the text (CTRL+L)");
-	Srmm_AddButton(&bbd);
+	bbd.pwszTooltip = LPGENW("Select a background color for the text (Ctrl+L)");
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.bbbFlags = BBBF_ISCHATBUTTON | BBBF_ISRSIDEBUTTON | BBBF_CREATEBYID;
 	bbd.dwButtonID = IDC_SRMM_CHANMGR;
 	bbd.dwDefPos = 30;
 	bbd.hIcon = IcoLib_GetIconHandle("chat_settings");
 	bbd.pwszText = LPGENW("&Room settings");
-	bbd.pwszTooltip = LPGENW("Control this room (CTRL+O)");
-	Srmm_AddButton(&bbd);
+	bbd.pwszTooltip = LPGENW("Control this room (Ctrl+O)");
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.dwButtonID = IDC_SRMM_SHOWNICKLIST;
 	bbd.dwDefPos = 20;
 	bbd.hIcon = IcoLib_GetIconHandle("chat_nicklist");
 	bbd.pwszText = LPGENW("&Show/hide nick list");
-	bbd.pwszTooltip = LPGENW("Show/hide the nick list (CTRL+N)");
-	Srmm_AddButton(&bbd);
+	bbd.pwszTooltip = LPGENW("Show/hide the nick list (Ctrl+N)");
+	Srmm_AddButton(&bbd, &g_plugin);
 
 	bbd.dwButtonID = IDC_SRMM_FILTER;
 	bbd.dwDefPos = 10;
 	bbd.hIcon = IcoLib_GetIconHandle("chat_filter");
 	bbd.pwszText = LPGENW("&Filter");
-	bbd.pwszTooltip = LPGENW("Enable/disable the event filter (CTRL+F)");
-	Srmm_AddButton(&bbd);
+	bbd.pwszTooltip = LPGENW("Enable/disable the event filter (Ctrl+F)");
+	Srmm_AddButton(&bbd, &g_plugin);
 	return 0;
 }
 
@@ -570,7 +570,7 @@ static int OnModulesLoaded(WPARAM, LPARAM)
 	LoadMsgLogIcons();
 	ModuleLoad(0, 0);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x58d8dc1, 0x1c25, 0x49c0, 0xb8, 0x7c, 0xa3, 0x22, 0x2b, 0x3d, 0xf1, 0xd8);
 	mi.position = -2000090000;
 	mi.flags = CMIF_DEFAULT;
@@ -598,7 +598,6 @@ int OnSystemPreshutdown(WPARAM, LPARAM)
 {
 	Srmm_Broadcast(WM_CLOSE, 0, 0);
 	WindowList_Broadcast(g_dat.hParentWindowList, WM_CLOSE, 0, 0);
-	DeinitStatusIcons();
 	return 0;
 }
 
@@ -647,14 +646,14 @@ int OnLoadModule(void)
 	CreateServiceFunction(MS_MSG_SENDMESSAGEW, SendMessageCommandW);
 	CreateServiceFunction(MS_MSG_TYPINGMESSAGE, TypingMessageCommand);
 
-	Skin_AddSound("RecvMsgActive", LPGENW("Instant messages"), LPGENW("Incoming (focused window)"));
-	Skin_AddSound("RecvMsgInactive", LPGENW("Instant messages"), LPGENW("Incoming (unfocused window)"));
-	Skin_AddSound("AlertMsg", LPGENW("Instant messages"), LPGENW("Incoming (new session)"));
-	Skin_AddSound("SendMsg", LPGENW("Instant messages"), LPGENW("Outgoing"));
-	Skin_AddSound("TNStart", LPGENW("Instant messages"), LPGENW("Contact started typing"));
-	Skin_AddSound("TNStop", LPGENW("Instant messages"), LPGENW("Contact stopped typing"));
+	g_plugin.addSound("RecvMsgActive", LPGENW("Instant messages"), LPGENW("Incoming (focused window)"));
+	g_plugin.addSound("RecvMsgInactive", LPGENW("Instant messages"), LPGENW("Incoming (unfocused window)"));
+	g_plugin.addSound("AlertMsg", LPGENW("Instant messages"), LPGENW("Incoming (new session)"));
+	g_plugin.addSound("SendMsg", LPGENW("Instant messages"), LPGENW("Outgoing"));
+	g_plugin.addSound("TNStart", LPGENW("Instant messages"), LPGENW("Contact started typing"));
+	g_plugin.addSound("TNStop", LPGENW("Instant messages"), LPGENW("Contact stopped typing"));
 
-	hDragCursor = LoadCursor(g_hInst, MAKEINTRESOURCE(IDC_DRAGCURSOR));
+	hDragCursor = LoadCursor(g_plugin.getInst(), MAKEINTRESOURCE(IDC_DRAGCURSOR));
 
 	Chat_Load();
 	return 0;

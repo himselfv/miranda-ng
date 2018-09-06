@@ -53,12 +53,18 @@ using namespace std;
 #define SD_SEND         0x01
 #define SD_BOTH         0x02
 
-#define MODULE "HTTPServer"
+#define MODULENAME "HTTPServer"
 #define MSG_BOX_TITEL Translate("Miranda NG HTTP-Server")
 
 #define SplitIpAddress( p ) (BYTE)(p>>24),(BYTE)(p>>16),(BYTE)(p>>8),(BYTE)(p)
 
-extern HINSTANCE hInstance;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 extern HNETLIBUSER hNetlibUser;
 
@@ -83,6 +89,6 @@ extern bool bIsOnline;
 extern bool bLimitOnlyWhenOnline;
 
 extern void* (*MirandaMalloc)(size_t);
-extern void (*MirandaFree)(void*);
+extern void(*MirandaFree)(void*);
 
 #endif

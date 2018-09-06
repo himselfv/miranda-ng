@@ -2,6 +2,9 @@
 
 static void SaveButton(HWND hwndDlg, HWND hwndCombo, int curIndex)
 {
+	if (curIndex < 0 || curIndex >= g_accs.getCount())
+		return;
+
 	Account &acc = g_accs[curIndex];
 	if (GetDlgItemTextA(hwndDlg, IDC_NAME, acc.name, _countof(acc.name))) {
 		char *tail = strstr(acc.name, "@");
@@ -10,11 +13,11 @@ static void SaveButton(HWND hwndDlg, HWND hwndCombo, int curIndex)
 		SendMessageA(hwndCombo, CB_DELETESTRING, curIndex, 0);
 		SendMessageA(hwndCombo, CB_INSERTSTRING, curIndex, (LPARAM)acc.name);
 		SendMessageA(hwndCombo, CB_SETCURSEL, curIndex, 0);
-		db_set_s(acc.hContact, MODULE_NAME, "name", acc.name);
-		db_set_s(acc.hContact, MODULE_NAME, "Nick", acc.name);
-		
+		db_set_s(acc.hContact, MODULENAME, "name", acc.name);
+		db_set_s(acc.hContact, MODULENAME, "Nick", acc.name);
+
 		GetDlgItemTextA(hwndDlg, IDC_PASS, acc.pass, _countof(acc.pass));
-		db_set_s(acc.hContact, MODULE_NAME, "Password", acc.pass);
+		db_set_s(acc.hContact, MODULENAME, "Password", acc.pass);
 	}
 }
 
@@ -81,7 +84,7 @@ static INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 		}
 		{
 			DBVARIANT dbv;
-			if (!db_get_s(NULL, MODULE_NAME, "OpenUsePrgPath", &dbv)) {
+			if (!db_get_s(NULL, MODULENAME, "OpenUsePrgPath", &dbv)) {
 				mir_strcpy(str, dbv.pszVal);
 				db_free(&dbv);
 			}
@@ -128,11 +131,10 @@ static INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			break;
 
 		case IDC_PRGBROWSE:
+			wchar_t szName[_MAX_PATH];
+			GetDlgItemText(hwndDlg, IDC_PRG, szName, _countof(szName));
 			{
-				OPENFILENAME OpenFileName;
-				wchar_t szName[_MAX_PATH];
-				memset(&OpenFileName, 0, sizeof(OPENFILENAME));
-				GetDlgItemText(hwndDlg, IDC_PRG, szName, _countof(szName));
+				OPENFILENAME OpenFileName = {};
 				OpenFileName.lStructSize = sizeof(OPENFILENAME);
 				OpenFileName.hwndOwner = hwndDlg;
 				OpenFileName.lpstrFilter = L"Executables (*.exe;*.com;*.bat)\0*.exe;*.com;*.bat\0\0";
@@ -145,12 +147,12 @@ static INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			}
 			SendMessage(GetParent(hwndDlg), PSM_CHANGED, 0, 0);
 			break;
-		
+
 		case IDC_BTNADD:
 			{
 				Account *p = new Account();
 				p->hContact = db_add_contact();
-				Proto_AddToContact(p->hContact, MODULE_NAME);
+				Proto_AddToContact(p->hContact, MODULENAME);
 				g_accs.insert(p);
 
 				curIndex = SendMessageA(hwndCombo, CB_ADDSTRING, 0, (LPARAM)"");
@@ -214,20 +216,20 @@ static INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			if (opt.circleTime > 0) {
 				KillTimer(nullptr, hTimer);
 				hTimer = SetTimer(nullptr, 0, opt.circleTime * 60000, TimerProc);
-				db_set_dw(NULL, MODULE_NAME, "circleTime", opt.circleTime);
+				db_set_dw(NULL, MODULENAME, "circleTime", opt.circleTime);
 			}
 			opt.notifierOnTray = IsDlgButtonChecked(hwndDlg, IDC_OPTTRAY);
 			opt.notifierOnPop = IsDlgButtonChecked(hwndDlg, IDC_OPTPOP);
-			db_set_dw(NULL, MODULE_NAME, "notifierOnTray", opt.notifierOnTray);
-			db_set_dw(NULL, MODULE_NAME, "notifierOnPop", opt.notifierOnPop);
+			db_set_dw(NULL, MODULENAME, "notifierOnTray", opt.notifierOnTray);
+			db_set_dw(NULL, MODULENAME, "notifierOnPop", opt.notifierOnPop);
 
 			opt.popupDuration = GetDlgItemInt(hwndDlg, IDC_DURATION, nullptr, TRUE);
-			db_set_dw(NULL, MODULE_NAME, "popupDuration", opt.popupDuration);
+			db_set_dw(NULL, MODULENAME, "popupDuration", opt.popupDuration);
 
 			opt.popupBgColor = SendDlgItemMessage(hwndDlg, IDC_BGCOLOR, CPM_GETCOLOUR, 0, opt.popupBgColor);
 			opt.popupTxtColor = SendDlgItemMessage(hwndDlg, IDC_TEXTCOLOR, CPM_GETCOLOUR, 0, opt.popupBgColor);
-			db_set_dw(NULL, MODULE_NAME, "popupBgColor", opt.popupBgColor);
-			db_set_dw(NULL, MODULE_NAME, "popupTxtColor", opt.popupTxtColor);
+			db_set_dw(NULL, MODULENAME, "popupBgColor", opt.popupBgColor);
+			db_set_dw(NULL, MODULENAME, "popupTxtColor", opt.popupTxtColor);
 
 			if (IsDlgButtonChecked(hwndDlg, IDC_SYSDEF) == BST_CHECKED)
 				opt.OpenUsePrg = 0;
@@ -238,8 +240,8 @@ static INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			}
 			GetDlgItemTextA(hwndDlg, IDC_PRG, str, _countof(str));
 
-			db_set_dw(NULL, MODULE_NAME, "OpenUsePrg", opt.OpenUsePrg);
-			db_set_s(NULL, MODULE_NAME, "OpenUsePrgPath", str);
+			db_set_dw(NULL, MODULENAME, "OpenUsePrg", opt.OpenUsePrg);
+			db_set_s(NULL, MODULENAME, "OpenUsePrgPath", str);
 
 			opt.ShowCustomIcon = IsDlgButtonChecked(hwndDlg, IDC_SHOWICON);
 			opt.UseOnline = IsDlgButtonChecked(hwndDlg, IDC_ONLINE);
@@ -250,14 +252,14 @@ static INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			else if (IsDlgButtonChecked(hwndDlg, IDC_AUTOLOGIN) == BST_INDETERMINATE)
 				opt.AutoLogin = 2;
 			opt.LogThreads = IsDlgButtonChecked(hwndDlg, IDC_LOGTHREADS);
-			db_set_dw(NULL, MODULE_NAME, "ShowCustomIcon", opt.ShowCustomIcon);
-			db_set_dw(NULL, MODULE_NAME, "UseOnline", opt.UseOnline);
-			db_set_dw(NULL, MODULE_NAME, "AutoLogin", opt.AutoLogin);
-			db_set_dw(NULL, MODULE_NAME, "LogThreads", opt.LogThreads);
+			db_set_dw(NULL, MODULENAME, "ShowCustomIcon", opt.ShowCustomIcon);
+			db_set_dw(NULL, MODULENAME, "UseOnline", opt.UseOnline);
+			db_set_dw(NULL, MODULENAME, "AutoLogin", opt.AutoLogin);
+			db_set_dw(NULL, MODULENAME, "LogThreads", opt.LogThreads);
 
 			ID_STATUS_NONEW = opt.UseOnline ? ID_STATUS_ONLINE : ID_STATUS_OFFLINE;
 			for (auto &it : g_accs)
-				db_set_w(it->hContact, MODULE_NAME, "Status", ID_STATUS_NONEW);
+				db_set_w(it->hContact, MODULENAME, "Status", ID_STATUS_NONEW);
 		}
 		return TRUE;
 
@@ -270,14 +272,13 @@ static INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 
 int OptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -790000000;
-	odp.hInstance = g_plugin.getInst();
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT);
 	odp.szTitle.a = LPGEN("GmailNotifier");
 	odp.szGroup.a = LPGEN("Network");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = DlgProcOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

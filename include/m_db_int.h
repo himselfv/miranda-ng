@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	#include <m_core.h>
 #endif
 
-///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
 // basic database interface
 
 struct DBCachedGlobalValue
@@ -127,12 +127,17 @@ interface MIR_APP_EXPORT MIDatabase
 	STDMETHOD_(BOOL, MetaSplitHistory)(DBCachedContact *ccMeta, DBCachedContact *ccSub) PURE;
 
 	STDMETHOD_(BOOL, Compact)(void) PURE;
+	STDMETHOD_(BOOL, Backup)(LPCWSTR) PURE;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-class MIR_APP_EXPORT MDatabaseCommon : public MIDatabase
+#pragma warning(push)
+#pragma warning(disable:4275)
+
+class MIR_APP_EXPORT MDatabaseCommon : public MIDatabase, public MNonCopyable
 {
+	HANDLE m_hLock = nullptr;
 
 protected:
 	int m_codePage;
@@ -142,7 +147,9 @@ protected:
 	MIDatabaseCache* m_cache;
 
 protected:
-	int CheckProto(DBCachedContact *cc, const char *proto);
+	bool LockName(const wchar_t *pwszProfileName);
+	int  CheckProto(DBCachedContact *cc, const char *proto);
+	void UnlockName();
 
 	STDMETHOD_(BOOL, GetContactSettingWorker)(MCONTACT contactID, LPCSTR szModule, LPCSTR szSetting, DBVARIANT *dbv, int isStatic) PURE;
 
@@ -170,14 +177,54 @@ public:
 	STDMETHODIMP_(BOOL) SetSettingResident(BOOL bIsResident, const char *pszSettingName);
 	
 	STDMETHODIMP_(BOOL) Compact(void);
+	STDMETHODIMP_(BOOL) Backup(LPCWSTR);
 };
 
-///////////////////////////////////////////////////////////////////////////////
+#pragma warning(pop)
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// Read-only database, that cannot add/modify information in a profile
+
+class MIR_APP_EXPORT MDatabaseReadonly : public MDatabaseCommon
+{
+public:
+	MDatabaseReadonly();
+
+	STDMETHODIMP_(BOOL) IsRelational(void) override;
+	
+	STDMETHODIMP_(void) SetCacheSafetyMode(BOOL) override;
+
+	STDMETHODIMP_(BOOL) EnumModuleNames(DBMODULEENUMPROC, void*) override;
+
+	////////////////////////////////////////////////////////////////////////////////////////
+	STDMETHODIMP_(MCONTACT) AddContact(void) override;
+	STDMETHODIMP_(LONG) DeleteContact(MCONTACT) override;
+	STDMETHODIMP_(BOOL) IsDbContact(MCONTACT contactID) override;
+	STDMETHODIMP_(LONG) GetContactSize(void) override;
+
+	////////////////////////////////////////////////////////////////////////////////////////
+	STDMETHODIMP_(MEVENT) AddEvent(MCONTACT, DBEVENTINFO*) override;
+	STDMETHODIMP_(BOOL) DeleteEvent(MCONTACT, MEVENT) override;
+	STDMETHODIMP_(LONG) GetBlobSize(MEVENT) override;
+	STDMETHODIMP_(BOOL) MarkEventRead(MCONTACT, MEVENT) override;
+	STDMETHODIMP_(MCONTACT) GetEventContact(MEVENT) override;
+	STDMETHODIMP_(MEVENT) FindFirstUnreadEvent(MCONTACT) override;
+
+	////////////////////////////////////////////////////////////////////////////////////////
+	STDMETHODIMP_(BOOL) GetContactSettingWorker(MCONTACT, LPCSTR, LPCSTR, DBVARIANT*, int) override;
+	STDMETHODIMP_(BOOL) WriteContactSetting(MCONTACT, DBCONTACTWRITESETTING*) override;
+	STDMETHODIMP_(BOOL) DeleteContactSetting(MCONTACT, LPCSTR, LPCSTR) override;
+	STDMETHODIMP_(BOOL) EnumContactSettings(MCONTACT, DBSETTINGENUMPROC, const char*, void*) override;
+
+	////////////////////////////////////////////////////////////////////////////////////////
+	STDMETHODIMP_(BOOL) MetaMergeHistory(DBCachedContact*, DBCachedContact*) override;
+	STDMETHODIMP_(BOOL) MetaSplitHistory(DBCachedContact*, DBCachedContact*) override;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
 // Each database plugin should register itself using this structure
 
-/*
- Codes for DATABASELINK functions
-*/
+// Codes for DATABASELINK functions
 
 // grokHeader() error codes
 #define EGROKPRF_NOERROR   0
@@ -227,12 +274,12 @@ struct DATABASELINK
 	MDatabaseCommon* (*Load)(const wchar_t *profile, BOOL bReadOnly);
 };
 
-///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
 // cache access function
 
 EXTERN_C MIR_CORE_DLL(DBCachedContact*) db_get_contact(MCONTACT);
 
-///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
 // Database list's functions
 
 EXTERN_C MIR_CORE_DLL(MDatabaseCommon*) db_get_current(void);

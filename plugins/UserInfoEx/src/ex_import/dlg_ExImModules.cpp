@@ -167,7 +167,7 @@ INT_PTR CALLBACK SelectModulesToExport_DlgProc(HWND hDlg, UINT uMsg, WPARAM wPar
 					{ ICO_BTN_EXPORT,	BM_SETIMAGE,	IDOK		},
 					{ ICO_BTN_CANCEL,	BM_SETIMAGE,	IDCANCEL	}
 				};
-				const int numIconsToSet = db_get_b(NULL, MODNAME, SET_ICONS_BUTTONS, 1) ? _countof(idIcon) : 2;
+				const int numIconsToSet = db_get_b(NULL, MODULENAME, SET_ICONS_BUTTONS, 1) ? _countof(idIcon) : 2;
 				IcoLib_SetCtrlIcons(hDlg, idIcon, numIconsToSet);
 
 				// create imagelist for treeview
@@ -432,6 +432,6 @@ int DlgExImModules_SelectModulesToExport(lpExImParam ExImContact, DB::CEnumList*
 
 	dat.ExImContact = ExImContact;
 	dat.pModules = pModules;
-	return (IDOK != DialogBoxParam(ghInst, MAKEINTRESOURCE(IDD_EXPORT), hParent, SelectModulesToExport_DlgProc, (LPARAM)&dat));
+	return (IDOK != DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_EXPORT), hParent, SelectModulesToExport_DlgProc, (LPARAM)&dat));
 }
 

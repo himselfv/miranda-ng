@@ -45,7 +45,7 @@ INT_PTR WeatherAddToList(WPARAM, LPARAM lParam)
 			DBVARIANT dbv;
 			// check ID to see if the contact already exist in the database
 			if (!db_get_ws(hContact, WEATHERPROTONAME, "ID", &dbv)) {
-				if (!mir_wstrcmpi(psr->email.w, dbv.ptszVal)) {
+				if (!mir_wstrcmpi(psr->email.w, dbv.pwszVal)) {
 					// remove the flag for not on list and hidden, thus make the contact visible
 					// and add them on the list
 					if (db_get_b(hContact, "CList", "NotOnList", 1)) {
@@ -109,7 +109,7 @@ INT_PTR WeatherAddToList(WPARAM, LPARAM lParam)
 		opt.DefStn = hContact;
 		if (!db_get_ws(hContact, WEATHERPROTONAME, "Nick", &dbv)) {
 			// notification message box
-			mir_snwprintf(str, TranslateT("%s is now the default weather station"), dbv.ptszVal);
+			mir_snwprintf(str, TranslateT("%s is now the default weather station"), dbv.pwszVal);
 			db_free(&dbv);
 			MessageBox(nullptr, str, TranslateT("Weather Protocol"), MB_OK | MB_ICONINFORMATION);
 		}
@@ -280,7 +280,6 @@ int IDSearch(wchar_t *sID, const int searchId)
 			IDSearchProc(sID, searchId, &Item->Data.IDSearch, Item->Data.InternalName, Item->Data.DisplayName);
 			Item = Item->next;
 		}
-		NetlibHttpDisconnect();
 	}
 	// if the station ID is #, return a dummy result and quit the funciton
 	else {
@@ -411,16 +410,14 @@ int NameSearchProc(wchar_t *name, const int searchId, WINAMESEARCH *sData, wchar
 // return 0 if no error
 int NameSearch(wchar_t *name, const int searchId)
 {
-	WIDATALIST *Item = WIHead;
-
 	// search every weather service using the search station name
+	WIDATALIST *Item = WIHead;
 	while (Item != nullptr) {
 		if (Item->Data.NameSearch.Single.Available || Item->Data.NameSearch.Multiple.Available)
 			NameSearchProc(name, searchId, &Item->Data.NameSearch, Item->Data.InternalName, Item->Data.DisplayName);
 		Item = Item->next;
 	}
 
-	NetlibHttpDisconnect();
 	return 0;
 }
 

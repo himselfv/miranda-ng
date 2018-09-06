@@ -22,11 +22,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "http_api.h"
 
-HINSTANCE g_hInst;
+CMPlugin g_plugin;
 
-int hLangpack;
+IconItem iconList[] =
+{
+	{ LPGEN("Favorite Contact"), "favcontacts_favorite", IDI_FAVORITE },
+	{ LPGEN("Regular Contact"), "favcontacts_regular", IDI_REGULAR },
+};
 
-PLUGININFOEX pluginInfo = {
+CContactCache *g_contactCache = nullptr;
+
+Options g_Options = { 0 };
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+static PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -39,33 +49,14 @@ PLUGININFOEX pluginInfo = {
 	{0xce2c0401, 0xf9e0, 0x40d7, {0x8e, 0x95, 0x1a, 0x41, 0x97, 0xd7, 0xab, 0x4}}
 };
 
-IconItem iconList[] =
-{
-	{ LPGEN("Favorite Contact"), "favcontacts_favorite", IDI_FAVORITE },
-	{ LPGEN("Regular Contact"), "favcontacts_regular", IDI_REGULAR },
-};
-
-CContactCache *g_contactCache = nullptr;
-
-Options g_Options = { 0 };
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	g_hInst = hinstDLL;
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX *MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>("FavContacts", pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	g_contactCache = new CContactCache;
 
 	InitMenu();
@@ -74,13 +65,13 @@ extern "C" __declspec(dllexport) int Load(void)
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
-	Icon_Register(g_hInst, LPGEN("Favorites"), iconList, _countof(iconList));
+	g_plugin.registerIcon(LPGEN("Favorites"), iconList);
 
 	LoadHttpApi();
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	UninitServices();
 	UninitMenu();

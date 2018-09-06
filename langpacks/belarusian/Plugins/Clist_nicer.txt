@@ -2,11 +2,12 @@
 ;============================================================
 ;  File: Clist_nicer.dll
 ;  Plugin: Clist nicer
-;  Version: 0.9.3.1
+;  Version: 0.9.3.2
 ;  Authors: Pixel, egoDust, cyreve, Nightwish
 ;============================================================
 [Displays contacts, event notifications, protocol status.]
 Паказвае кантакты, з'явы, статусы протоколаў.
+;file \plugins\Clist_nicer\res\resource.rc
 [Clist nicer exception]
 Выключэнні Clist nicer
 [Copy to clipboard]
@@ -127,8 +128,6 @@
 Не адлучаць адключаныя кантакты
 [Hide as offline]
 Хаваць як адключаных
-[Tree hide offline]
-
 [Right align contacts]
 Выраўняць па правым краі
 [Avatars]
@@ -257,8 +256,6 @@
 Схаваць паласу прагорткі
 [Gray out entire list when:]
 Зрабіць шэрым, калі:
-[Tree gray out]
-
 [Contact list background]
 Фон спісу
 [Use Windows colors]
@@ -429,32 +426,7 @@
 Абразок па-над аватарам
 [Show local time]
 Лакальны час
-[&Main menu]
-Галоўнае меню
-[E&xit]
-Вы&хад
-[&Status]
-Статус
-[&Offline\tCtrl+0]
-Ад&ключаныtCtrl+0
-[On&line\tCtrl+1]
-&Далучаны\tCtrl+1
-[&Away\tCtrl+2]
-&Адсутнічаю\tCtrl+2
-[&Not available\tCtrl+3]
-Неда&ступны\tCtrl+3
-[Occ&upied\tCtrl+4]
-Зан&яты\tCtrl+4
-[&Do not disturb\tCtrl+5]
-Не &турбаваць\tCtrl+5
-[&Free for chat\tCtrl+6]
-&Вольны\tCtrl+6
-[&Invisible\tCtrl+7]
-&Нябачны\tCtrl+7
-[On the &phone\tCtrl+8]
-На тэле&фоне\tCtrl+8
-[Out to &lunch\tCtrl+9]
-А&бедаю\tCtrl+9
+;file \plugins\Clist_nicer\src\CLCButton.cpp
 [Show menu]
 Меню
 [Show/Hide offline contacts]
@@ -479,6 +451,7 @@
 Наладзіць рэжымы выгляду
 [Clear view mode]
 Сцерці рэжым выгляду
+;file \plugins\Clist_nicer\src\clcopts.cpp
 [Not focused]
 Не ў фокусе
 [Offline]
@@ -551,8 +524,10 @@
 Дадаткова
 [Skins]
 Скіны
+;file \plugins\Clist_nicer\src\clcpaint.cpp
 [No events...]
 Падзей няма...
+;file \plugins\Clist_nicer\src\clistmenus.cpp
 [Add permanently]
 Дадаць у спіс
 [Revert to default]
@@ -571,8 +546,10 @@
 Налады адлюстравання і ігнараванні для %s
 [&Contact list settings...]
 Налады кантакт-ліста...
+;file \plugins\Clist_nicer\src\clistopts.cpp
 [Global]
 Глабальныя
+;file \plugins\Clist_nicer\src\clui.cpp
 [Toggle show online/offline]
 Укл/Выкл адключаных карыстачоў
 [Toggle groups]
@@ -647,6 +624,7 @@
 Хуткі пошук
 [Embedded frames border]
 Мяжа фрэймаў
+;file \plugins\Clist_nicer\src\cluiframes.cpp
 [&FrameTitle]
 &Загаловак фрэйма
 [&Visible]
@@ -695,6 +673,7 @@
 Паказваць назвы
 [Hide all title bars]
 Схаваць назвы
+;file \plugins\Clist_nicer\src\cluiopts.cpp
 [Title bar]
 Загаловак
 [Tool Window]
@@ -703,12 +682,15 @@
 Тонкая рамка
 [No border]
 Без рамкі
+;file \plugins\Clist_nicer\src\Docking.cpp
 [The contact list cannot be docked when using the default title bar and border. Use a toolwindow or borderless style instead.]
 Немагчыма паркаваць спіс кантактаў пры выкарыстанні мяжы і загалоўка па змаўчанні. Выкарыстоўвайце стыль "Без меж" ці "Панэль"
 [Contact list docking]
 Паркоўка
+;file \plugins\Clist_nicer\src\extBackg.cpp
 [Load and apply]
 Загрузіць і ўжыць
+;file \plugins\Clist_nicer\src\groupmenu.cpp
 [Show metacontact protocol icons]
 Паказваць значкі метакантактаў
 [Show additional buttons]
@@ -719,10 +701,15 @@
 С&хаваць/паказаць
 [&Find/add contacts...]
 Дадаць &кантакты
+[&Main menu]
+Галоўнае меню
+[&Status]
+Статус
 [Appearance]
 Знешні выгляд
 [&Options...]
 &Налады
+;file \plugins\Clist_nicer\src\viewmodes.cpp
 [Ungrouped contacts]
 Кантакты па-за гуртамі
 [And]

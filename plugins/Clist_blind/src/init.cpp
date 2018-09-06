@@ -24,9 +24,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 
-int hLangpack;
-HINSTANCE g_hInst = nullptr;
-CLIST_INTERFACE *pcli = nullptr, coreCli;
+CMPlugin g_plugin;
+CLIST_INTERFACE coreCli;
+
 HIMAGELIST himlCListClc = nullptr;
 
 LRESULT CALLBACK ContactListWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -51,20 +51,10 @@ int CluiOptInit(WPARAM wParam, LPARAM lParam);
 int CListOptInit(WPARAM wParam, LPARAM lParam);
 
 /////////////////////////////////////////////////////////////////////////////////////////
-// dll stub
-
-BOOL WINAPI DllMain(HINSTANCE hInstDLL, DWORD, LPVOID)
-{
-	g_hInst = hInstDLL;
-	DisableThreadLibraryCalls(g_hInst);
-	return TRUE;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
 // returns the plugin information
 
-PLUGININFOEX pluginInfo = {
-	sizeof(pluginInfo),
+PLUGININFOEX pluginInfoEx = {
+	sizeof(pluginInfoEx),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
 	__DESCRIPTION,
@@ -76,10 +66,9 @@ PLUGININFOEX pluginInfo = {
 	{0x53e095a3, 0x2695, 0x490a, {0x9d, 0xad, 0xd2, 0x4, 0x79, 0x9, 0x38, 0x31}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX *MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>("CList", pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // returns plugin's interfaces information
@@ -120,32 +109,32 @@ static int OnOptsInit(WPARAM wParam, LPARAM lParam)
 
 static INT_PTR GetStatusMode(WPARAM, LPARAM)
 {
-	return pcli->currentDesiredStatusMode;
+	return g_clistApi.currentDesiredStatusMode;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // main clist initialization routine
 
-extern "C" int __declspec(dllexport) CListInitialise()
+int CMPlugin::Load()
 {
-	pcli = Clist_GetInterface();
 	g_bSortByStatus = db_get_b(NULL, "CList", "SortByStatus", SETTING_SORTBYSTATUS_DEFAULT);
 	g_bSortByProto = db_get_b(NULL, "CList", "SortByProto", SETTING_SORTBYPROTO_DEFAULT);
 
-	coreCli = *pcli;
-
-	pcli->hInst = g_hInst;
-	pcli->pfnPaintClc = PaintClc;
-	pcli->pfnContactListWndProc = ContactListWndProc;
-	pcli->pfnContactListControlWndProc = ContactListControlWndProc;
-	pcli->pfnRebuildEntireList = RebuildEntireList;
-	pcli->pfnSetGroupExpand = SetGroupExpand;
-	pcli->pfnRecalcScrollBar = RecalcScrollBar;
-	pcli->pfnScrollTo = ScrollTo;
-	pcli->pfnLoadClcOptions = LoadClcOptions;
-	pcli->pfnGetRowHeight = GetRowHeight;
-	pcli->pfnSortCLC = SortCLC;
-	pcli->pfnCompareContacts = CompareContacts;
+	Clist_GetInterface();
+	coreCli = g_clistApi;
+	g_clistApi.bOwnerDrawMenu = false;
+	g_clistApi.hInst = g_plugin.getInst();
+	g_clistApi.pfnPaintClc = PaintClc;
+	g_clistApi.pfnContactListWndProc = ContactListWndProc;
+	g_clistApi.pfnContactListControlWndProc = ContactListControlWndProc;
+	g_clistApi.pfnRebuildEntireList = RebuildEntireList;
+	g_clistApi.pfnSetGroupExpand = SetGroupExpand;
+	g_clistApi.pfnRecalcScrollBar = RecalcScrollBar;
+	g_clistApi.pfnScrollTo = ScrollTo;
+	g_clistApi.pfnLoadClcOptions = LoadClcOptions;
+	g_clistApi.pfnGetRowHeight = GetRowHeight;
+	g_clistApi.pfnSortCLC = SortCLC;
+	g_clistApi.pfnCompareContacts = CompareContacts;
 
 	CreateServiceFunction(MS_CLIST_GETSTATUSMODE, GetStatusMode);
 
@@ -154,22 +143,6 @@ extern "C" int __declspec(dllexport) CListInitialise()
 	HookEvent(ME_OPT_INITIALISE, OnOptsInit);
 
 	InitCustomMenus();
-	return 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-// a plugin loader aware of CList exports will never call this.
-
-extern "C" int __declspec(dllexport) Load()
-{
-	return 1;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-// a plugin unloader
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }
 
@@ -342,7 +315,7 @@ LRESULT CALLBACK ContactListControlWndProc(HWND hwnd, UINT msg, WPARAM wParam, L
 
 		dat->hwnd_list = CreateWindow(L"LISTBOX", L"",
 			(WS_VISIBLE | WS_CHILD | LBS_NOINTEGRALHEIGHT | LBS_NOTIFY | LBS_WANTKEYBOARDINPUT | WS_VSCROLL),
-			0, 0, 0, 0, hwnd, nullptr, g_hInst, nullptr);
+			0, 0, 0, 0, hwnd, nullptr, g_plugin.getInst(), nullptr);
 		dat->need_rebuild = FALSE;
 
 		GetClientRect(hwnd, &r);
@@ -395,7 +368,7 @@ LRESULT CALLBACK ContactListControlWndProc(HWND hwnd, UINT msg, WPARAM wParam, L
 		KillTimer(hwnd, TIMERID_INFOTIP);
 		KillTimer(hwnd, TIMERID_RENAME);
 		dat->szQuickSearch[0] = 0;
-		pcli->pfnInvalidateRect(hwnd, nullptr, FALSE);
+		g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		Clist_EnsureVisible(hwnd, (ClcData*)dat, dat->selection, 0);
 		UpdateWindow(hwnd);
 		break;

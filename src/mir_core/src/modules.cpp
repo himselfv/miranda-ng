@@ -695,47 +695,6 @@ static void DestroyServices()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static int sttComparePlugins(const HINSTANCE__* p1, const HINSTANCE__* p2)
-{
-	if (p1 == p2)
-		return 0;
-
-	return (p1 < p2) ? -1 : 1;
-}
-
-LIST<HINSTANCE__> pluginListAddr(10, sttComparePlugins);
-
-MIR_CORE_DLL(void) RegisterModule(HINSTANCE hInst)
-{
-	pluginListAddr.insert(hInst);
-}
-
-MIR_CORE_DLL(void) UnregisterModule(HINSTANCE hInst)
-{
-	pluginListAddr.remove(hInst);
-}
-
-MIR_CORE_DLL(HINSTANCE) GetInstByAddress(void* codePtr)
-{
-	if (pluginListAddr.getCount() == 0)
-		return nullptr;
-
-	int idx;
-	List_GetIndex((SortedList*)&pluginListAddr, codePtr, &idx);
-	if (idx > 0)
-		idx--;
-
-	HINSTANCE result = pluginListAddr[idx];
-	if (result < g_hInst && codePtr > g_hInst)
-		result = g_hInst;
-	else if (idx == 0 && codePtr < (void*)result)
-		result = nullptr;
-
-	return result;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 int InitialiseModularEngine(void)
 {
 	mainThreadId = GetCurrentThreadId();

@@ -38,14 +38,12 @@ CSendHTTPServer::CSendHTTPServer(HWND Owner, MCONTACT hContact, bool /*bAsync*/)
 	m_EnableItem = SS_DLG_DESCRIPTION; //| SS_DLG_AUTOSEND | SS_DLG_DELETEAFTERSSEND;
 	m_pszSendTyp = LPGENW("HTTPServer transfer");
 	m_pszFileName = nullptr;
-	m_fsi_pszSrvPath = nullptr;
 	m_fsi_pszRealPath = nullptr;
 }
 
 CSendHTTPServer::~CSendHTTPServer()
 {
 	mir_free(m_pszFileName);
-	mir_free(m_fsi_pszSrvPath);
 	mir_free(m_fsi_pszRealPath);
 }
 
@@ -63,19 +61,19 @@ int CSendHTTPServer::Send()
 	if (!m_pszFileName) {
 		m_pszFileName = GetFileNameA(m_pszFile);
 	}
-	mir_freeAndNil(m_fsi_pszSrvPath);
-	mir_stradd(m_fsi_pszSrvPath, "/");
-	mir_stradd(m_fsi_pszSrvPath, m_pszFileName);
+
+	m_fsi_pszSrvPath.Empty();
+	m_fsi_pszSrvPath.AppendChar('/');
+	m_fsi_pszSrvPath.Append(m_pszFileName);
 
 	replaceStr(m_fsi_pszRealPath, _T2A(m_pszFile));
 
 	memset(&m_fsi, 0, sizeof(m_fsi));
 	m_fsi.lStructSize = sizeof(STFileShareInfo);
-	m_fsi.pszSrvPath = m_fsi_pszSrvPath;
 	m_fsi.nMaxDownloads = -1;					// -1 = infinite
 	m_fsi.pszRealPath = m_fsi_pszRealPath;
 
-	//start Send thread
+	// start Send thread
 	mir_forkthread(&CSendHTTPServer::SendThreadWrapper, this);
 	return 0;
 }
@@ -85,18 +83,17 @@ void CSendHTTPServer::SendThread()
 	INT_PTR ret;
 
 	if (ServiceExists(MS_HTTP_GET_LINK)) {
-		//patched plugin version
+		// patched plugin version
 		ret = CallService(MS_HTTP_ADD_CHANGE_REMOVE, (WPARAM)m_hContact, (LPARAM)&m_fsi);
 		if (!ret) {
-			mir_free(m_URL);
-			m_URL = (char*)CallService(MS_HTTP_GET_LINK, (WPARAM)m_fsi.pszSrvPath, NULL);
+			m_URL = ptrA((char*)CallService(MS_HTTP_GET_LINK, (WPARAM)m_fsi.pszSrvPath, 0));
 		}
 	}
 	else {
-		//original plugin
+		// original plugin
 		m_fsi.dwOptions = OPT_SEND_LINK;
 
-		//send DATA and wait for reply
+		// send DATA and wait for reply
 		ret = CallService(MS_HTTP_ADD_CHANGE_REMOVE, (WPARAM)m_hContact, (LPARAM)&m_fsi);
 	}
 
@@ -105,7 +102,7 @@ void CSendHTTPServer::SendThread()
 		Exit(ret); return;
 	}
 
-	//Share the file by HTTP Server plugin, SendSS does not own the file anymore = auto-delete won't work
+	// Share the file by HTTP Server plugin, SendSS does not own the file anymore = auto-delete won't work
 	m_bDeleteAfterSend = false;
 
 	if (m_URL && *m_URL) {

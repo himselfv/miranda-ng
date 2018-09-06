@@ -21,18 +21,19 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "stdafx.h"
 
-CLIST_INTERFACE *pcli;
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 static HANDLE hToolBarItem = nullptr;
 static HGENMENU hMainMenuItem = nullptr;
 HWND hAddDlg;
 
-static IconItem icon = { LPGEN("Add contact"), ICON_ADD, IDI_ADDCONTACT };
+static IconItem icon[] =
+{
+	{ LPGEN("Add contact"), ICON_ADD, IDI_ADDCONTACT }
+};
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-PLUGININFOEX pluginInfo =
+PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -46,18 +47,9 @@ PLUGININFOEX pluginInfo =
 	{0x6471d451, 0x2fe0, 0x4ee2, {0x85, 0xe, 0x9f, 0x84, 0xf3, 0xc0, 0xd1, 0x87}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -67,7 +59,7 @@ static INT_PTR AddContactPlusDialog(WPARAM, LPARAM)
 		SetForegroundWindow(hAddDlg);
 		SetFocus(hAddDlg);
 	}
-	else hAddDlg = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_ADDCONTACT), nullptr, AddContactDlgProc, 0);
+	else hAddDlg = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_ADDCONTACT), nullptr, AddContactDlgProc, 0);
 
 	return 0;
 }
@@ -88,11 +80,11 @@ static int OnAccListChanged(WPARAM, LPARAM)
 		if (hMainMenuItem)
 			return 0;
 
-		CMenuItem mi;
+		CMenuItem mi(&g_plugin);
 		SET_UID(mi, 0xb19db907, 0x870e, 0x49fa, 0xa7, 0x1e, 0x43, 0x5e, 0xa8, 0xe5, 0x9b, 0xbd);
 		mi.position = 500020001;
 		mi.flags = CMIF_UNICODE;
-		mi.hIcolibItem = icon.hIcolib;
+		mi.hIcolibItem = icon[0].hIcolib;
 		mi.name.w = LPGENW("&Add contact...");
 		mi.pszService = MS_ADDCONTACTPLUS_SHOW;
 		hMainMenuItem = Menu_AddMainMenuItem(&mi);
@@ -115,8 +107,8 @@ static int CreateButton(WPARAM, LPARAM)
 	tbb.dwFlags = TTBBF_VISIBLE | TTBBF_SHOWTOOLTIP;
 	tbb.pszService = MS_ADDCONTACTPLUS_SHOW;
 	tbb.name = tbb.pszTooltipUp = LPGEN("Add contact");
-	tbb.hIconHandleUp = icon.hIcolib;
-	hToolBarItem = TopToolbar_AddButton(&tbb);
+	tbb.hIconHandleUp = icon[0].hIcolib;
+	hToolBarItem = g_plugin.addTTB(&tbb);
 	return 0;
 }
 
@@ -129,7 +121,7 @@ static int OnModulesLoaded(WPARAM, LPARAM)
 	hkd.szSection.w = LPGENW("Main");
 	hkd.pszService = MS_ADDCONTACTPLUS_SHOW;
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL | HOTKEYF_SHIFT, 'C') | HKF_MIRANDA_LOCAL;
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	OnAccListChanged(0, 0);
 
@@ -137,24 +129,16 @@ static int OnModulesLoaded(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
 	INITCOMMONCONTROLSEX icex = { sizeof(icex), ICC_USEREX_CLASSES };
 	InitCommonControlsEx(&icex);
 
-	Icon_Register(hInst, LPGEN("AddContact+"), &icon, 1);
+	g_plugin.registerIcon(LPGEN("AddContact+"), icon);
 
 	HookEvent(ME_SYSTEM_MODULESLOADED, OnModulesLoaded);
 	HookEvent(ME_PROTO_ACCLISTCHANGED, OnAccListChanged);
 
 	CreateServiceFunction(MS_ADDCONTACTPLUS_SHOW, AddContactPlusDialog);
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

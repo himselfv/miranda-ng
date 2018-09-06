@@ -45,5 +45,3 @@ typedef struct SslHandle *HSSL;
 #include <openssl/rand.h>
 
 #include "version.h"
-
-extern HINSTANCE hInst;

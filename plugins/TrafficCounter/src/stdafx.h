@@ -44,6 +44,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <m_skin_eng.h>
 #include <m_tipper.h>
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 #include "resource.h"
 #include "version.h"
 #include "misc.h"
@@ -141,8 +149,6 @@ typedef union
 		unsigned int DrawTotalTimeCounter:1;	//23
 	};
 } uTCFLAGS;
-
-extern HINSTANCE hInst;
 
 extern HWND TrafficHwnd;
 extern PROTOLIST *ProtoList;

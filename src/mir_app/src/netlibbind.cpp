@@ -111,6 +111,16 @@ bool BindSocketToPort(const char *szPorts, SOCKET s, SOCKET s6, int* portn)
 
 int NetlibFreeBoundPort(NetlibBoundPort *nlbp)
 {
+	NETLIBCONNECTIONEVENTINFO ncei;
+
+	ZeroMemory(&ncei, sizeof(ncei));
+	ncei.connected = 0;
+	ncei.listening = 1;
+	ncei.szSettingsModule = nlbp->nlu->user.szSettingsModule;
+	int size = sizeof(SOCKADDR_IN);
+	getsockname(nlbp->s, (SOCKADDR *)&ncei.local, &size);
+	NotifyFastHook(hEventDisconnected, (WPARAM)&ncei, 0);
+
 	nlbp->close();
 	if (nlbp->hThread)
 		WaitForSingleObject(nlbp->hThread, INFINITE);
@@ -281,6 +291,16 @@ LBL_Error:
 	}
 
 	nlbp->hThread = mir_forkThread<NetlibBoundPort>(NetlibBindAcceptThread, nlbp);
+
+	if (GetSubscribersCount((THook*)hEventConnected)) {
+		NETLIBCONNECTIONEVENTINFO ncei = {};
+		ncei.connected = 1;
+		ncei.listening = 1;
+		ncei.szSettingsModule = nlu->user.szSettingsModule;
+		memcpy(&ncei.local, &sin, sizeof(sin));
+		NotifyFastHook(hEventConnected, (WPARAM)&ncei, 0);
+	}
+
 	return nlbp;
 }
 

@@ -37,26 +37,25 @@ static INT_PTR CALLBACK OptionsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 // Initializations needed by options
 void LoadOptions()
 {
-	opts.last_sent_enable = db_get_b(NULL, MODULE_NAME, "EnableLastSentTo", TRUE);
-	opts.last_sent_msg_type = db_get_w(NULL, MODULE_NAME, "MsgTypeRec", TYPE_GLOBAL);
-	opts.hide_from_offline_proto = db_get_b(NULL, MODULE_NAME, "HideOfflineFromOfflineProto", TRUE);
-	opts.group_append = db_get_b(NULL, MODULE_NAME, "AppendGroupName", FALSE);
-	opts.group_column = db_get_b(NULL, MODULE_NAME, "GroupColumn", FALSE);
-	opts.group_column_left = db_get_b(NULL, MODULE_NAME, "GroupColumnLeft", FALSE);
-	opts.hide_subcontacts = db_get_b(NULL, MODULE_NAME, "HideSubcontacts", TRUE);
-	opts.keep_subcontacts_from_offline = db_get_b(NULL, MODULE_NAME, "KeepSubcontactsFromOffline", TRUE);
+	opts.last_sent_enable = db_get_b(NULL, MODULENAME, "EnableLastSentTo", TRUE);
+	opts.last_sent_msg_type = db_get_w(NULL, MODULENAME, "MsgTypeRec", TYPE_GLOBAL);
+	opts.hide_from_offline_proto = db_get_b(NULL, MODULENAME, "HideOfflineFromOfflineProto", TRUE);
+	opts.group_append = db_get_b(NULL, MODULENAME, "AppendGroupName", FALSE);
+	opts.group_column = db_get_b(NULL, MODULENAME, "GroupColumn", FALSE);
+	opts.group_column_left = db_get_b(NULL, MODULENAME, "GroupColumnLeft", FALSE);
+	opts.hide_subcontacts = db_get_b(NULL, MODULENAME, "HideSubcontacts", TRUE);
+	opts.keep_subcontacts_from_offline = db_get_b(NULL, MODULENAME, "KeepSubcontactsFromOffline", TRUE);
 }
 
 int InitOptionsCallback(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szGroup.w = LPGENW("Contacts");
 	odp.szTitle.w = LPGENW("Quick Contacts");
 	odp.pfnDlgProc = OptionsDlgProc;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT);
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -90,7 +89,7 @@ static OptPageControl controls[] = {
 
 static INT_PTR CALLBACK OptionsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	int ret = SaveOptsDlgProc(controls, _countof(controls), MODULE_NAME, hwndDlg, msg, wParam, lParam);
+	int ret = SaveOptsDlgProc(controls, _countof(controls), MODULENAME, hwndDlg, msg, wParam, lParam);
 
 	switch (msg) {
 	case WM_INITDIALOG:

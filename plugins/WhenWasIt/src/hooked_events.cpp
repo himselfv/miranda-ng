@@ -36,21 +36,20 @@ static int OnTopToolBarModuleLoaded(WPARAM, LPARAM)
 	ttb.pszService = MS_WWI_CHECK_BIRTHDAYS;
 	ttb.hIconHandleUp = hCheckMenu;
 	ttb.name = ttb.pszTooltipUp = LPGEN("Check for birthdays");
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 	return 0;
 }
 
 static int OnOptionsInitialise(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 100000000;
-	odp.hInstance = hInstance;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_WWI);
 	odp.szTitle.w = LPGENW("Birthdays");
 	odp.szGroup.w = LPGENW("Contacts");
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
 	odp.pfnDlgProc = DlgProcOptions;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -142,7 +141,7 @@ int RefreshContactListIcons(MCONTACT hContact)
 
 int UpdateTimers()
 {
-	UINT interval = db_get_dw(NULL, ModuleName, "Interval", CHECK_INTERVAL);
+	UINT interval = db_get_dw(NULL, MODULENAME, "Interval", CHECK_INTERVAL);
 	interval *= (1000 * 60 * 60); //go from miliseconds to hours
 	hCheckTimer = SetTimer(nullptr, 0, interval, OnCheckTimer);
 	if (!hDateChangeTimer)

@@ -19,8 +19,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "stdafx.h"
 
-HINSTANCE hInst = nullptr;
-int hLangpack;
+CMPlugin g_plugin;
 
 BOOL bstartup = true; // startup?
 BOOL bserviceinvoked = false;
@@ -36,7 +35,9 @@ wchar_t szLogFile[MAX_PATH];
 SPLASHOPTS options;
 HWND hwndSplash;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -49,11 +50,11 @@ PLUGININFOEX pluginInfo = {
 	{ 0xc64cc8e0, 0xcf03, 0x474a, { 0x8b, 0x11, 0x8b, 0xd4, 0x56, 0x5c, 0xcf, 0x04 } }
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 void SplashMain()
 {
@@ -76,15 +77,15 @@ void SplashMain()
 
 	if (bstartup & (options.active == 1)) {
 		DBVARIANT dbv = { 0 };
-		if (!db_get_ws(NULL, MODNAME, "VersionPrefix", &dbv)) {
-			mir_wstrcpy(szPrefix, dbv.ptszVal);
+		if (!db_get_ws(NULL, MODULENAME, "VersionPrefix", &dbv)) {
+			mir_wstrcpy(szPrefix, dbv.pwszVal);
 			db_free(&dbv);
 		}
 		else
 			mir_wstrcpy(szPrefix, L"");
 
-		if (!db_get_ws(NULL, MODNAME, "Path", &dbv)) {
-			mir_wstrcpy(inBuf, dbv.ptszVal);
+		if (!db_get_ws(NULL, MODULENAME, "Path", &dbv)) {
+			mir_wstrcpy(inBuf, dbv.pwszVal);
 			db_free(&dbv);
 		}
 		else mir_wstrcpy(inBuf, L"splash\\splash.png");
@@ -100,8 +101,8 @@ void SplashMain()
 		else
 			mir_wstrcpy(szSplashFile, inBuf);
 
-		if (!db_get_ws(NULL, MODNAME, "Sound", &dbv)) {
-			mir_wstrcpy(inBuf, dbv.ptszVal);
+		if (!db_get_ws(NULL, MODULENAME, "Sound", &dbv)) {
+			mir_wstrcpy(inBuf, dbv.pwszVal);
 			db_free(&dbv);
 		}
 		else mir_wstrcpy(inBuf, L"sounds\\startup.wav");
@@ -187,36 +188,20 @@ void SplashMain()
 
 int PlugDisableHook(WPARAM wParam, LPARAM lParam)
 {
-	#ifdef _DEBUG
-	wchar_t buf[128];
-	#endif
 	DBCONTACTWRITESETTING *cws = (DBCONTACTWRITESETTING*)lParam;
+
 	if (options.inheritGS) {
-		if (!strcmp(cws->szModule, "Skin") && !strcmp(cws->szSetting, "UseSound")) {
-			db_set_b(NULL, MODNAME, "PlaySound", cws->value.bVal);
-			#ifdef _DEBUG
-			cws->value.bVal ? _DebugPopup(NULL, L"Sounds enabled.", L"") : _DebugPopup(NULL, L"Sounds disabled.", L"");
-			logMessage(L"Module", _A2T(cws->szModule));
-			logMessage(L"Setting", _A2T(cws->szSetting));
-			logMessage(L"Value", _itow(cws->value.bVal, buf, 10));
-			#endif
-		}
-		if (!strcmp(cws->szModule, "PluginDisable") && !strcmp(cws->szSetting, _T2A(szDllName))) {
-			db_set_b(NULL, MODNAME, "Active", cws->value.bVal);
-			#ifdef _DEBUG
-			cws->value.bVal ? _DebugPopup(NULL, L"Disabled.", "") : _DebugPopup(NULL, L"Enabled.", L"");
-			logMessage(L"PlugDisableHook", L"Triggered");
-			logMessage(L"Module", _A2T(cws->szModule));
-			logMessage(L"Setting", _A2T(cws->szSetting));
-			logMessage(L"Value", _itow(cws->value.bVal, buf, 10));
-			#endif
-		}
+		if (!strcmp(cws->szModule, "Skin") && !strcmp(cws->szSetting, "UseSound"))
+			db_set_b(NULL, MODULENAME, "PlaySound", cws->value.bVal);
+
+		if (!strcmp(cws->szModule, "PluginDisable") && !strcmp(cws->szSetting, _T2A(szDllName)))
+			db_set_b(NULL, MODULENAME, "Active", cws->value.bVal);
 	}
 
 	return 0;
 }
 
-int ModulesLoaded(WPARAM wParam, LPARAM lParam)
+static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 {
 	bmodulesloaded = true; // all modules are loaded now, let other parts know about this fact
 
@@ -242,15 +227,8 @@ int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD mirandaVersion)
+int CMPlugin::Load()
 {
-	return &pluginInfo;
-}
-
-extern "C" int __declspec(dllexport) Load(void)
-{
-	mir_getLP(&pluginInfo);
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoaded);
 
 	SplashMain();
@@ -259,13 +237,10 @@ extern "C" int __declspec(dllexport) Load(void)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
-	UnregisterClass(SPLASH_CLASS, hInst);
-
-	#ifdef _DEBUG
-	logMessage(L"Unload", L"Job done");
-	#endif
-
+	UnregisterClass(SPLASH_CLASS, g_plugin.getInst());
 	return 0;
 }

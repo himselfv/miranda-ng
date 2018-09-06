@@ -6,8 +6,7 @@
 
 #include "Version.h"
 
-CLIST_INTERFACE *pcli;
-int hLangpack;
+CMPlugin	g_plugin;
 
 INT_PTR doubleClick(WPARAM wParam, LPARAM)
 {
@@ -48,13 +47,12 @@ int LCStatus = ID_STATUS_OFFLINE;
 //
 int NimcOptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_plugin.getInst();
+	OPTIONSDIALOGPAGE odp = {};
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
 	odp.szGroup.a = LPGEN("Plugins");
 	odp.szTitle.a = LPGEN("Non-IM Contacts");
 	odp.pfnDlgProc = DlgProcNimcOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 //=====================================================
@@ -77,16 +75,11 @@ PLUGININFOEX pluginInfoEx = {
 	{ 0x2e0d2ae3, 0xe123, 0x4607, {0x85, 0x39, 0xd4, 0x44, 0x8d, 0x67, 0x5d, 0xdb} }
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODNAME, pluginInfoEx)
 {
-	return &pluginInfoEx;
+	RegisterProtocol(PROTOTYPE_VIRTUAL);
 }
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-CMPlugin	g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -112,17 +105,14 @@ int ModulesLoaded(WPARAM, LPARAM)
 // Description : Called when plugin is loaded into Miranda
 //=====================================================
 
-IconItem icoList[] =
+IconItem iconList[] =
 {
 	{ LPGEN("Main Icon"), MODNAME, IDI_MAIN },
 };
 
-extern "C" __declspec(dllexport) int Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-	pcli = Clist_GetInterface();
-
-	Icon_Register(g_plugin.getInst(), LPGEN("Non-IM Contact"), icoList, _countof(icoList));
+	g_plugin.registerIcon(LPGEN("Non-IM Contact"), iconList);
 
 	HookEvent(ME_CLIST_DOUBLECLICKED, (MIRANDAHOOK)doubleClick);
 	HookEvent(ME_OPT_INITIALISE, NimcOptInit);
@@ -142,15 +132,15 @@ extern "C" __declspec(dllexport) int Load()
 	CreateServiceFunction("TestStringReplaceLine", testStringReplacer);
 	CreateServiceFunction("NIM_Contact/DoubleClick", doubleClick);
 
-	CMenuItem mi;
-	mi.root = Menu_CreateRoot(MO_MAIN, LPGENW("&Non-IM Contact"), 600090000);
+	CMenuItem mi(&g_plugin);
+	mi.root = g_plugin.addRootMenu(MO_MAIN, LPGENW("&Non-IM Contact"), 600090000);
 	Menu_ConfigureItem(mi.root, MCI_OPT_UID, "D7CE61C5-1178-41BA-B2ED-5A711BB21AE9");
 
 	SET_UID(mi, 0x73c11266, 0x153c, 0x4da4, 0x9b, 0x82, 0x5c, 0xce, 0xca, 0x86, 0xd, 0x41);
 	mi.position = 600090000;
 	mi.name.a = LPGEN("&Add Non-IM Contact");
 	mi.pszService = "AddLCcontact";
-	mi.hIcolibItem = icoList[0].hIcolib;
+	mi.hIcolibItem = iconList[0].hIcolib;
 	Menu_AddMainMenuItem(&mi);
 
 	SET_UID(mi, 0xa511c5e, 0x26d2, 0x41b1, 0xbd, 0xb7, 0x3e, 0x62, 0xc8, 0x44, 0x37, 0xc9);
@@ -197,7 +187,7 @@ extern "C" __declspec(dllexport) int Load()
 // Description : Unloads plugin
 //=====================================================
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	killTimer();
 	return 0;

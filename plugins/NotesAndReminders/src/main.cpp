@@ -1,9 +1,7 @@
 #include "globals.h"
 
-CLIST_INTERFACE *pcli;
-HINSTANCE hinstance = nullptr;
+CMPlugin g_plugin;
 HINSTANCE hmiranda = nullptr;
-int hLangpack;
 
 HANDLE hkOptInit = nullptr;
 HANDLE hkTopToolbarInit = nullptr; 
@@ -15,7 +13,9 @@ HMODULE hRichedDll = nullptr;
 extern TREEELEMENT *g_Stickies;
 extern TREEELEMENT *RemindersList;
 
-static PLUGININFOEX pluginInfo =
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -28,6 +28,11 @@ static PLUGININFOEX pluginInfo =
 	{0x842a6668, 0xf9da, 0x4968, {0xbf, 0xd7, 0xd2, 0xbd, 0x9d, 0xf8, 0x48, 0xee}} // {842A6668-F9DA-4968-BFD7-D2BD9DF848EE}
 };
 
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 void RegisterFontServiceFonts();
 void RegisterKeyBindings();
@@ -110,19 +115,18 @@ IconItem iconList[] =
 
 void InitIcons(void)
 {
-	Icon_Register(hinstance, LPGEN("Sticky Notes"), iconList, _countof(iconList), MODULENAME);
+	g_plugin.registerIcon(LPGEN("Sticky Notes"), iconList, MODULENAME);
 }
 
 static int OnOptInitialise(WPARAM w, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 900002000;
-	odp.hInstance = hinstance;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_STNOTEOPTIONS);
 	odp.szTitle.a = SECTIONNAME;
 	odp.szGroup.a = LPGEN("Plugins");
 	odp.pfnDlgProc = DlgProcOptions;
-	Options_AddPage(w, &odp);
+	g_plugin.addOptions(w, &odp);
 	return 0;
 }
 
@@ -134,12 +138,12 @@ int OnTopToolBarInit(WPARAM, LPARAM)
 	ttb.hIconHandleUp = iconList[14].hIcolib;
 	ttb.pszService = MODULENAME"/MenuCommandAddNew";
 	ttb.name = ttb.pszTooltipUp = LPGEN("Add New Note");
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 
 	ttb.hIconHandleUp = iconList[15].hIcolib;
 	ttb.pszService = MODULENAME"/MenuCommandNewReminder";
 	ttb.name = ttb.pszTooltipUp = LPGEN("Add New Reminder");
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 
 	UnhookEvent(hkTopToolbarInit);
 	return 0;
@@ -149,9 +153,9 @@ static void InitServices()
 {
 	// register sounds
 
-	Skin_AddSound("AlertReminder",  LPGENW("Alerts"), LPGENW("Reminder triggered"));
-	Skin_AddSound("AlertReminder2", LPGENW("Alerts"), LPGENW("Reminder triggered (Alternative 1)"));
-	Skin_AddSound("AlertReminder3", LPGENW("Alerts"), LPGENW("Reminder triggered (Alternative 2)"));
+	g_plugin.addSound("AlertReminder",  LPGENW("Alerts"), LPGENW("Reminder triggered"));
+	g_plugin.addSound("AlertReminder2", LPGENW("Alerts"), LPGENW("Reminder triggered (Alternative 1)"));
+	g_plugin.addSound("AlertReminder3", LPGENW("Alerts"), LPGENW("Reminder triggered (Alternative 2)"));
 
 	// register menu command services
 
@@ -193,8 +197,8 @@ int OnModulesLoaded(WPARAM, LPARAM)
 	g_AddContListMI = (BOOL)db_get_dw(0, MODULENAME, "AddContactMenuItems", 1);
 
 	// register menus
-	CMenuItem mi;
-	mi.root = Menu_CreateRoot(MO_MAIN, LPGENW("Notes && Reminders"), 1600000000);
+	CMenuItem mi(&g_plugin);
+	mi.root = g_plugin.addRootMenu(MO_MAIN, LPGENW("Notes && Reminders"), 1600000000);
 	Menu_ConfigureItem(mi.root, MCI_OPT_UID, "A5E140BC-D697-4689-B75B-8ECFB6FE5931");
 	mi.flags = CMIF_UNICODE;
 
@@ -259,12 +263,36 @@ int OnModulesLoaded(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Load()
 {
-	return &pluginInfo;
+	hmiranda = GetModuleHandle(nullptr);
+
+	INITCOMMONCONTROLSEX ctrls = { 0 };
+	ctrls.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	ctrls.dwICC = ICC_DATE_CLASSES;
+	InitCommonControlsEx(&ctrls);
+
+	hRichedDll = LoadLibrary("Msftedit.dll");
+	if (!hRichedDll) {
+		if (MessageBox(nullptr, Translate("Miranda could not load the Notes & Reminders plugin, Msftedit.dll is missing. If you are using WINE, please make sure you have Msftedit.dll installed. Press 'Yes' to continue loading Miranda."), SECTIONNAME, MB_YESNO | MB_ICONINFORMATION) != IDYES)
+			return 1;
+		return 0;
+	}
+
+	InitServices();
+	WS_Init();
+
+	hkModulesLoaded = HookEvent(ME_SYSTEM_MODULESLOADED, OnModulesLoaded);
+	InitIcons();
+
+	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	CloseNotesList();
 	CloseReminderList();
@@ -285,39 +313,6 @@ extern "C" __declspec(dllexport) int Unload(void)
 
 	if (hRichedDll)
 		FreeLibrary(hRichedDll);
-
-	return 0;
-}
-
-BOOL WINAPI DllMain(HINSTANCE hinst, DWORD, LPVOID)
-{
-	hinstance = hinst;
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) int Load(void)
-{
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-	hmiranda = GetModuleHandle(nullptr);
-
-	INITCOMMONCONTROLSEX ctrls = { 0 };
-	ctrls.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	ctrls.dwICC = ICC_DATE_CLASSES;
-	InitCommonControlsEx(&ctrls);
-
-	hRichedDll = LoadLibrary("Msftedit.dll");
-	if (!hRichedDll) {
-		if (MessageBox(nullptr, Translate("Miranda could not load the Notes & Reminders plugin, Msftedit.dll is missing. If you are using WINE, please make sure you have Msftedit.dll installed. Press 'Yes' to continue loading Miranda."), SECTIONNAME, MB_YESNO | MB_ICONINFORMATION) != IDYES)
-			return 1;
-		return 0;
-	}
-
-	InitServices();
-	WS_Init();
-
-	hkModulesLoaded = HookEvent(ME_SYSTEM_MODULESLOADED, OnModulesLoaded);
-	InitIcons();
 
 	return 0;
 }

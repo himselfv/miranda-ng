@@ -85,7 +85,6 @@ public:
 	bool        m_bSendOnShiftEnter;
 	bool        m_bSendOnEnter;
 	bool        m_bSendOnDblEnter;
-	bool        m_bAutoLocaleSupport;
 	bool        m_bAutoSwitchTabs;
 	bool        m_bCutContactNameOnTabs;
 	bool        m_bHideOnClose;
@@ -93,12 +92,10 @@ public:
 	bool        m_bLogStatusChanges;
 	bool        m_bUseDividers;
 	bool        m_bDividersUsePopupConfig;
-	bool        m_bSoundOnTyping;
 	bool        m_bAllowOfflineMultisend;
 	bool        m_bFlashOnClist;
 	bool        m_bAlwaysFullToolbarWidth;
 	bool        m_bIdleDetect;
-	bool        m_bDontUseDefaultKbd;
 
 	int         m_MsgTimeout;
 	int         m_EscapeCloses;

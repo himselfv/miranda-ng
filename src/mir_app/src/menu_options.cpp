@@ -32,6 +32,25 @@ extern bool bIconsDisabled;
 extern int DefaultImageListColorDepth;
 void RebuildProtoMenus();
 
+MIR_APP_DLL(void) Menu_SetVisible(TMO_IntMenuItem *pimi, bool bVisible)
+{
+	if ((pimi = MO_GetIntMenuItem(pimi)) == nullptr)
+		return;
+
+	char szModule[256], menuItemName[256];
+	mir_snprintf(szModule, "%s_Items", pimi->parent->pszName);
+	bin2hex(&pimi->mi.uid, sizeof(pimi->mi.uid), menuItemName);
+
+	ptrW wszValue(db_get_wsa(0, szModule, menuItemName));
+	if (wszValue == nullptr)
+		wszValue = mir_wstrdup(L"1;;;");
+
+	wszValue[0] = bVisible ? '1' : '0';
+	db_set_ws(0, szModule, menuItemName, wszValue);
+
+	Menu_ShowItem(pimi, bVisible);
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 
 struct MenuItemOptData : public MZeroedObject
@@ -268,7 +287,7 @@ class CGenMenuOptionsPage : public CDlgBase
 
 public:
 	CGenMenuOptionsPage() :
-		CDlgBase(g_hInst, IDD_OPT_GENMENU),
+		CDlgBase(g_plugin, IDD_OPT_GENMENU),
 		m_menuItems(this, IDC_MENUITEMS),
 		m_menuObjects(this, IDC_MENUOBJECTS),
 		m_radio1(this, IDC_RADIO1),
@@ -302,7 +321,7 @@ public:
 	}
 
 	//---- init dialog -------------------------------------------
-	virtual void OnInitDialog()
+	bool OnInitDialog() override
 	{
 		iInitMenuValue = db_get_b(0, "CList", "MoveProtoMenus", TRUE);
 		
@@ -320,9 +339,10 @@ public:
 		
 		m_menuObjects.SetCurSel(0);
 		RebuildCurrent();
+		return true;
 	}
 
-	virtual void OnApply()
+	bool OnApply() override
 	{
 		bIconsDisabled = m_enableIcons.GetState() == 0;
 		db_set_b(0, "CList", "DisableMenuIcons", bIconsDisabled);
@@ -336,9 +356,10 @@ public:
 			iInitMenuValue = iNewMenuValue;
 		}
 		RebuildCurrent();
+		return true;
 	}
 
-	virtual void OnDestroy()
+	void OnDestroy() override
 	{
 		FreeTreeData();
 	}
@@ -506,7 +527,8 @@ public:
 			m_service.SetTextA(szText);
 		}
 
-		m_module.SetTextA(GetPluginNameByLangpack(iod->pimi->mi.hLangpack));
+		const CMPluginBase *pPlugin = iod->pimi->mi.pPlugin;
+		m_module.SetTextA(pPlugin == nullptr ? "" : pPlugin->getInfo().shortName);
 
 		m_btnInsMenu.Enable(iod->pimi->mi.root == nullptr);
 		m_btnDefault.Enable(mir_wstrcmp(iod->name, iod->defname) != 0);
@@ -525,13 +547,13 @@ public:
 
 int GenMenuOptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -1000000000;
 	odp.szTitle.a = LPGEN("Menus");
 	odp.szGroup.a = LPGEN("Customize");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pDialog = new CGenMenuOptionsPage();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	
 	return ProtocolOrderOptInit(wParam, 0);
 }

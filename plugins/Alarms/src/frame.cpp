@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "frame.h"
 
 HWND hwnd_plugin = nullptr;
 HWND hwnd_frame = nullptr;
@@ -47,13 +46,13 @@ LRESULT CALLBACK FrameContainerWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 	case WM_SHOWWINDOW:
 		if (wParam) {
-			db_set_b(0, MODULE, "ReminderFrameVisible", 1);
-			Utils_RestoreWindowPosition(hwnd, 0, MODULE, "reminders_window");
+			db_set_b(0, MODULENAME, "ReminderFrameVisible", 1);
+			Utils_RestoreWindowPosition(hwnd, 0, MODULENAME, "reminders_window");
 			PostMessage(hwnd, WM_SIZE, 0, 0);
 		}
 		else {
-			db_set_b(0, MODULE, "ReminderFrameVisible", 0);
-			Utils_SaveWindowPosition(hwnd, 0, MODULE, "reminders_window");
+			db_set_b(0, MODULENAME, "ReminderFrameVisible", 0);
+			Utils_SaveWindowPosition(hwnd, 0, MODULENAME, "reminders_window");
 		}
 		break;
 	case WM_SIZE:
@@ -69,7 +68,7 @@ LRESULT CALLBACK FrameContainerWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		break;
 
 	case WM_CLOSE:
-		Utils_SaveWindowPosition(hwnd, 0, MODULE, "reminders_window");
+		Utils_SaveWindowPosition(hwnd, 0, MODULENAME, "reminders_window");
 		ShowWindow(hwnd, SW_HIDE);
 		FixMainMenu();
 		return TRUE;
@@ -100,7 +99,7 @@ LRESULT CALLBACK FrameWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	case WM_CREATE:
 		hwnd_list = CreateWindow(L"LISTBOX", L"",
 			(WS_VISIBLE | WS_CHILD | LBS_NOINTEGRALHEIGHT | LBS_STANDARD | LBS_NOTIFY | LBS_OWNERDRAWFIXED) & ~LBS_SORT
-			& ~WS_BORDER, 0, 0, 0, 0, hwnd, nullptr, hInst, nullptr);
+			& ~WS_BORDER, 0, 0, 0, 0, hwnd, nullptr, g_plugin.getInst(), nullptr);
 		return FALSE;
 
 	case WMU_INITIALIZE:
@@ -265,7 +264,7 @@ LRESULT CALLBACK FrameWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 					}
 					else if (!IsWindowVisible(hwnd) && count > 0) {
 						// we have reminders - show if not linked to clist or if clist is visible
-						if ((!options.hide_with_clist && FrameIsFloating()) || IsWindowVisible(pcli->hwndContactList)) {
+						if ((!options.hide_with_clist && FrameIsFloating()) || IsWindowVisible(g_clistApi.hwndContactList)) {
 							CallService(MS_CLIST_FRAMES_SHFRAME, (WPARAM)frame_id, 0);
 							CallService(MS_CLIST_FRAMES_UPDATEFRAME, (WPARAM)frame_id, FU_FMREDRAW | FU_FMPOS);
 						}
@@ -276,7 +275,7 @@ LRESULT CALLBACK FrameWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 						SetReminderFrameVisible(false);
 					else if (!IsWindowVisible(hwnd) && count > 0)
 						// we have reminders - show if not linked to clist or if clist is visible
-						if (!options.hide_with_clist || IsWindowVisible(pcli->hwndContactList))
+						if (!options.hide_with_clist || IsWindowVisible(g_clistApi.hwndContactList))
 							SetReminderFrameVisible(true);
 				}
 			}
@@ -321,14 +320,14 @@ LRESULT CALLBACK FrameWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			SendMessage(hwnd, WMU_FILL_LIST, 0, 0);
 		else if (wParam == ID_FRAME_SHOWHIDE_TIMER && options.hide_with_clist) { // link show/hide with clist
 			// hide if we're visible and clist isn't (possible only when floating if frames are present)
-			if (!IsWindowVisible(pcli->hwndContactList) && IsWindowVisible(hwnd)) {
+			if (!IsWindowVisible(g_clistApi.hwndContactList) && IsWindowVisible(hwnd)) {
 				if (ServiceExists(MS_CLIST_FRAMES_SHFRAME))
 					CallService(MS_CLIST_FRAMES_SHFRAME, (WPARAM)frame_id, 0);
 				else
 					SetReminderFrameVisible(false);
 			}
 			// we're not visible but clist is - show depending on hide_with_clist and auto_showhide options
-			if (!IsWindowVisible(hwnd) && IsWindowVisible(pcli->hwndContactList)) {
+			if (!IsWindowVisible(hwnd) && IsWindowVisible(g_clistApi.hwndContactList)) {
 				// if not auto show/hide, show (reminders or not) if we're not visible and the clist is
 				// otherwise, show only if there are reminders
 				int count = SendMessage(hwnd_list, LB_GETCOUNT, 0, 0);
@@ -350,7 +349,7 @@ LRESULT CALLBACK FrameWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			mir_cslock lck(list_cs);
 			DWORD item = SendMessage(hwnd_list, LB_ITEMFROMPOINT, 0, MAKELPARAM(pt.x, pt.y));
 
-			HMENU menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU1)), submenu = GetSubMenu(menu, 0);
+			HMENU menu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_MENU1)), submenu = GetSubMenu(menu, 0);
 			TranslateMenu(submenu);
 
 			if (HIWORD(item) == 0) {
@@ -384,7 +383,7 @@ LRESULT CALLBACK FrameWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 		case ID_REMINDERFRAMECONTEXT_OPTIONS:
-			Options_Open(L"Events", L"Alarms");
+			g_plugin.openOptions(L"Events", L"Alarms");
 			break;
 
 		case ID_REMINDERFRAMECONTEXT_SUSPEND:
@@ -482,7 +481,7 @@ int CreateFrame()
 {
 	WNDCLASS wndclass = {};
 	wndclass.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	wndclass.hInstance = hInst;
+	wndclass.hInstance = g_plugin.getInst();
 	wndclass.lpfnWndProc = FrameWindowProc;
 	wndclass.lpszClassName = L"AlarmsFrame";
 	RegisterClass(&wndclass);
@@ -490,60 +489,60 @@ int CreateFrame()
 	if (ServiceExists(MS_CLIST_FRAMES_ADDFRAME)) {
 		hwnd_plugin = CreateWindow(L"AlarmsFrame", TranslateT("Alarms"),
 			WS_CHILD | WS_CLIPCHILDREN,
-			0, 0, 10, 10, pcli->hwndContactList, nullptr, hInst, nullptr);
+			0, 0, 10, 10, g_clistApi.hwndContactList, nullptr, g_plugin.getInst(), nullptr);
 
 		CLISTFrame Frame = { sizeof(CLISTFrame) };
-		Frame.tname = TranslateT("Alarms");
+		Frame.szName.a = LPGEN("Alarms");
 		Frame.hWnd = hwnd_plugin;
 		Frame.align = alBottom;
-		Frame.Flags = F_UNICODE | F_VISIBLE | F_SHOWTB | F_SHOWTBTIP;
+		Frame.Flags = F_VISIBLE | F_SHOWTB | F_SHOWTBTIP;
 		Frame.height = 30;
 		Frame.hIcon = hIconMenuSet;
-		frame_id = CallService(MS_CLIST_FRAMES_ADDFRAME, (WPARAM)&Frame, 0);
+		frame_id = g_plugin.addFrame(&Frame);
 	}
 	else {
 		wndclass.hCursor = LoadCursor(nullptr, IDC_ARROW);
-		wndclass.hInstance = hInst;
+		wndclass.hInstance = g_plugin.getInst();
 		wndclass.lpfnWndProc = FrameContainerWindowProc;
 		wndclass.lpszClassName = L"AlarmsFrameContainer";
 		RegisterClass(&wndclass);
 
 		hwnd_frame = CreateWindowEx(WS_EX_TOOLWINDOW, L"AlarmsFrameContainer", TranslateT("Alarms"),
 			(WS_POPUPWINDOW | WS_THICKFRAME | WS_CAPTION | WS_SYSMENU | WS_CLIPCHILDREN) & ~WS_VISIBLE,
-			0, 0, 200, 100, pcli->hwndContactList, nullptr, hInst, nullptr);
+			0, 0, 200, 100, g_clistApi.hwndContactList, nullptr, g_plugin.getInst(), nullptr);
 
 		hwnd_plugin = CreateWindow(L"AlarmsFrame", TranslateT("Alarms"),
 			WS_CHILD | WS_CLIPCHILDREN | WS_VISIBLE,
-			0, 0, 10, 10, hwnd_frame, nullptr, hInst, nullptr);
+			0, 0, 10, 10, hwnd_frame, nullptr, g_plugin.getInst(), nullptr);
 
 		SetWindowLongPtr(hwnd_frame, GWLP_USERDATA, (LONG_PTR)hwnd_plugin);
 
 		///////////////////////
 		// create menu item
-		CreateServiceFunction(MODULE "/ShowHideReminders", ShowHideMenuFunc);
+		CreateServiceFunction(MODULENAME "/ShowHideReminders", ShowHideMenuFunc);
 
-		CMenuItem mi;
-		mi.root = Menu_CreateRoot(MO_MAIN, LPGENW("Alarms"), 0);
+		CMenuItem mi(&g_plugin);
+		mi.root = g_plugin.addRootMenu(MO_MAIN, LPGENW("Alarms"), 0);
 		Menu_ConfigureItem(mi.root, MCI_OPT_UID, "8A3C1906-4809-4EE8-A32A-858003A2AAA7");
 
 		SET_UID(mi, 0x27556ea9, 0xfa19, 0x4c2e, 0xb0, 0xc9, 0x48, 0x2, 0x5c, 0x17, 0xba, 0x5);
 		mi.hIcolibItem = hIconMenuShowHide;
 		mi.name.a = LPGEN("Show reminders");
-		mi.pszService = MODULE "/ShowHideReminders";
+		mi.pszService = MODULENAME "/ShowHideReminders";
 		mi.position = 500010000;
 		hMenuShowReminders = Menu_AddMainMenuItem(&mi);
 		/////////////////////
 
 		if (!options.auto_showhide) {
 			if (options.hide_with_clist) {
-				if (IsWindowVisible(pcli->hwndContactList)) {
+				if (IsWindowVisible(g_clistApi.hwndContactList)) {
 					ShowWindow(hwnd_frame, SW_SHOW);
 					RefreshReminderFrame();
 				}
 				else ShowWindow(hwnd_frame, SW_HIDE);
 			}
 			else {
-				if (db_get_b(0, MODULE, "ReminderFrameVisible", 1) == 1) {
+				if (db_get_b(0, MODULENAME, "ReminderFrameVisible", 1) == 1) {
 					ShowWindow(hwnd_frame, SW_SHOW);
 					RefreshReminderFrame();
 				}
@@ -556,23 +555,21 @@ int CreateFrame()
 
 	SendMessage(hwnd_plugin, WMU_INITIALIZE, 0, 0);
 
-	font_id.cbSize = sizeof(font_id);
 	strncpy_s(font_id.group, LPGEN("Frames"), _TRUNCATE);
 	strncpy_s(font_id.name, LPGEN("Alarm reminders"), _TRUNCATE);
-	strncpy_s(font_id.dbSettingsGroup, MODULE, _TRUNCATE);
-	strncpy_s(font_id.prefix, "Font", _TRUNCATE);
+	strncpy_s(font_id.dbSettingsGroup, MODULENAME, _TRUNCATE);
+	strncpy_s(font_id.setting, "Font", _TRUNCATE);
 	font_id.order = 0;
-	Font_Register(&font_id);
+	g_plugin.addFont(&font_id);
 
-	framebk_colour_id.cbSize = sizeof(ColourID);
-	strncpy_s(framebk_colour_id.dbSettingsGroup, MODULE, _TRUNCATE);
+	strncpy_s(framebk_colour_id.dbSettingsGroup, MODULENAME, _TRUNCATE);
 	strncpy_s(framebk_colour_id.group, LPGEN("Frames"), _TRUNCATE);
 	strncpy_s(framebk_colour_id.name, LPGEN("Alarm reminders"), _TRUNCATE);
 	strncpy_s(framebk_colour_id.setting, "clFrameBack", _TRUNCATE);
 	framebk_colour_id.defcolour = GetSysColor(COLOR_3DFACE);
 	framebk_colour_id.flags = 0;
 	framebk_colour_id.order = 0;
-	Colour_Register(&framebk_colour_id);
+	g_plugin.addColor(&framebk_colour_id);
 
 	LOGFONTA log_font;
 	fontColour = Font_Get(font_id, &log_font);

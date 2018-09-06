@@ -36,8 +36,8 @@ Standardowy
 Całkowity
 [Only critical data are encrypted (passwords, security tokens, etc). All other settings and history remains unencrypted. Fast and effective, suitable for the most cases]
 Tylko najważniejsze dane (hasła, tokeny bezpieczeństwa itp.) są zaszyfrowane. Inne ustawienia, historia itp. pozostają niezaszyfrowane. Szybki i efektywny sposób. Powinien wystarczyć w większości przypadków.
-[All string settings and all events in histories are encrypted. It also makes Miranda much slower and creates a risk of losing everything you've stored in a profile in case of losing password. Recommended only for paranoid users]
-Wszystkie wpisy ustawień oraz zdarzenia w bazie są zaszyfrowane. Sprawia to, że Miranda może działać wolniej oraz stwarza ryzyko utraty wszystkich danych zapisanych w profilu w przypadku utraty hasła. Zalecane wyłącznie obsesyjnym użytkownikom.
+[All string settings and all events in histories are encrypted. It also makes Miranda much slower and creates a risk of losing everything you've stored in a database in case of losing password. Recommended only for paranoid users]
+Wszystkie wpisy ustawień oraz zdarzenia w bazie są zaszyfrowane. Sprawia to, że Miranda może działać wolniej oraz stwarza ryzyko utraty wszystkich danych zapisanych w profilu w przypadku utraty hasła. Zalecane tylko obsesyjnym użytkownikom.
 [Set password]
 Ustaw/Zmień hasło
 ;file \plugins\Db3x_mmap\src\database.cpp
@@ -66,6 +66,10 @@ Ten profil jest w starym niewspieranym już formacie. Wciśnij Tak aby przekonwe
 Aby otworzyć ten profil musisz zainstalować wtyczkę dbx_mdbx. Wciśnij Tak aby pobrać ją ze strony Mirandy NG lub Nie aby powrócić.
 [To open this database you need to install the Import plugin. Click Yes to download it from Miranda NG's site or No to return back]
 Aby otworzyć ten profil musisz zainstalować wtyczkę Import. Wciśnij Tak aby pobrać ją ze strony Mirandy NG lub Nie aby powrócić.
+[Cannot move old profile '%s' to '%s': error %d]
+
+[Attempt to create database '%s' failed with error code %d]
+
 ;file \plugins\Db3x_mmap\src\ui.cpp
 [Logo]
 Logo

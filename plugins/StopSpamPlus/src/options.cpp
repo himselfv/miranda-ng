@@ -2,14 +2,14 @@
 
 const wchar_t pluginDescription[] = LPGENW("No more spam! Robots can't go! Only human beings invited!\r\n\r\nThis plugin works pretty simple:\r\nWhile messages from users on your contact list go as there is no any anti-spam software, messages from unknown users are not delivered to you. But also they are not ignored, this plugin replies with a simple question, and if user gives the right answer, plugin adds him to your contact list so that he can contact you.");
 
-class COptMainDlg : public CPluginDlgBase
+class COptMainDlg : public CDlgBase
 {
 	CCtrlEdit edtCount, edtDescr;
 	CCtrlCheck chk1, chk2, chk3, chk4, chk5, chk6;
 
 public:
 	COptMainDlg() :
-		CPluginDlgBase(hInst, IDD_MAIN, pluginName),
+		CDlgBase(g_plugin, IDD_MAIN),
 		edtCount(this, ID_MAXQUESTCOUNT),
 		edtDescr(this, ID_DESCRIPTION),
 		chk1(this, ID_INFTALKPROT),
@@ -29,22 +29,23 @@ public:
 		CreateLink(chk6, g_sets.HistLog);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
-		edtDescr.SetText(pluginDescription);
+		edtDescr.SetText(TranslateW(pluginDescription));
+		return true;
 	}
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-class COptMessageDlg : public CPluginDlgBase
+class COptMessageDlg : public CDlgBase
 {
 	CCtrlButton btnHelp, btnRestore;
 	CCtrlEdit edtQuestion, edtAnswer, edtCongrat, edtReply, edtDivider;
 
 public:
 	COptMessageDlg() :
-		CPluginDlgBase(hInst, IDD_MESSAGES, pluginName),
+		CDlgBase(g_plugin, IDD_MESSAGES),
 		btnHelp(this, IDC_VARS),
 		btnRestore(this, ID_RESTOREDEFAULTS),
 		edtQuestion(this, ID_QUESTION),
@@ -63,10 +64,15 @@ public:
 		CreateLink(edtDivider, g_sets.AnswSplitString);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		variables_skin_helpbutton(m_hwnd, IDC_VARS);
 		btnHelp.Enable(ServiceExists(MS_VARS_FORMATSTRING));
+
+		edtQuestion.SetText(g_sets.getQuestion());
+		edtCongrat.SetText(g_sets.getCongrats());
+		edtReply.SetText(g_sets.getReply());
+		return true;
 	}
 
 	void onHelp(CCtrlButton*)
@@ -76,10 +82,14 @@ public:
 
 	void onRestore(CCtrlButton*)
 	{
-		edtQuestion.SetText(g_sets.Question.Default());
+		g_plugin.delSetting(g_sets.AuthRepl.GetDBSettingName());
+		g_plugin.delSetting(g_sets.Question.GetDBSettingName());
+		g_plugin.delSetting(g_sets.Congratulation.GetDBSettingName());
+
+		edtQuestion.SetText(g_sets.getQuestion());
 		edtAnswer.SetText(g_sets.Answer.Default());
-		edtCongrat.SetText(g_sets.Congratulation.Default());
-		edtReply.SetText(g_sets.AuthRepl.Default());
+		edtCongrat.SetText(g_sets.getCongrats());
+		edtReply.SetText(g_sets.getReply());
 		edtDivider.SetText(g_sets.AnswSplitString.Default());
 		
 		NotifyChange();
@@ -88,19 +98,19 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-class COptAccountDlg : public CPluginDlgBase
+class COptAccountDlg : public CDlgBase
 {
 	CCtrlListView m_accounts;
 
 public:
 	COptAccountDlg() :
-		CPluginDlgBase(hInst, IDD_PROTO, pluginName),
+		CDlgBase(g_plugin, IDD_PROTO),
 		m_accounts(this, IDC_PROTO)
 	{
 		m_accounts.OnItemChanged = Callback(this, &COptAccountDlg::list_OnItemChanged);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		m_accounts.SetExtendedListViewStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
 		m_accounts.DeleteAllItems();
@@ -124,9 +134,10 @@ public:
 			int idx = m_accounts.InsertItem(&item);
 			m_accounts.SetCheckState(idx, g_sets.ProtoDisabled(pa->szModuleName));
 		}
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		std::ostringstream out;
 
@@ -143,6 +154,7 @@ public:
 		}
 
 		g_sets.DisabledProtoList = (char*)out.str().c_str();
+		return true;
 	}
 
 	void list_OnItemChanged(CCtrlListView::TEventInfo*)
@@ -157,20 +169,20 @@ public:
 
 int OnOptInit(WPARAM w, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szGroup.a = LPGEN("Message sessions");
-	odp.szTitle.a = pluginName;
+	odp.szTitle.a = MODULENAME;
 
 	odp.szTab.a = LPGEN("General");
 	odp.pDialog = new COptMainDlg();
-	Options_AddPage(w, &odp);
+	g_plugin.addOptions(w, &odp);
 
 	odp.szTab.a = LPGEN("Messages");
 	odp.pDialog = new COptMessageDlg();
-	Options_AddPage(w, &odp);
+	g_plugin.addOptions(w, &odp);
 
 	odp.szTab.a = LPGEN("Accounts");
 	odp.pDialog = new COptAccountDlg();
-	Options_AddPage(w, &odp);
+	g_plugin.addOptions(w, &odp);
 	return 0;
 }

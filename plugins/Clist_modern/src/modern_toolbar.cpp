@@ -69,20 +69,20 @@ void Modern_InitButtons()
 			char buf[255];
 			if (i != 0) {
 				mir_snprintf(buf, "%s%s%s", TTB_OPTDIR, BTNS[i].pszButtonID, "_dn");
-				tbb.hIconHandleUp = RegisterIcolibIconHandle(buf, "Toolbar", BTNS[i].pszTooltipUp, L"icons\\toolbar_icons.dll", BTNS[i].icoDefIdx, g_hInst, BTNS[i].defResource);
+				tbb.hIconHandleUp = RegisterIcolibIconHandle(buf, "Toolbar", BTNS[i].pszTooltipUp, L"icons\\toolbar_icons.dll", BTNS[i].icoDefIdx, g_plugin.getInst(), BTNS[i].defResource);
 			}
 			else tbb.hIconHandleUp = RegisterIcolibIconHandle(buf, "Toolbar", BTNS[i].pszTooltipUp, nullptr, 0, nullptr, SKINICON_OTHER_MAINMENU);
 
 			if (BTNS[i].pszTooltipDn) {
 				mir_snprintf(buf, "%s%s%s", TTB_OPTDIR, BTNS[i].pszButtonID, "_up");
-				tbb.hIconHandleDn = RegisterIcolibIconHandle(buf, "Toolbar", BTNS[i].pszTooltipDn, L"icons\\toolbar_icons.dll", BTNS[i].icoDefIdx + 1, g_hInst, BTNS[i].defResource2);
+				tbb.hIconHandleDn = RegisterIcolibIconHandle(buf, "Toolbar", BTNS[i].pszTooltipDn, L"icons\\toolbar_icons.dll", BTNS[i].icoDefIdx + 1, g_plugin.getInst(), BTNS[i].defResource2);
 			}
 			else tbb.hIconHandleDn = nullptr;
 		}
 		else tbb.dwFlags |= TTBBF_ISSEPARATOR;
 
 		tbb.dwFlags |= (BTNS[i].bVisByDefault ? TTBBF_VISIBLE : 0);
-		BTNS[i].hButton = TopToolbar_AddButton(&tbb);
+		BTNS[i].hButton = g_plugin.addTTB(&tbb);
 	}
 
 	SetButtonPressed(3, db_get_b(0, "CList", "HideOffline", SETTING_HIDEOFFLINE_DEFAULT));
@@ -145,13 +145,13 @@ static int ehhToolBarBackgroundSettingsChanged(WPARAM, LPARAM)
 		tbdat.mtb_useWinColors = db_get_b(0, "ToolBar", "UseWinColours", CLCDEFAULT_USEWINDOWSCOLOURS);
 		tbdat.mtb_backgroundBmpUse = db_get_b(0, "ToolBar", "BkBmpUse", CLCDEFAULT_BKBMPUSE);
 	}
-	PostMessage(pcli->hwndContactList, WM_SIZE, 0, 0);
+	PostMessage(g_clistApi.hwndContactList, WM_SIZE, 0, 0);
 	return 0;
 }
 
 static BOOL sttDrawToolBarBackground(HWND hwnd, HDC hdc, RECT *rect, ModernToolbarCtrl* pMTBInfo)
 {
-	BOOL bFloat = (GetParent(hwnd) != pcli->hwndContactList);
+	BOOL bFloat = (GetParent(hwnd) != g_clistApi.hwndContactList);
 	if (g_CluiData.fDisableSkinEngine || !g_CluiData.fLayered || bFloat) {
 		HBRUSH hbr;
 
@@ -190,7 +190,7 @@ static void sttDrawNonLayeredSkinedBar(HWND hwnd, HDC hdc)
 	HDC hdc2 = CreateCompatibleDC(hdc);
 	HBITMAP hbmp = ske_CreateDIB32(rc.right, rc.bottom);
 	HBITMAP hbmpo = (HBITMAP)SelectObject(hdc2, hbmp);
-	if (GetParent(hwnd) != pcli->hwndContactList) {
+	if (GetParent(hwnd) != g_clistApi.hwndContactList) {
 		HBRUSH br = GetSysColorBrush(COLOR_3DFACE);
 		FillRect(hdc2, &rc, br);
 	}
@@ -218,7 +218,7 @@ static LRESULT CALLBACK toolbarWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 	case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
-			BOOL bFloat = (GetParent(hwnd) != pcli->hwndContactList);
+			BOOL bFloat = (GetParent(hwnd) != g_clistApi.hwndContactList);
 			if (g_CluiData.fDisableSkinEngine || !g_CluiData.fLayered || bFloat) {
 				BeginPaint(hwnd, &ps);
 				if ((!g_CluiData.fLayered || bFloat) && !g_CluiData.fDisableSkinEngine)
@@ -232,7 +232,7 @@ static LRESULT CALLBACK toolbarWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
 	case WM_NOTIFY:
 		if (((LPNMHDR)lParam)->code == BUTTONNEEDREDRAW)
-			pcli->pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		return 0;
 
 	case MTBM_LAYEREDPAINT:
@@ -279,13 +279,13 @@ void CustomizeToolbar(HWND hwnd)
 	ModernToolbarCtrl* pMTBInfo = (ModernToolbarCtrl*)GetWindowLongPtr(hwnd, 0);
 
 	CLISTFrame Frame = { sizeof(Frame) };
-	Frame.tname = L"Toolbar";
+	Frame.szName.a = "Toolbar";
 	Frame.hWnd = hwnd;
 	Frame.align = alTop;
-	Frame.Flags = F_VISIBLE | F_NOBORDER | F_LOCKED | F_UNICODE | F_NO_SUBCONTAINER;
+	Frame.Flags = F_VISIBLE | F_NOBORDER | F_LOCKED | F_NO_SUBCONTAINER;
 	Frame.height = 18;
 	Frame.hIcon = Skin_LoadIcon(SKINICON_OTHER_FRAME);
-	pMTBInfo->hFrame = (HANDLE)CallService(MS_CLIST_FRAMES_ADDFRAME, (WPARAM)&Frame, 0);
+	pMTBInfo->hFrame = g_plugin.addFrame(&Frame);
 
 	CallService(MS_SKINENG_REGISTERPAINTSUB, (WPARAM)hwnd, (LPARAM)ToolBar_LayeredPaintProc);
 

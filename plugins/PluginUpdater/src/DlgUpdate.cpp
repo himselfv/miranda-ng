@@ -122,61 +122,47 @@ static void ApplyUpdates(void *param)
 	}
 	Skin_PlaySound("updatecompleted");
 
-#if MIRANDA_VER < 0x0A00
-	// 4) Change title of clist
-	ptrW title(db_get_wsa(NULL, "CList", "TitleText"));
-	if (!lstrcmpi(title, L"Miranda IM"))
-		db_set_ws(NULL, "CList", "TitleText", L"Miranda NG");
-#endif
+	db_set_b(NULL, MODULENAME, DB_SETTING_RESTART_COUNT, 5);
 
-	db_set_b(NULL, MODNAME, DB_SETTING_RESTART_COUNT, 5);
-
-#if MIRANDA_VER >= 0x0A00
 	if (opts.bBackup)
 		CallService(MS_AB_BACKUP, 0, 0);
-#endif
 
 	if (opts.bChangePlatform) {
 		wchar_t mirandaPath[MAX_PATH];
 		GetModuleFileName(nullptr, mirandaPath, _countof(mirandaPath));
-		db_set_ws(NULL, MODNAME, "OldBin2", mirandaPath);
+		db_set_ws(NULL, MODULENAME, "OldBin2", mirandaPath);
 
-		db_unset(NULL, MODNAME, DB_SETTING_CHANGEPLATFORM);
+		db_unset(NULL, MODULENAME, DB_SETTING_CHANGEPLATFORM);
 	}
 	else {
-		ptrW oldbin(db_get_wsa(NULL, MODNAME, "OldBin2"));
+		ptrW oldbin(db_get_wsa(NULL, MODULENAME, "OldBin2"));
 		if (oldbin) {
 			SafeDeleteFile(oldbin);
-			db_unset(NULL, MODNAME, "OldBin2");
+			db_unset(NULL, MODULENAME, "OldBin2");
 		}
 	}
 
 	if (opts.bForceRedownload) {
 		opts.bForceRedownload = 0;
-		db_unset(NULL, MODNAME, DB_SETTING_REDOWNLOAD);
+		db_unset(NULL, MODULENAME, DB_SETTING_REDOWNLOAD);
 	}
 
 	// 5) Prepare Restart
 	int rc = MessageBox(hDlg, TranslateT("Update complete. Press Yes to restart Miranda now or No to postpone a restart until the exit."), TranslateT("Plugin Updater"), MB_YESNO | MB_ICONQUESTION);
 	PostMessage(hDlg, WM_CLOSE, 0, 0);
 	if (rc == IDYES) {
-#if MIRANDA_VER >= 0x0A00
-		BOOL bRestartCurrentProfile = db_get_b(NULL, MODNAME, "RestartCurrentProfile", 1) ? 1 : 0;
+		BOOL bRestartCurrentProfile = db_get_b(NULL, MODULENAME, "RestartCurrentProfile", 1) ? 1 : 0;
 		if (opts.bChangePlatform) {
 			wchar_t mirstartpath[MAX_PATH];
 
-#ifdef _WIN64
-			mir_snwprintf(mirstartpath, L"%s\\miranda32.exe", tszMirandaPath);
-#else
-			mir_snwprintf(mirstartpath, L"%s\\miranda64.exe", tszMirandaPath);
-#endif
+			#ifdef _WIN64
+				mir_snwprintf(mirstartpath, L"%s\\miranda32.exe", tszMirandaPath);
+			#else
+				mir_snwprintf(mirstartpath, L"%s\\miranda64.exe", tszMirandaPath);
+			#endif
 			CallServiceSync(MS_SYSTEM_RESTART, bRestartCurrentProfile, (LPARAM)mirstartpath);
 		}
-		else
-			CallServiceSync(MS_SYSTEM_RESTART, bRestartCurrentProfile);
-#else
-		CallFunctionAsync(RestartMe, 0);
-#endif
+		else CallServiceSync(MS_SYSTEM_RESTART, bRestartCurrentProfile);
 	}
 }
 
@@ -196,12 +182,8 @@ static INT_PTR CALLBACK DlgUpdate(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 	case WM_INITDIALOG:
 		TranslateDialogDefault(hDlg);
 		SendMessage(hwndList, LVM_SETEXTENDEDLISTVIEWSTYLE, 0, LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
-#if MIRANDA_VER >= 0x0A00
+
 		Window_SetIcon_IcoLib(hDlg, iconList[0].hIcolib);
-#else
-		SendMessage(hDlg, WM_SETICON, ICON_SMALL, (LPARAM)IcoLib_GetIcon("check_update"));
-		SendMessage(hDlg, WM_SETICON, ICON_SMALL, (LPARAM)IcoLib_GetIcon("check_update",1));
-#endif
 		{
 			OSVERSIONINFO osver = { sizeof(osver) };
 			if (GetVersionEx(&osver) && osver.dwMajorVersion >= 6)
@@ -293,7 +275,7 @@ static INT_PTR CALLBACK DlgUpdate(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 
 		// do this after filling list - enables 'ITEMCHANGED' below
 		SetWindowLongPtr(hDlg, GWLP_USERDATA, lParam);
-		Utils_RestoreWindowPositionNoSize(hDlg, 0, MODNAME, "ConfirmWindow");
+		Utils_RestoreWindowPositionNoSize(hDlg, 0, MODULENAME, "ConfirmWindow");
 		return TRUE;
 
 	case WM_NOTIFY:
@@ -379,13 +361,13 @@ static INT_PTR CALLBACK DlgUpdate(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 
 	case WM_DESTROY:
 		Window_FreeIcon_IcoLib(hDlg);
-		Utils_SaveWindowPosition(hDlg, NULL, MODNAME, "ConfirmWindow");
+		Utils_SaveWindowPosition(hDlg, NULL, MODULENAME, "ConfirmWindow");
 		hwndDialog = nullptr;
 		delete (OBJLIST<FILEINFO> *)GetWindowLongPtr(hDlg, GWLP_USERDATA);
 		SetWindowLongPtr(hDlg, GWLP_USERDATA, 0);
-#if MIRANDA_VER >= 0x0A00
-		db_set_dw(NULL, MODNAME, DB_SETTING_LAST_UPDATE, time(0));
-#endif
+
+		db_set_dw(NULL, MODULENAME, DB_SETTING_LAST_UPDATE, time(0));
+
 		mir_forkthread(InitTimer);
 		break;
 	}
@@ -474,21 +456,14 @@ static void DlgUpdateSilent(void *param)
 	delete &UpdateFiles;
 	Skin_PlaySound("updatecompleted");
 
-#if MIRANDA_VER < 0x0A00
-	// 4) Change title of clist
-	ptrW title = db_get_wsa(NULL, "CList", "TitleText");
-	if (!_wcsicmp(title, L"Miranda IM"))
-		db_set_ws(NULL, "CList", "TitleText", L"Miranda NG");
-#endif
-
 	opts.bForceRedownload = false;
-	db_unset(NULL, MODNAME, DB_SETTING_REDOWNLOAD);
+	db_unset(NULL, MODULENAME, DB_SETTING_REDOWNLOAD);
 
 	opts.bChangePlatform = false;
-	db_unset(NULL, MODNAME, DB_SETTING_CHANGEPLATFORM);
+	db_unset(NULL, MODULENAME, DB_SETTING_CHANGEPLATFORM);
 
-	db_set_b(NULL, MODNAME, DB_SETTING_RESTART_COUNT, 5);
-	db_set_b(NULL, MODNAME, DB_SETTING_NEED_RESTART, 1);
+	db_set_b(NULL, MODULENAME, DB_SETTING_RESTART_COUNT, 5);
+	db_set_b(NULL, MODULENAME, DB_SETTING_NEED_RESTART, 1);
 
 	// 5) Prepare Restart
 	wchar_t tszTitle[100];
@@ -503,11 +478,7 @@ static void DlgUpdateSilent(void *param)
 			mir_snwprintf(tszText, L"%s\n\n%s", TranslateT("You need to restart your Miranda to apply installed updates."), TranslateT("Would you like to restart it now?"));
 
 			if (MessageBox(nullptr, tszText, tszTitle, MB_ICONINFORMATION | MB_YESNO) == IDYES)
-#if MIRANDA_VER >= 0x0A00
-				CallServiceSync(MS_SYSTEM_RESTART, db_get_b(NULL, MODNAME, "RestartCurrentProfile", 1) ? 1 : 0, 0);
-#else
-				CallFunctionAsync(RestartMe, 0);
-#endif
+				CallServiceSync(MS_SYSTEM_RESTART, db_get_b(NULL, MODULENAME, "RestartCurrentProfile", 1) ? 1 : 0, 0);
 		}
 	}
 }
@@ -517,7 +488,7 @@ static void __stdcall LaunchDialog(void *param)
 	if (opts.bSilentMode && opts.bSilent)
 		mir_forkthread(DlgUpdateSilent, param);
 	else
-		hwndDialog = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_UPDATE), GetDesktopWindow(), DlgUpdate, (LPARAM)param);
+		hwndDialog = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_UPDATE), GetDesktopWindow(), DlgUpdate, (LPARAM)param);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -559,7 +530,6 @@ static renameTable[] =
 	{ L"startupstatus.dll",              L"Plugins\\statusmanager.dll" },
 	{ L"dropbox.dll",                    L"Plugins\\cloudfile.dll" },
 
-#if MIRANDA_VER >= 0x0A00
 	{ L"dbx_mmap_sa.dll",                L"Plugins\\dbx_mmap.dll" },
 	{ L"dbx_tree.dll",                   L"Plugins\\dbx_mmap.dll" },
 	{ L"rc4.dll",                        nullptr },
@@ -568,7 +538,9 @@ static renameTable[] =
 	{ L"mir_app.dll",                    nullptr },
 	{ L"mir_core.dll",                   nullptr },
 	{ L"zlib.dll",                       nullptr },
-#endif
+
+	{ L"quotes.dll",                     L"Plugins\\currencyrates.dll" },
+	{ L"proto_quotes.dll",               L"Icons\\proto_currencyrates.dll" },
 
 	{ L"proto_newsaggr.dll",             L"Icons\\proto_newsaggregator.dll" },
 	{ L"clienticons_*.dll",              L"Icons\\fp_icons.dll" },
@@ -582,6 +554,7 @@ static renameTable[] =
 	{ L"srmm.dll",                       nullptr },
 	{ L"stdchat.dll",                    nullptr },
 	{ L"stdurl.dll",                     nullptr },
+	{ L"stdidle.dll",                    nullptr },
 
 	{ L"advaimg.dll",                    nullptr },
 	{ L"aim.dll",                        nullptr },
@@ -592,6 +565,7 @@ static renameTable[] =
 	{ L"flashavatars.dll",               nullptr },
 	{ L"gender.dll",                     nullptr },
 	{ L"gtalkext.dll",                   nullptr },
+	{ L"importtxt.dll",                  nullptr },
 	{ L"langman.dll",                    nullptr },
 	{ L"libtox.dll",                     nullptr },
 	{ L"metacontacts.dll",               nullptr },
@@ -712,7 +686,6 @@ static int ScanFolder(const wchar_t *tszFolder, size_t cbBaseLen, const wchar_t 
 					strdelw(tszNewName + iPos, 1);
 				}
 
-#if MIRANDA_VER >= 0x0A00
 				// No need to hash a file if we are forcing a redownload anyway
 				if (!opts.bForceRedownload) {
 					// try to hash the file
@@ -732,9 +705,7 @@ static int ScanFolder(const wchar_t *tszFolder, size_t cbBaseLen, const wchar_t 
 						// smth went wrong, reload a file from scratch
 					}
 				}
-				else
-					Netlib_LogfW(hNetlibUser, L"File %s: Forcing redownload", ffd.cFileName);
-#endif
+				else Netlib_LogfW(hNetlibUser, L"File %s: Forcing redownload", ffd.cFileName);
 
 				ptszUrl = item->m_name;
 				MyCRC = item->m_crc;
@@ -836,9 +807,9 @@ static void DoCheck(bool bSilent = true)
 	}
 	else {
 		opts.bSilent = bSilent;
-#if MIRANDA_VER >= 0x0A00
-		db_set_dw(NULL, MODNAME, DB_SETTING_LAST_UPDATE, time(0));
-#endif
+
+		db_set_dw(NULL, MODULENAME, DB_SETTING_LAST_UPDATE, time(0));
+	
 		hCheckThread = mir_forkthread(CheckUpdates);
 	}
 }
@@ -875,7 +846,7 @@ void CheckUpdateOnStartup()
 	if (opts.bUpdateOnStartup) {
 		if (opts.bOnlyOnceADay) {
 			time_t now = time(0),
-				was = db_get_dw(NULL, MODNAME, DB_SETTING_LAST_UPDATE, 0);
+				was = db_get_dw(NULL, MODULENAME, DB_SETTING_LAST_UPDATE, 0);
 
 			if ((now - was) < 86400)
 				return;
@@ -922,7 +893,7 @@ void InitTimer(void *type)
 	case 0: // default, plan next check relative to last check
 		{
 			time_t now = time(0);
-			time_t was = db_get_dw(NULL, MODNAME, DB_SETTING_LAST_UPDATE, 0);
+			time_t was = db_get_dw(NULL, MODULENAME, DB_SETTING_LAST_UPDATE, 0);
 
 			interval = PeriodToMilliseconds(opts.Period, opts.bPeriodMeasure);
 			interval -= (now - was) * 1000;

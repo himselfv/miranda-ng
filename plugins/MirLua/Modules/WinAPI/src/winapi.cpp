@@ -38,7 +38,7 @@ static int lua_ShellExecute(lua_State *L)
 static int lua_FindIterator(lua_State *L)
 {
 	HANDLE hFind = lua_touserdata(L, lua_upvalueindex(1));
-	wchar_t* path = (wchar_t*)lua_touserdata(L, lua_upvalueindex(2));
+	wchar_t *path = (wchar_t*)lua_touserdata(L, lua_upvalueindex(2));
 
 	WIN32_FIND_DATA ffd = { 0 };
 	if (hFind == nullptr)
@@ -218,7 +218,7 @@ static int lua_GetRegValue(lua_State *L)
 		case REG_LINK:
 		case REG_EXPAND_SZ:
 			{
-				ptrA str(Utf8EncodeW((wchar_t*)value));
+				ptrA str(mir_utf8encodeW((wchar_t*)value));
 				lua_pushlstring(L, str, mir_strlen(str));
 			}
 			break;
@@ -1700,7 +1700,7 @@ static int global_CoUninitialize(lua_State *)
 static int global_GetCurrentProcessId(lua_State *L)
 {
 	DWORD pid = GetCurrentProcessId();
-	lua_pushnumber(L, pid);
+	lua_pushinteger(L, pid);
 	return 1;
 }
 

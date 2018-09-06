@@ -47,13 +47,13 @@ Core\StdClist.dll
 Core\StdCrypt.dll
 Core\StdEmail.dll
 Core\StdFile.dll
-Core\StdIdle.dll
 Core\StdMsg.dll
 Core\StdSSL.dll
 Core\StdUIHist.dll
 Core\StdUrl.dll
 Core\StdUserInfo.dll
 Core\StdUserOnline.dll
+Plugins\Db_autobackups.dll
 Plugins\Dbx_mmap.dll
 Plugins\Dbx_mdbx.dll
 Plugins\Dummy.dll
@@ -64,7 +64,7 @@ Libs\FreeImage.mir
 Libs\mir_app.mir
 Libs\mir_core.mir
 Libs\libjson.mir
-Libs\Pcre16.mir
+Libs\libmdbx.mir
 Libs\sqlite3.mir
 Libs\Zlib.mir
 Libs\libeay32.mir

@@ -26,9 +26,6 @@
 //
 // global include file, used to build the precompiled header.
 
-#ifndef __stdafx_H
-#define __stdafx_H
-
 #include <windows.h>
 #include <windowsx.h>
 #include <commdlg.h>
@@ -134,7 +131,6 @@ typedef struct _DWM_THUMBNAIL_PROPERTIES
 #include "ImageDataObject.h"
 #include "muchighlight.h"
 
-
 /*
 * text shadow types (DrawThemeTextEx() / Vista+ uxtheme)
 */
@@ -216,13 +212,11 @@ typedef struct _BP_PAINTPARAMS
 #endif
 
 extern NEN_OPTIONS nen_options;
-extern HINSTANCE g_hInst;
 extern CSkinItem SkinItems[];
 extern TContainerData *pFirstContainer, *pLastActiveContainer;
 extern ButtonSet g_ButtonSet;
 extern HANDLE g_hEvent;
 extern RECT rcLastStatusBarClick;
-extern PLUGININFOEX pluginInfo;
 extern TTemplateSet RTL_Active, LTR_Active;
 extern LOGFONTA logfonts[MSGDLGFONTCOUNT + 2];
 extern COLORREF fontcolors[MSGDLGFONTCOUNT + 2];
@@ -239,11 +233,12 @@ extern pfnDoTrayIcon oldDoTrayIcon;
 int  LoadSendRecvMessageModule(void);
 int  SplitmsgShutdown(void);
 int  Chat_Load(), Chat_Unload();
+void Chat_Options(WPARAM);
+void Popup_Options(WPARAM);
 void FreeLogFonts();
 
 INT_PTR SendMessageCommand(WPARAM wParam, LPARAM lParam);
 INT_PTR SendMessageCommand_W(WPARAM wParam, LPARAM lParam);
-
 
 #define IMG_NOCHECK	0
 #define IMG_CHECK	1
@@ -257,13 +252,7 @@ void TreeViewToDB(HWND hwndTree, UINT id, char *DBPath, DWORD *dwFlags);
 BOOL TreeViewHandleClick(HWND hwndDlg, HWND hwndTree, WPARAM wParam, LPARAM lParam);
 
 INT_PTR CALLBACK DlgProcSetupStatusModes(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
-INT_PTR CALLBACK DlgProcPopupOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK DlgProcTabConfig(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
-INT_PTR CALLBACK DlgProcTemplateEditor(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
-INT_PTR CALLBACK PlusOptionsProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
-INT_PTR CALLBACK DlgProcOptions1(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
-INT_PTR CALLBACK DlgProcOptions2(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
-INT_PTR CALLBACK DlgProcOptions3(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK DlgProcUserPrefsFrame(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
 int TSAPI TBStateConvert2Flat(int state);
@@ -271,5 +260,3 @@ int TSAPI RBStateConvert2Flat(int state);
 void TSAPI FillTabBackground(const HDC hdc, int iStateId, const CTabBaseDlg *dat, RECT* rc);
 
 #define IS_EXTKEY(a) (a & (1 << 24))
-
-#endif /* __stdafx_H */

@@ -28,10 +28,8 @@ PROTOLIST OverallInfo; // Суммарные данные по видимым а
 int NumberOfAccounts;
 HWND TrafficHwnd;
 
-HINSTANCE hInst;
-CLIST_INTERFACE *pcli;
+CMPlugin g_plugin;
 
-int hLangpack = 0; // Поддержка плагинозависимого перевода.
 BOOL bPopupExists = FALSE, bVariablesExists = FALSE, bTooltipExists = FALSE;
 
 static wchar_t wszDefaultFormat[] =
@@ -67,7 +65,7 @@ unsigned short int Traffic_LineHeight;
 wchar_t Traffic_CounterFormat[512];
 wchar_t Traffic_TooltipFormat[512];
 //
-HANDLE Traffic_FrameID = nullptr;
+int Traffic_FrameID = 0;
 
 char Traffic_AdditionSpace;
 
@@ -97,7 +95,7 @@ POINT TooltipPosition;
 BOOL UseKeyColor;
 COLORREF KeyColor;
 
-//---------------------------------------------------------------------------------------------
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx =
 {
@@ -113,17 +111,46 @@ PLUGININFOEX pluginInfoEx =
 	{0x82181510, 0x5dfa, 0x49d7, {0xb4, 0x69, 0x33, 0x87, 0x1e, 0x2a, 0xe8, 0xb5}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX *MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int TrafficCounterShutdown(WPARAM, LPARAM)
 {
-	return &pluginInfoEx;
+	KillTimer(TrafficHwnd, TIMER_REDRAW);
+	KillTimer(TrafficHwnd, TIMER_NOTIFY_TICK);
+
+	SaveSettings(0);
+
+	// Удаляем пункт главного меню.
+	if (hTrafficMainMenuItem) {
+		Menu_RemoveItem(hTrafficMainMenuItem);
+		hTrafficMainMenuItem = nullptr;
+	}
+	// Удаляем контекстное меню.
+	if (TrafficPopupMenu) {
+		DestroyMenu(TrafficPopupMenu);
+		TrafficPopupMenu = nullptr;
+	}
+	// Разрегистрируем процедуру отрисовки фрейма.
+	CallService(MS_SKINENG_REGISTERPAINTSUB, (WPARAM)TrafficHwnd, (LPARAM)NULL);
+
+	// Удаляем фрейм.
+	if ((ServiceExists(MS_CLIST_FRAMES_REMOVEFRAME)) && Traffic_FrameID) {
+		CallService(MS_CLIST_FRAMES_REMOVEFRAME, Traffic_FrameID, 0);
+		Traffic_FrameID = 0;
+	}
+	return 0;
 }
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
+int ModuleLoad(WPARAM, LPARAM)
 {
-	hInst = hinstDLL;
-	DisableThreadLibraryCalls(hInst);
-
-	return TRUE;
+	bPopupExists = ServiceExists(MS_POPUP_ADDPOPUPT);
+	bVariablesExists = ServiceExists(MS_VARS_FORMATSTRING) && ServiceExists(MS_VARS_REGISTERTOKEN);
+	bTooltipExists = ServiceExists("mToolTip/ShowTipW") || ServiceExists("mToolTip/ShowTip");
+	return 0;
 }
 
 void SaveSettings(BYTE OnlyCnt)
@@ -197,7 +224,7 @@ int TrafficCounter_PaintCallbackProc(HWND hWnd, HDC hDC, RECT*, HRGN, DWORD, voi
 int TrafficCounter_Draw(HWND hwnd, HDC hDC)
 {
 	if (hwnd == (HWND)-1) return 0;
-	if (GetParent(hwnd) == pcli->hwndContactList)
+	if (GetParent(hwnd) == g_clistApi.hwndContactList)
 		return PaintTrafficCounterWindow(hwnd, hDC);
 	else
 		InvalidateRect(hwnd, nullptr, FALSE);
@@ -246,7 +273,7 @@ int PaintTrafficCounterWindow(HWND hwnd, HDC hDC)
 	RGB32BitsBITMAPINFO.bmiHeader.biPlanes = 1;
 	RGB32BitsBITMAPINFO.bmiHeader.biBitCount = 32;
 	RGB32BitsBITMAPINFO.bmiHeader.biCompression = BI_RGB;
-	
+
 	HBITMAP hbmp = CreateDIBSection(nullptr, &RGB32BitsBITMAPINFO, DIB_RGB_COLORS, nullptr, nullptr, 0);
 	HBITMAP oldbmp = (HBITMAP)SelectObject(hdc, hbmp);
 
@@ -577,7 +604,7 @@ static POINT ptMouse = { 0 };
 LRESULT CALLBACK TrafficCounterWndProc_MW(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg) {
-	case (WM_USER + 697) :
+	case (WM_USER + 697):
 		if (lParam == 666)
 			DestroyWindow(hwnd);
 		break;
@@ -739,7 +766,7 @@ LRESULT CALLBACK TrafficCounterWndProc_MW(HWND hwnd, UINT msg, WPARAM wParam, LP
 					OverallInfo.Total.Timer = (CurrentTimeMs - OverallInfo.Total.TimeAtStart) / 1000;
 				}
 
-				CallService(MS_CLIST_FRAMES_UPDATEFRAME, (WPARAM)Traffic_FrameID, FU_FMREDRAW);
+				CallService(MS_CLIST_FRAMES_UPDATEFRAME, Traffic_FrameID, FU_FMREDRAW);
 			}
 			break;
 
@@ -786,9 +813,9 @@ void CreateTrafficWindow(HWND hCluiWnd)
 	wcx.lpfnWndProc = TrafficCounterWndProc_MW;
 	wcx.cbClsExtra = 0;
 	wcx.cbWndExtra = 0;
-	wcx.hInstance = hInst;
+	wcx.hInstance = g_plugin.getInst();
 	wcx.hIcon = nullptr;
-	wcx.hCursor = LoadCursor(hInst, IDC_ARROW);
+	wcx.hCursor = LoadCursor(g_plugin.getInst(), IDC_ARROW);
 	wcx.hbrBackground = nullptr;
 	wcx.lpszMenuName = nullptr;
 	wcx.lpszClassName = TRAFFIC_COUNTER_WINDOW_CLASS;
@@ -797,7 +824,7 @@ void CreateTrafficWindow(HWND hCluiWnd)
 	TrafficHwnd = CreateWindowEx(WS_EX_TOOLWINDOW, TRAFFIC_COUNTER_WINDOW_CLASS,
 		TRAFFIC_COUNTER_WINDOW_CLASS,
 		WS_CHILDWINDOW | WS_CLIPCHILDREN,
-		0, 0, 0, 0, hCluiWnd, nullptr, hInst, nullptr);
+		0, 0, 0, 0, hCluiWnd, nullptr, g_plugin.getInst(), nullptr);
 
 	if (ServiceExists(MS_CLIST_FRAMES_ADDFRAME)) {
 		// Готовимся создавать фрейм
@@ -807,10 +834,9 @@ void CreateTrafficWindow(HWND hCluiWnd)
 		f.height = TrafficWindowHeight();
 		f.Flags = unOptions.FrameIsVisible | F_LOCKED | F_NOBORDER | F_NO_SUBCONTAINER;
 		f.hWnd = TrafficHwnd;
-		f.TBname = ("Traffic counter");
-		f.name = ("Traffic counter");
+		f.szName.a = f.szTBname.a = LPGEN("Traffic counter");
 		// Создаём фрейм
-		Traffic_FrameID = (HANDLE)CallService(MS_CLIST_FRAMES_ADDFRAME, (WPARAM)&f, 0);
+		Traffic_FrameID = g_plugin.addFrame(&f);
 		CallService(MS_SKINENG_REGISTERPAINTSUB, (WPARAM)f.hWnd, (LPARAM)TrafficCounter_PaintCallbackProc);
 	}
 
@@ -822,10 +848,10 @@ void CreateTrafficWindow(HWND hCluiWnd)
 INT_PTR MenuCommand_TrafficShowHide(WPARAM, LPARAM)
 {
 	unOptions.FrameIsVisible = !unOptions.FrameIsVisible;
-	if (Traffic_FrameID == nullptr)
+	if (Traffic_FrameID == 0)
 		ShowWindow(TrafficHwnd, unOptions.FrameIsVisible ? SW_SHOW : SW_HIDE);
 	else
-		CallService(MS_CLIST_FRAMES_SHFRAME, (WPARAM)Traffic_FrameID, 0);
+		CallService(MS_CLIST_FRAMES_SHFRAME, Traffic_FrameID, 0);
 	db_set_dw(NULL, MODULENAME, SETTINGS_WHAT_DRAW, unOptions.Flags);
 	//
 	return 0;
@@ -833,7 +859,7 @@ INT_PTR MenuCommand_TrafficShowHide(WPARAM, LPARAM)
 
 void Traffic_AddMainMenuItem(void)
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x7fe75b30, 0x3cf6, 0x4280, 0xb9, 0xd2, 0x88, 0x6b, 0xbb, 0x69, 0xa3, 0x7e);
 	mi.position = -0x7FFFFFFF;
 	mi.hIcolibItem = nullptr;
@@ -925,7 +951,49 @@ void DestroyProtocolList(void)
 	mir_free(ProtoList);
 }
 
-int ProtocolAckHook(WPARAM, LPARAM lParam)
+int UpdateFonts(WPARAM, LPARAM)
+{
+	LOGFONT logfont;
+	//update traffic font
+	if (Traffic_h_font) DeleteObject(Traffic_h_font);
+	Traffic_FontColor = Font_GetW(TrafficFontID, &logfont);
+	Traffic_h_font = CreateFontIndirect(&logfont);
+
+	TrafficFontHeight = abs(logfont.lfHeight) + 1;
+	Traffic_BkColor = Colour_GetW(TrafficBackgroundColorID);
+
+	// Ключевой цвет
+	UseKeyColor = db_get_b(NULL, "ModernSettings", "UseKeyColor", 1);
+	KeyColor = db_get_dw(NULL, "ModernSettings", "KeyColor", 0);
+
+	UpdateTrafficWindowSize();
+	return 0;
+}
+
+void UpdateTrafficWindowSize(void)
+{
+	if (Traffic_FrameID != 0)
+		CallService(MS_CLIST_FRAMES_SETFRAMEOPTIONS, MAKEWPARAM(FO_HEIGHT, Traffic_FrameID), TrafficWindowHeight());
+}
+
+unsigned short int TrafficWindowHeight(void)
+{
+	int ActProto = unOptions.ShowOverall + unOptions.ShowSummary;
+
+	for (int i = 0; i < NumberOfAccounts; i++)
+		ActProto += ProtoList[i].Visible && ProtoList[i].Enabled;
+
+	// Высота строки минимум 16 пикселей (для иконки).
+	Traffic_LineHeight = TrafficFontHeight > 16 ? TrafficFontHeight : 16;
+
+	// Высота фрейма равна количеству строк.
+	int MaxWndHeight = ActProto * Traffic_LineHeight + Traffic_AdditionSpace * (ActProto - 1) + 4;
+	return (MaxWndHeight < TrafficFontHeight) ? 0 : MaxWndHeight;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static int ProtocolAckHook(WPARAM, LPARAM lParam)
 {
 	ACKDATA *pAck = (ACKDATA*)lParam;
 
@@ -950,46 +1018,6 @@ int ProtocolAckHook(WPARAM, LPARAM lParam)
 		}
 	}
 	return 0;
-}
-
-int UpdateFonts(WPARAM, LPARAM)
-{
-	LOGFONT logfont;
-	//update traffic font
-	if (Traffic_h_font) DeleteObject(Traffic_h_font);
-	Traffic_FontColor = Font_GetW(TrafficFontID, &logfont);
-	Traffic_h_font = CreateFontIndirect(&logfont);
-
-	TrafficFontHeight = abs(logfont.lfHeight) + 1;
-	Traffic_BkColor = Colour_GetW(TrafficBackgroundColorID);
-
-	// Ключевой цвет
-	UseKeyColor = db_get_b(NULL, "ModernSettings", "UseKeyColor", 1);
-	KeyColor = db_get_dw(NULL, "ModernSettings", "KeyColor", 0);
-
-	UpdateTrafficWindowSize();
-	return 0;
-}
-
-void UpdateTrafficWindowSize(void)
-{
-	if (Traffic_FrameID != nullptr)
-		CallService(MS_CLIST_FRAMES_SETFRAMEOPTIONS, MAKEWPARAM(FO_HEIGHT, Traffic_FrameID), TrafficWindowHeight());
-}
-
-unsigned short int TrafficWindowHeight(void)
-{
-	int ActProto = unOptions.ShowOverall + unOptions.ShowSummary;
-
-	for (int i = 0; i < NumberOfAccounts; i++)
-		ActProto += ProtoList[i].Visible && ProtoList[i].Enabled;
-
-	// Высота строки минимум 16 пикселей (для иконки).
-	Traffic_LineHeight = TrafficFontHeight > 16 ? TrafficFontHeight : 16;
-
-	// Высота фрейма равна количеству строк.
-	int MaxWndHeight = ActProto * Traffic_LineHeight + Traffic_AdditionSpace * (ActProto - 1) + 4;
-	return (MaxWndHeight < TrafficFontHeight) ? 0 : MaxWndHeight;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -1017,41 +1045,7 @@ static int OnAccountsListChange(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-static int TrafficCounterShutdown(WPARAM, LPARAM)
-{
-	KillTimer(TrafficHwnd, TIMER_REDRAW);
-	KillTimer(TrafficHwnd, TIMER_NOTIFY_TICK);
-
-	SaveSettings(0);
-
-	// Удаляем пункт главного меню.
-	if (hTrafficMainMenuItem) {
-		Menu_RemoveItem(hTrafficMainMenuItem);
-		hTrafficMainMenuItem = nullptr;
-	}
-	// Удаляем контекстное меню.
-	if (TrafficPopupMenu) {
-		DestroyMenu(TrafficPopupMenu);
-		TrafficPopupMenu = nullptr;
-	}
-	// Разрегистрируем процедуру отрисовки фрейма.
-	CallService(MS_SKINENG_REGISTERPAINTSUB, (WPARAM)TrafficHwnd, (LPARAM)NULL);
-
-	// Удаляем фрейм.
-	if ((ServiceExists(MS_CLIST_FRAMES_REMOVEFRAME)) && Traffic_FrameID) {
-		CallService(MS_CLIST_FRAMES_REMOVEFRAME, (WPARAM)Traffic_FrameID, 0);
-		Traffic_FrameID = nullptr;
-	}
-	return 0;
-}
-
-static int ModuleLoad(WPARAM, LPARAM)
-{
-	bPopupExists = ServiceExists(MS_POPUP_ADDPOPUPT);
-	bVariablesExists = ServiceExists(MS_VARS_FORMATSTRING) && ServiceExists(MS_VARS_REGISTERTOKEN);
-	bTooltipExists = ServiceExists("mToolTip/ShowTipW") || ServiceExists("mToolTip/ShowTip");
-	return 0;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 static int TrafficCounterModulesLoaded(WPARAM, LPARAM)
 {
@@ -1092,11 +1086,10 @@ static int TrafficCounterModulesLoaded(WPARAM, LPARAM)
 	OverallInfo.Total.Timer = db_get_dw(NULL, MODULENAME, SETTINGS_TOTAL_ONLINE_TIME, 0);
 
 	//register traffic font
-	TrafficFontID.cbSize = sizeof(FontIDW);
 	mir_wstrcpy(TrafficFontID.group, LPGENW("Traffic counter"));
 	mir_wstrcpy(TrafficFontID.name, LPGENW("Font"));
 	mir_strcpy(TrafficFontID.dbSettingsGroup, MODULENAME);
-	mir_strcpy(TrafficFontID.prefix, "Font");
+	mir_strcpy(TrafficFontID.setting, "Font");
 	TrafficFontID.flags = FIDF_DEFAULTVALID | FIDF_SAVEPOINTSIZE;
 	TrafficFontID.deffontsettings.charset = DEFAULT_CHARSET;
 	TrafficFontID.deffontsettings.colour = GetSysColor(COLOR_BTNTEXT);
@@ -1104,16 +1097,15 @@ static int TrafficCounterModulesLoaded(WPARAM, LPARAM)
 	TrafficFontID.deffontsettings.style = 0;
 	mir_wstrcpy(TrafficFontID.deffontsettings.szFace, L"Arial");
 	TrafficFontID.order = 0;
-	Font_RegisterW(&TrafficFontID);
+	g_plugin.addFont(&TrafficFontID);
 
 	// Регистрируем цвет фона
-	TrafficBackgroundColorID.cbSize = sizeof(ColourIDW);
 	mir_wstrcpy(TrafficBackgroundColorID.group, LPGENW("Traffic counter"));
 	mir_wstrcpy(TrafficBackgroundColorID.name, LPGENW("Font"));
 	mir_strcpy(TrafficBackgroundColorID.dbSettingsGroup, MODULENAME);
 	mir_strcpy(TrafficBackgroundColorID.setting, "FontBkColor");
 	TrafficBackgroundColorID.defcolour = GetSysColor(COLOR_BTNFACE);
-	Colour_RegisterW(&TrafficBackgroundColorID);
+	g_plugin.addColor(&TrafficBackgroundColorID);
 
 	HookEvent(ME_FONT_RELOAD, UpdateFonts);
 
@@ -1129,7 +1121,7 @@ static int TrafficCounterModulesLoaded(WPARAM, LPARAM)
 		hkd.szDescription.a = LPGEN("Show/Hide frame");
 		hkd.pszName = "TC_Show_Hide";
 		hkd.pszService = "TrafficCounter/ShowHide";
-		Hotkey_Register(&hkd);
+		g_plugin.addHotkey(&hkd);
 	}
 
 	// Добавляем пункт в главное меню.
@@ -1146,18 +1138,13 @@ static int TrafficCounterModulesLoaded(WPARAM, LPARAM)
 	HookEvent(ME_NETLIB_FASTRECV, TrafficRecv);
 	HookEvent(ME_NETLIB_FASTSEND, TrafficSend);
 
-	CreateTrafficWindow(pcli->hwndContactList);
+	CreateTrafficWindow(g_clistApi.hwndContactList);
 	UpdateFonts(0, 0);	//Load and create fonts here
-
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	// Получаем дескриптор языкового пакета.
-	mir_getLP(&pluginInfoEx);
-	pcli = Clist_GetInterface();
-
 	HookEvent(ME_OPT_INITIALISE, TrafficCounterOptInitialise);
 	HookEvent(ME_SYSTEM_MODULESLOADED, TrafficCounterModulesLoaded);
 	HookEvent(ME_PROTO_ACK, ProtocolAckHook);
@@ -1171,7 +1158,7 @@ extern "C" int __declspec(dllexport) Load(void)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	// Удаляем шрифт.
 	if (Traffic_h_font) {

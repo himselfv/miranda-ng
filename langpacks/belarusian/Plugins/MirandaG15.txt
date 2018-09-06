@@ -7,6 +7,7 @@
 ;============================================================
 [Provides an interface to use Miranda from the LCD of various Logitech devices.]
 Плагін дадае магчымасць выкарыстання Miranda NG на ВК-экране разнастайных прылад Logitech.
+;file \plugins\MirandaG15\res\MirandaG15.rc
 [General settings]
 Агульныя налады
 [Show softkey labels]
@@ -186,13 +187,14 @@
 [Show line break indicators]
 Паказаць сімвалы пераноса
 [Send messages with Enter, insert line breaks with Ctrl+Enter]
-Адпраўка па Enter, CTRL+Enter - перавод радка
+Адпраўка па Enter, Ctrl+Enter - перавод радка
 [Maximized replying]
 Адказ ў пўнаэкранным рэжыме
 [Close chat after]
 Зачыняць чап пасля
 [When in background]
 Калі згорнута
+;file \plugins\MirandaG15\src\CConfig.cpp
 [Appearance]
 Знешні выгляд
 [Notifications]

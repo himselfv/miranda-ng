@@ -32,7 +32,7 @@ void InputAreaContextMenu(HWND hwnd, WPARAM, LPARAM lParam, MCONTACT hContact)
 	POINT pt;
 	CHARRANGE sel, all = { 0, -1 };
 
-	HMENU hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_CONTEXT));
+	HMENU hMenu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_CONTEXT));
 	HMENU hSubMenu = GetSubMenu(hMenu, 2);
 	TranslateMenu(hSubMenu);
 	SendMessage(hwnd, EM_EXGETSEL, 0, (LPARAM)&sel);
@@ -70,14 +70,14 @@ void InputAreaContextMenu(HWND hwnd, WPARAM, LPARAM lParam, MCONTACT hContact)
 	mwpd.hMenu = hSubMenu;
 	mwpd.selection = 0;
 	mwpd.pt = pt;
-	NotifyEventHooks(pci->hevWinPopup, 0, (LPARAM)&mwpd);
+	NotifyEventHooks(g_chatApi.hevWinPopup, 0, (LPARAM)&mwpd);
 
 	int selection = TrackPopupMenu(hSubMenu, TPM_RETURNCMD, pt.x, pt.y, 0, GetParent(hwnd), nullptr);
 
 	// Second notification
 	mwpd.selection = selection;
 	mwpd.uType = MSG_WINDOWPOPUP_SELECTED;
-	NotifyEventHooks(pci->hevWinPopup, 0, (LPARAM)&mwpd);
+	NotifyEventHooks(g_chatApi.hevWinPopup, 0, (LPARAM)&mwpd);
 
 	switch (selection) {
 	case IDM_UNDO:
@@ -110,6 +110,39 @@ void InputAreaContextMenu(HWND hwnd, WPARAM, LPARAM lParam, MCONTACT hContact)
 		break;
 	}
 	DestroyMenu(hMenu);
+}
+
+bool CScriverWindow::CheckSend()
+{
+	BOOL isShift = GetKeyState(VK_SHIFT) & 0x8000;
+	BOOL isCtrl = GetKeyState(VK_CONTROL) & 0x8000;
+	BOOL isAlt = GetKeyState(VK_MENU) & 0x8000;
+
+	if (!isShift && !isCtrl && g_dat.sendMode == SEND_ON_ENTER) {
+		PostMessage(m_hwnd, WM_COMMAND, IDOK, 0);
+		return true;
+	}
+	if (!isShift && isCtrl && g_dat.sendMode == SEND_ON_CTRL_ENTER) {
+		PostMessage(m_hwnd, WM_COMMAND, IDOK, 0);
+		return true;
+	}
+	if (isShift && !isCtrl && g_dat.sendMode == SEND_ON_SHIFT_ENTER) {
+		PostMessage(m_hwnd, WM_COMMAND, IDOK, 0);
+		return true;
+	}
+
+	if (g_dat.sendMode == SEND_ON_DBL_ENTER) {
+		if (m_iLastEnterTime + 1000 < GetTickCount())
+			m_iLastEnterTime = GetTickCount();
+		else {
+			m_log.SendMsg(WM_KEYDOWN, VK_BACK, 0);
+			m_log.SendMsg(WM_KEYUP, VK_BACK, 0);
+			PostMessage(m_hwnd, WM_COMMAND, IDOK, 0);
+			return true;
+		}
+	}
+
+	return false;
 }
 
 int CScriverWindow::InputAreaShortcuts(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -267,21 +300,21 @@ void RegisterKeyBindings()
 	desc.szDescription.a = LPGEN("Navigate: Previous tab");
 	desc.lParam = KB_PREV_TAB;
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL | HOTKEYF_SHIFT, VK_TAB);
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL, VK_PRIOR);
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_ALT, VK_LEFT);
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 
 	desc.pszName = "Scriver/Nav/Next Tab";
 	desc.szDescription.a = LPGEN("Navigate: Next tab");
 	desc.lParam = KB_NEXT_TAB;
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL, VK_TAB);
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL, VK_NEXT);
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_ALT, VK_RIGHT);
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 
 	desc.pszName = strName;
 	desc.szDescription.a = strDesc;
@@ -290,68 +323,68 @@ void RegisterKeyBindings()
 		mir_snprintf(strDesc, Translate("Navigate: Tab %d"), i + 1);
 		desc.lParam = KB_TAB1 + i;
 		desc.DefHotKey = HOTKEYCODE(HOTKEYF_ALT, '1' + i);
-		Hotkey_Register(&desc);
+		g_plugin.addHotkey(&desc);
 	}
 
 	desc.pszName = "Scriver/Wnd/Toggle Statusbar";
 	desc.szDescription.a = LPGEN("Window: Toggle status bar");
 	desc.lParam = KB_SWITCHSTATUSBAR;
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL | HOTKEYF_SHIFT, 'S');
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 
 	desc.pszName = "Scriver/Wnd/Toggle Titlebar";
 	desc.szDescription.a = LPGEN("Window: Toggle title bar");
 	desc.lParam = KB_SWITCHTITLEBAR;
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL | HOTKEYF_SHIFT, 'M');
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 
 	desc.pszName = "Scriver/Wnd/Toggle Toolbar";
 	desc.szDescription.a = LPGEN("Window: Toggle toolbar");
 	desc.lParam = KB_SWITCHTOOLBAR;
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL | HOTKEYF_SHIFT, 'T');
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 
 	desc.pszName = "Scriver/Wnd/Toggle Infobar";
 	desc.szDescription.a = LPGEN("Window: Toggle info bar");
 	desc.lParam = KB_SWITCHINFOBAR;
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL | HOTKEYF_SHIFT, 'N');
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 
 	desc.pszName = "Scriver/Wnd/Clear Log";
 	desc.szDescription.a = LPGEN("Window: Clear log");
 	desc.lParam = KB_CLEAR_LOG;
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL, 'L');
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 
 	desc.pszName = "Scriver/Wnd/Minimize";
 	desc.szDescription.a = LPGEN("Window: Minimize");
 	desc.lParam = KB_MINIMIZE;
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_SHIFT, VK_ESCAPE);
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 
 	desc.pszName = "Scriver/Wnd/Close Tab";
 	desc.szDescription.a = LPGEN("Window: Close tab");
 	desc.lParam = KB_CLOSE;
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL, VK_F4);
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL, 'W');
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 
 	desc.pszName = "Scriver/Action/Quote";
 	desc.szDescription.a = LPGEN("Action: Quote");
 	desc.lParam = KB_QUOTE;
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL, 'Q');
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 
 	desc.pszName = "Scriver/Action/Send All";
 	desc.szDescription.a = LPGEN("Action: Send to all");
 	desc.lParam = KB_SEND_ALL;
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL | HOTKEYF_SHIFT, VK_RETURN);
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 
 	desc.pszName = "Scriver/Action/PasteSend";
 	desc.szDescription.a = LPGEN("Action: Paste and send");
 	desc.lParam = KB_PASTESEND;
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL | HOTKEYF_SHIFT, VK_INSERT);
-	Hotkey_Register(&desc);
+	g_plugin.addHotkey(&desc);
 }

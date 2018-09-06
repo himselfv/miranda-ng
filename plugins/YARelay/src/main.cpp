@@ -19,16 +19,15 @@ Features:
 
 #include "stdafx.h"
 
-#include "../../utils/mir_buffer.h"
-
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
 MCONTACT hForwardFrom, hForwardTo;
 wchar_t tszForwardTemplate[MAXTEMPLATESIZE]; 
 int iSplit, iSplitMaxSize, iSendParts, iMarkRead, iSendAndHistory, iForwardOnStatus;
 
 LIST<MESSAGE_PROC> arMessageProcs(10, HandleKeySortT);
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
@@ -43,15 +42,13 @@ PLUGININFOEX pluginInfoEx = {
 	{0x1202e6a, 0xc1b3, 0x42e5, {0x83, 0x8a, 0x3e, 0x49, 0x7b, 0x31, 0xf3, 0x8e}}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst=hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-/**
-* Protocols acknowledgement
-*/
+/////////////////////////////////////////////////////////////////////////////////////////
+// Protocols acknowledgement
+
 int ProtoAck(WPARAM,LPARAM lparam)
 {
 	ACKDATA *pAck = (ACKDATA *)lparam;
@@ -67,7 +64,7 @@ int ProtoAck(WPARAM,LPARAM lparam)
 		time(&ltime);
 
 		DBEVENTINFO dbei = {};
-		dbei.szModule = "yaRelay";
+		dbei.szModule = MODULENAME;
 		dbei.timestamp = ltime;
 		dbei.flags = DBEF_SENT | DBEF_UTF;
 		dbei.eventType = EVENTTYPE_MESSAGE;
@@ -82,9 +79,9 @@ int ProtoAck(WPARAM,LPARAM lparam)
 	return 0;
 }
 
-/**
-* New event was added into DB.
-*/
+/////////////////////////////////////////////////////////////////////////////////////////
+// New event was added into DB.
+
 static int MessageEventAdded(WPARAM hContact, LPARAM hDBEvent)
 {
 	// is the message sender accepted for forwarding
@@ -131,11 +128,11 @@ static int MessageEventAdded(WPARAM hContact, LPARAM hDBEvent)
 	tm *tm_time = gmtime(&tTime);
 
 	// build a message
-	Buffer<char> szUtfMsg;
+	CMStringA szUtfMsg;
 	T2Utf szTemplate(tszForwardTemplate);
 	for (char *p = szTemplate; *p; p++) {
 		if (*p != '%') {
-			szUtfMsg.append(*p);
+			szUtfMsg.AppendChar(*p);
 			continue;
 		}
 
@@ -143,7 +140,7 @@ static int MessageEventAdded(WPARAM hContact, LPARAM hDBEvent)
 		switch(*++p) {
 		case 'u':
 		case 'U':
-			szUtfMsg.append(T2Utf(Clist_GetContactDisplayName(hContact)));
+			szUtfMsg.Append(T2Utf(Clist_GetContactDisplayName(hContact)));
 			break;
 
 		case 'i':
@@ -155,43 +152,43 @@ static int MessageEventAdded(WPARAM hContact, LPARAM hDBEvent)
 				else
 					mir_snwprintf(buf, L"%p", hContact);
 			}
-			szUtfMsg.append(T2Utf(buf));
+			szUtfMsg.Append(T2Utf(buf));
 			break;
 
 		case 't':
 		case 'T':
 			wcsftime(buf, 10, L"%H:%M", tm_time);
-			szUtfMsg.append(T2Utf(buf));
+			szUtfMsg.Append(T2Utf(buf));
 			break;
 
 		case 'd':
 		case 'D':
 			wcsftime(buf, 12, L"%d/%m/%Y", tm_time);
-			szUtfMsg.append(T2Utf(buf));
-			break;
+			szUtfMsg.Append(T2Utf(buf));
+			break;	
 
 		case 'm':
 		case 'M':
 			if (dbei.flags & DBEF_UTF)
-				szUtfMsg.append((char*)dbei.pBlob, dbei.cbBlob);
+				szUtfMsg.Append((char*)dbei.pBlob, dbei.cbBlob);
 			else
-				szUtfMsg.append(ptrA(mir_utf8encode((char*)dbei.pBlob)));
+				szUtfMsg.Append(ptrA(mir_utf8encode((char*)dbei.pBlob)));
 			break;
 
 		case '%':
-			szUtfMsg.append('%');
+			szUtfMsg.AppendChar('%');
 			break;
 		}
 	}
 
 	int iPartCount = 1;
-	size_t cbMsgSize = szUtfMsg.len, cbPortion = cbMsgSize;
+	size_t cbMsgSize = szUtfMsg.GetLength(), cbPortion = cbMsgSize;
 	if (iSplit > 0) {
-		iPartCount = min(iSendParts, int((szUtfMsg.len + iSplitMaxSize) / iSplitMaxSize));
+		iPartCount = min(iSendParts, int((szUtfMsg.GetLength() + iSplitMaxSize) / iSplitMaxSize));
 		cbPortion = iSplitMaxSize;
 	}
 
-	char *szBuf = szUtfMsg.str;
+	const char *szBuf = szUtfMsg;
 	for (int i=0; i < iPartCount; i++, szBuf += cbPortion) {
 		char *szMsgPart = (char*)mir_alloc(cbPortion+1);
 		strncpy(szMsgPart, szBuf, cbPortion);
@@ -212,42 +209,32 @@ static int MessageEventAdded(WPARAM hContact, LPARAM hDBEvent)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-
 	// Load plugin options from DB
-	hForwardFrom = (MCONTACT)db_get_dw(NULL, "yaRelay", "ForwardFrom", 0);
-	hForwardTo = (MCONTACT)db_get_dw(NULL, "yaRelay", "ForwardTo", 0);
+	hForwardFrom = (MCONTACT)db_get_dw(NULL, MODULENAME, "ForwardFrom", 0);
+	hForwardTo = (MCONTACT)db_get_dw(NULL, MODULENAME, "ForwardTo", 0);
 
-	iForwardOnStatus = db_get_dw(NULL, "yaRelay", "ForwardOnStatus", STATUS_OFFLINE | STATUS_AWAY | STATUS_NA);
+	iForwardOnStatus = db_get_dw(NULL, MODULENAME, "ForwardOnStatus", STATUS_OFFLINE | STATUS_AWAY | STATUS_NA);
 
-	wchar_t *szForwardTemplate = db_get_wsa(NULL, "yaRelay", "ForwardTemplate");
+	wchar_t *szForwardTemplate = db_get_wsa(NULL, MODULENAME, "ForwardTemplate");
 	if (szForwardTemplate){
 		wcsncpy(tszForwardTemplate, szForwardTemplate, _countof(tszForwardTemplate));
 		mir_free(szForwardTemplate);
 	}
 	else wcsncpy(tszForwardTemplate, L"%u: %m", MAXTEMPLATESIZE-1);
 
-	iSplit          = db_get_dw(NULL, "yaRelay", "Split", 0);
-	iSplitMaxSize   = db_get_dw(NULL, "yaRelay", "SplitMaxSize", 100);
-	iSendParts      = db_get_dw(NULL, "yaRelay", "SendParts", 0);
-	iMarkRead       = db_get_dw(NULL, "yaRelay", "MarkRead", 0);
-	iSendAndHistory = db_get_dw(NULL, "yaRelay", "SendAndHistory", 1);
+	iSplit          = db_get_dw(NULL, MODULENAME, "Split", 0);
+	iSplitMaxSize   = db_get_dw(NULL, MODULENAME, "SplitMaxSize", 100);
+	iSendParts      = db_get_dw(NULL, MODULENAME, "SendParts", 0);
+	iMarkRead       = db_get_dw(NULL, MODULENAME, "MarkRead", 0);
+	iSendAndHistory = db_get_dw(NULL, MODULENAME, "SendAndHistory", 1);
 
 	// hook events
 	HookEvent(ME_DB_EVENT_ADDED, MessageEventAdded);
 	HookEvent(ME_OPT_INITIALISE, OptionsInit);
 	HookEvent(ME_PROTO_ACK, ProtoAck);
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

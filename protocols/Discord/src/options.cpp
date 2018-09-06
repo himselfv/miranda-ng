@@ -39,20 +39,22 @@ public:
 		CreateLink(chkHideChats, ppro->m_bHideGroupchats);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		ptrW buf(m_proto->getWStringA(DB_KEY_PASSWORD));
 		if (buf)
 			m_edPassword.SetText(buf);
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		if (mir_wstrcmp(m_proto->m_wszDefaultGroup, m_wszOldGroup))
 			Clist_GroupCreate(0, m_proto->m_wszDefaultGroup);
 
 		ptrW buf(m_edPassword.GetText());
 		m_proto->setWString(DB_KEY_PASSWORD, buf);
+		return true;
 	}
 };
 
@@ -68,7 +70,7 @@ INT_PTR CDiscordProto::SvcCreateAccMgrUI(WPARAM, LPARAM hwndParent)
 
 int CDiscordProto::OnOptionsInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szTitle.w = m_tszUserName;
 	odp.flags = ODPF_UNICODE;
 	odp.szGroup.w = LPGENW("Network");
@@ -76,6 +78,6 @@ int CDiscordProto::OnOptionsInit(WPARAM wParam, LPARAM)
 	odp.position = 1;
 	odp.szTab.w = LPGENW("Account");
 	odp.pDialog = new CDiscardAccountOptions(this, IDD_OPTIONS_ACCOUNT);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

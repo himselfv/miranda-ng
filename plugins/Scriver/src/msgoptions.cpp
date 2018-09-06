@@ -86,7 +86,7 @@ int FontServiceFontsChanged(WPARAM, LPARAM)
 
 void RegisterFontServiceFonts()
 {
-	FontIDW fid = { sizeof(fid) };
+	FontIDW fid = {};
 	wcsncpy_s(fid.group, LPGENW("Messaging"), _TRUNCATE);
 	wcsncpy_s(fid.backgroundGroup, LPGENW("Messaging"), _TRUNCATE);
 	strncpy(fid.dbSettingsGroup, SRMM_MODULE, _countof(fid.dbSettingsGroup));
@@ -96,7 +96,7 @@ void RegisterFontServiceFonts()
 
 		char szTemp[100];
 		mir_snprintf(szTemp, "SRMFont%d", i);
-		strncpy(fid.prefix, szTemp, _countof(fid.prefix));
+		strncpy(fid.setting, szTemp, _countof(fid.setting));
 		wcsncpy(fid.name, fontOptionsList[i].szDescr, _countof(fid.name));
 		fid.deffontsettings.colour = fontOptionsList[i].defColour;
 		fid.deffontsettings.size = fontOptionsList[i].defSize;
@@ -104,10 +104,10 @@ void RegisterFontServiceFonts()
 		fid.deffontsettings.charset = DEFAULT_CHARSET;
 		wcsncpy(fid.deffontsettings.szFace, fontOptionsList[i].szDefFace, _countof(fid.deffontsettings.szFace));
 		wcsncpy(fid.backgroundName, fontOptionsList[i].szBkgName, _countof(fid.backgroundName));
-		Font_RegisterW(&fid);
+		g_plugin.addFont(&fid);
 	}
 
-	ColourIDW cid = { sizeof(cid) };
+	ColourIDW cid = {};
 	wcsncpy_s(cid.group, LPGENW("Messaging"), _TRUNCATE);
 	strncpy(cid.dbSettingsGroup, SRMM_MODULE, _countof(fid.dbSettingsGroup));
 	cid.flags = 0;
@@ -120,7 +120,7 @@ void RegisterFontServiceFonts()
 			cid.defcolour = colourOptionsList[i].defColour;
 
 		strncpy(cid.setting, colourOptionsList[i].szSettingName, _countof(cid.setting));
-		Colour_RegisterW(&cid);
+		g_plugin.addColor(&cid);
 	}
 }
 
@@ -194,7 +194,7 @@ class CBaseOptionDlg : public CDlgBase
 
 public:
 	CBaseOptionDlg(int dlgId) :
-		CDlgBase(g_hInst, dlgId)
+		CDlgBase(g_plugin, dlgId)
 	{
 		m_OnFinishWizard = Callback(this, &CBaseOptionDlg::ApplyOptions);
 	}
@@ -225,7 +225,7 @@ static const struct CheckBoxValues_t statusValues[] =
 class CMainOptionsDlg : public CBaseOptionDlg
 {
 	CCtrlCheck chkAutoPopup, chkCascade, chkSavePerContact;
-	CCtrlCheck chkSendOnEnter, chkSendOnDblEnter, chkSendOnCtrlEnter;
+	CCtrlCombo cmbSendMode;
 	CCtrlTreeView m_tree;
 
 	void FillCheckBoxTree(const struct CheckBoxValues_t *values, int nValues, DWORD style)
@@ -263,10 +263,8 @@ public:
 		CBaseOptionDlg(IDD_OPT_MSGDLG),
 		m_tree(this, IDC_POPLIST),
 		chkCascade(this, IDC_CASCADE),
+		cmbSendMode(this, IDC_SENDMODE),
 		chkAutoPopup(this, IDC_AUTOPOPUP),
-		chkSendOnEnter(this, IDC_SENDONENTER),
-		chkSendOnDblEnter(this, IDC_SENDONDBLENTER),
-		chkSendOnCtrlEnter(this, IDC_SENDONCTRLENTER),
 		chkSavePerContact(this, IDC_SAVEPERCONTACT)
 	{
 		chkCascade.OnChange = Callback(this, &CMainOptionsDlg::onChange_Cascade);
@@ -274,7 +272,7 @@ public:
 		chkSavePerContact.OnChange = Callback(this, &CMainOptionsDlg::onChange_SavePerContact);
 	}
 
-	void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		SetWindowLongPtr(m_tree.GetHwnd(), GWL_STYLE, (GetWindowLongPtr(m_tree.GetHwnd(), GWL_STYLE) & ~WS_BORDER) | TVS_NOHSCROLL | TVS_CHECKBOXES);
 		FillCheckBoxTree(statusValues, _countof(statusValues), db_get_dw(0, SRMM_MODULE, SRMSGSET_POPFLAGS, SRMSGDEFSET_POPFLAGS));
@@ -292,17 +290,17 @@ public:
 		chkCascade.SetState(db_get_b(0, SRMM_MODULE, SRMSGSET_CASCADE, SRMSGDEFSET_CASCADE));
 		chkSavePerContact.SetState(db_get_b(0, SRMM_MODULE, SRMSGSET_SAVEPERCONTACT, SRMSGDEFSET_SAVEPERCONTACT));
 
-		if (db_get_b(0, SRMM_MODULE, SRMSGSET_SENDONENTER, SRMSGDEFSET_SENDONENTER))
-			CheckDlgButton(m_hwnd, IDC_SENDONENTER, BST_CHECKED);
-		else if (db_get_b(0, SRMM_MODULE, SRMSGSET_SENDONDBLENTER, SRMSGDEFSET_SENDONDBLENTER))
-			CheckDlgButton(m_hwnd, IDC_SENDONDBLENTER, BST_CHECKED);
-		else
-			CheckDlgButton(m_hwnd, IDC_SENDONCTRLENTER, BST_CHECKED);
+		cmbSendMode.AddString(TranslateT("Enter"));
+		cmbSendMode.AddString(TranslateT("Double 'Enter'"));
+		cmbSendMode.AddString(TranslateT("Ctrl+Enter"));
+		cmbSendMode.AddString(TranslateT("Shift+Enter"));
+		cmbSendMode.SetCurSel(g_dat.sendMode);
 
 		onChange_AutoPopup(0);
+		return true;
 	}
 
-	void OnApply() override
+	bool OnApply() override
 	{
 		db_set_dw(0, SRMM_MODULE, SRMSGSET_POPFLAGS, MakeCheckBoxTreeFlags());
 		db_set_b(0, SRMM_MODULE, SRMSGSET_AUTOPOPUP, chkAutoPopup.GetState());
@@ -313,14 +311,13 @@ public:
 		db_set_b(0, SRMM_MODULE, SRMSGSET_DELTEMP, (BYTE)IsDlgButtonChecked(m_hwnd, IDC_DELTEMP));
 		db_set_dw(0, SRMM_MODULE, SRMSGSET_MSGTIMEOUT, (DWORD)SendDlgItemMessage(m_hwnd, IDC_SECONDSSPIN, UDM_GETPOS, 0, 0) * 1000);
 
-		db_set_b(0, SRMM_MODULE, SRMSGSET_SENDONENTER, (BYTE)IsDlgButtonChecked(m_hwnd, IDC_SENDONENTER));
-		db_set_b(0, SRMM_MODULE, SRMSGSET_SENDONDBLENTER, (BYTE)IsDlgButtonChecked(m_hwnd, IDC_SENDONDBLENTER));
-		db_set_b(0, SRMM_MODULE, SRMSGSET_SENDONCTRLENTER, (BYTE)IsDlgButtonChecked(m_hwnd, IDC_SENDONCTRLENTER));
+		db_set_b(0, SRMM_MODULE, SRMSGSET_SENDMODE, cmbSendMode.GetCurSel());
 
 		db_set_b(0, SRMM_MODULE, SRMSGSET_SAVEPERCONTACT, chkSavePerContact.GetState());
 		db_set_b(0, SRMM_MODULE, SRMSGSET_CASCADE, chkCascade.GetState());
 
 		db_set_b(0, SRMM_MODULE, SRMSGSET_HIDECONTAINERS, (BYTE)IsDlgButtonChecked(m_hwnd, IDC_HIDECONTAINERS));
+		return true;
 	}
 
 	void onChange_AutoPopup(CCtrlCheck*)
@@ -363,7 +360,7 @@ public:
 		chkSeparateChats.OnChange = Callback(this, &CTabsOptionsDlg::onChange_SeparateChats);
 	}
 
-	void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		CheckDlgButton(m_hwnd, IDC_USETABS, db_get_b(0, SRMM_MODULE, SRMSGSET_USETABS, SRMSGDEFSET_USETABS) ? BST_CHECKED : BST_UNCHECKED);
 		CheckDlgButton(m_hwnd, IDC_ALWAYSSHOWTABS, !db_get_b(0, SRMM_MODULE, SRMSGSET_HIDEONETAB, SRMSGDEFSET_HIDEONETAB) ? BST_CHECKED : BST_UNCHECKED);
@@ -385,9 +382,10 @@ public:
 		CheckDlgButton(m_hwnd, IDC_SEPARATECHATSCONTAINERS, db_get_b(0, SRMM_MODULE, SRMSGSET_SEPARATECHATSCONTAINERS, SRMSGDEFSET_SEPARATECHATSCONTAINERS) ? BST_CHECKED : BST_UNCHECKED);
 
 		onChange_UseTabs(0);
+		return true;
 	}
 
-	void OnApply() override
+	bool OnApply() override
 	{
 		db_set_b(0, SRMM_MODULE, SRMSGSET_USETABS, (BYTE)IsDlgButtonChecked(m_hwnd, IDC_USETABS));
 		db_set_b(0, SRMM_MODULE, SRMSGSET_TABSATBOTTOM, (BYTE)IsDlgButtonChecked(m_hwnd, IDC_TABSATBOTTOM));
@@ -403,6 +401,7 @@ public:
 		db_set_b(0, SRMM_MODULE, SRMSGSET_SWITCHTOACTIVE, (BYTE)IsDlgButtonChecked(m_hwnd, IDC_SWITCHTOACTIVE));
 		db_set_b(0, SRMM_MODULE, SRMSGSET_TABCLOSEBUTTON, (BYTE)IsDlgButtonChecked(m_hwnd, IDC_TABCLOSEBUTTON));
 		db_set_b(0, SRMM_MODULE, SRMSGSET_SEPARATECHATSCONTAINERS, (BYTE)IsDlgButtonChecked(m_hwnd, IDC_SEPARATECHATSCONTAINERS));
+		return true;
 	}
 
 	void onChange_UseTabs(CCtrlCheck*)
@@ -468,7 +467,7 @@ public:
 		chkShowTitlebar.OnChange = Callback(this, &CLayoutOptionsDlg::onChange_ShowTitlebar);
 	}
 
-	void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		CheckDlgButton(m_hwnd, IDC_SHOWSTATUSBAR, db_get_b(0, SRMM_MODULE, SRMSGSET_SHOWSTATUSBAR, SRMSGDEFSET_SHOWSTATUSBAR) ? BST_CHECKED : BST_UNCHECKED);
 		CheckDlgButton(m_hwnd, IDC_SHOWTITLEBAR, db_get_b(0, SRMM_MODULE, SRMSGSET_SHOWTITLEBAR, SRMSGDEFSET_SHOWTITLEBAR) ? BST_CHECKED : BST_UNCHECKED);
@@ -496,9 +495,10 @@ public:
 
 		CheckDlgButton(m_hwnd, IDC_SHOWPROGRESS, db_get_b(0, SRMM_MODULE, SRMSGSET_SHOWPROGRESS, SRMSGDEFSET_SHOWPROGRESS) ? BST_CHECKED : BST_UNCHECKED);
 		CheckDlgButton(m_hwnd, IDC_AVATARSUPPORT, g_dat.flags & SMF_AVATAR);
+		return true;
 	}
 
-	void OnApply() override
+	bool OnApply() override
 	{
 		GetWindowText(GetDlgItem(m_hwnd, IDC_TITLEFORMAT), g_dat.wszTitleFormat, _countof(g_dat.wszTitleFormat));
 		db_set_ws(0, SRMM_MODULE, SRMSGSET_WINDOWTITLE, g_dat.wszTitleFormat);
@@ -518,6 +518,7 @@ public:
 
 		db_set_w(0, SRMM_MODULE, SRMSGSET_AUTORESIZELINES, (WORD)SendDlgItemMessage(m_hwnd, IDC_INPUTLINESSPIN, UDM_GETPOS, 0, 0));
 		LoadInfobarFonts();
+		return true;
 	}
 
 	void onChange_Transparency(CCtrlCheck*)
@@ -549,7 +550,7 @@ public:
 			SendMessage(GetParent(m_hwnd), PSM_CHANGED, 0, 0);
 		}
 
-		return CBaseOptionDlg::DlgProc(msg, wParam, lParam);
+		return CDlgBase::DlgProc(msg, wParam, lParam);
 	}
 };
 
@@ -612,7 +613,7 @@ public:
 		chkIndentText.OnChange = Callback(this, &CLogOptionsDlg::onChange_IndentText);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		switch (db_get_b(0, SRMM_MODULE, SRMSGSET_LOADHISTORY, SRMSGDEFSET_LOADHISTORY)) {
 		case LOADHISTORY_UNREAD:
@@ -674,9 +675,10 @@ public:
 		m_log.SetReadOnly(true);
 
 		OnChange();
+		return true;
 	}
 
-	void OnApply() override
+	bool OnApply() override
 	{
 		if (IsDlgButtonChecked(m_hwnd, IDC_LOADCOUNT))
 			db_set_b(0, SRMM_MODULE, SRMSGSET_LOADHISTORY, LOADHISTORY_COUNT);
@@ -703,11 +705,12 @@ public:
 
 		FreeMsgLogIcons();
 		LoadMsgLogIcons();
+		return true;
 	}
 
 	void onClick_Fonts(CCtrlHyperlink*)
 	{
-		Options_Open(L"Customize", L"Fonts and colors");
+		g_plugin.openOptions(L"Customize", L"Fonts and colors");
 	}
 
 	void onChange_Time(CCtrlCheck*)
@@ -894,27 +897,26 @@ static INT_PTR CALLBACK DlgProcTypeOptions(HWND hwndDlg, UINT msg, WPARAM wParam
 
 int OptInitialise(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 910000000;
-	odp.hInstance = g_hInst;
 	odp.szTitle.a = LPGEN("Message sessions");
 	odp.flags = ODPF_BOLDGROUPS;
 
 	odp.pDialog = new CMainOptionsDlg();
 	odp.szTab.a = LPGEN("General");
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.pDialog = new CTabsOptionsDlg();
 	odp.szTab.a = LPGEN("Tabs");
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.pDialog = new CLayoutOptionsDlg();
 	odp.szTab.a = LPGEN("Layout");
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.pDialog = new CLogOptionsDlg();
 	odp.szTab.a = LPGEN("Event log");
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	odp.pDialog = nullptr;
@@ -924,29 +926,28 @@ int OptInitialise(WPARAM wParam, LPARAM)
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS1);
 	odp.pfnDlgProc = DlgProcOptions1;
 	odp.szTab.a = LPGEN("General");
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS2);
 	odp.pfnDlgProc = DlgProcOptions2;
 	odp.szTab.a = LPGEN("Event log");
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_MSGTYPE);
 	odp.szTitle.a = LPGEN("Typing notify");
 	odp.pfnDlgProc = DlgProcTypeOptions;
 	odp.szTab.a = nullptr;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	if (g_dat.popupInstalled) {
 		odp.position = 910000002;
-		odp.hInstance = g_hInst;
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONSPOPUP);
 		odp.szGroup.a = LPGEN("Popups");
 		odp.szTitle.a = LPGEN("Messaging");
 		odp.pfnDlgProc = DlgProcOptionsPopup;
 		odp.flags = ODPF_BOLDGROUPS;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }

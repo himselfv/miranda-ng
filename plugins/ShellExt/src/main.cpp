@@ -1,11 +1,21 @@
 #include "stdafx.h"
 #include "shlcom.h"
 
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
+
 bool bIsVistaPlus;
 
-wchar_t tszLogPath[MAX_PATH];
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID)
+{
+	if (fdwReason == DLL_PROCESS_ATTACH) {
+		bIsVistaPlus = GetProcAddress( GetModuleHandleA("kernel32.dll"), "GetProductInfo") != nullptr;
+		DisableThreadLibraryCalls(hinstDLL);
+	}
+
+	return TRUE;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
@@ -17,28 +27,12 @@ PLUGININFOEX pluginInfoEx = {
 	__AUTHORWEB,
 	UNICODE_AWARE,
 	// {7993AB24-1FDA-428C-A89B-BE377A10BE3A}
-	{0x7993ab24, 0x1fda, 0x428c, {0xa8, 0x9b, 0xbe, 0x37, 0x7a, 0x10, 0xbe, 0x3a}}
+	{ 0x7993ab24, 0x1fda, 0x428c, { 0xa8, 0x9b, 0xbe, 0x37, 0x7a, 0x10, 0xbe, 0x3a }}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID)
-{
-	if (fdwReason == DLL_PROCESS_ATTACH) {
-		bIsVistaPlus = GetProcAddress( GetModuleHandleA("kernel32.dll"), "GetProductInfo") != nullptr;
-
-		GetTempPath(_countof(tszLogPath), tszLogPath);
-		wcscat_s(tszLogPath, _countof(tszLogPath), L"shlext.log");
-
-		hInst = hinstDLL;
-		DisableThreadLibraryCalls(hinstDLL);
-	}
-
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(SHLExt_Name, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // exported functions
@@ -126,7 +120,7 @@ STDAPI DllRegisterServer()
 		return E_FAIL;
 
 	wchar_t tszFileName[MAX_PATH];
-	GetModuleFileName(hInst, tszFileName, _countof(tszFileName));
+	GetModuleFileName(g_plugin.getInst(), tszFileName, _countof(tszFileName));
 	if ( RegSetValueEx(kInprocServer, nullptr, 0, REG_SZ, (LPBYTE)tszFileName, sizeof(wchar_t)*(lstrlen(tszFileName)+1)))
 		return E_FAIL;
 	if ( RegSetValueExA(kInprocServer, "ThreadingModel", 0, REG_SZ, (PBYTE)str4, sizeof(str4)))
@@ -157,18 +151,11 @@ STDAPI DllUnregisterServer()
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-
 	InvokeThreadServer();
 	HookEvent(ME_OPT_INITIALISE, OnOptionsInit);
 	DllRegisterServer();
 	CheckRegisterServer();
-	return 0;
-}
-
-extern "C" __declspec(dllexport) int Unload(void)
-{
 	return 0;
 }

@@ -19,28 +19,33 @@
 class COptWaMpdDlg : public CDlgBase
 {
 public:
-	COptWaMpdDlg() : CDlgBase(hInst, IDD_OPT_WA_MPD),
+	COptWaMpdDlg() : CDlgBase(g_plugin, IDD_OPT_WA_MPD),
 		edit_PORT(this, IDC_PORT), edit_SERVER(this, IDC_SERVER), edit_PASSWORD(this, IDC_PASSWORD)
 	{}
-	virtual void OnInitDialog() override
+
+	bool OnInitDialog() override
 	{
-		edit_PORT.SetInt(db_get_w(NULL, szModuleName, "Port", 6600));
-		wchar_t *tmp = UniGetContactSettingUtf(NULL, szModuleName, "Server", L"127.0.0.1");
+		edit_PORT.SetInt(db_get_w(NULL, MODULENAME, "Port", 6600));
+		wchar_t *tmp = UniGetContactSettingUtf(NULL, MODULENAME, "Server", L"127.0.0.1");
 		edit_SERVER.SetText(tmp);
 		mir_free(tmp);
-		tmp = UniGetContactSettingUtf(NULL, szModuleName, "Password", L"");
+		tmp = UniGetContactSettingUtf(NULL, MODULENAME, "Password", L"");
 		edit_PASSWORD.SetText(tmp);
 		mir_free(tmp);
+		return true;
 	}
-	virtual void OnApply() override
+
+	bool OnApply() override
 	{
-		db_set_w(NULL, szModuleName, "Port", (WORD)edit_PORT.GetInt());
+		db_set_w(NULL, MODULENAME, "Port", (WORD)edit_PORT.GetInt());
 		gbPort = edit_PORT.GetInt();
-		db_set_ws(NULL, szModuleName, "Server", edit_SERVER.GetText());
+		db_set_ws(NULL, MODULENAME, "Server", edit_SERVER.GetText());
 		mir_wstrcpy(gbHost, edit_SERVER.GetText());
-		db_set_ws(NULL, szModuleName, "Password", edit_PASSWORD.GetText());
+		db_set_ws(NULL, MODULENAME, "Password", edit_PASSWORD.GetText());
 		mir_wstrcpy(gbPassword, edit_PASSWORD.GetText());
+		return true;
 	}
+
 private:
 	CCtrlSpin edit_PORT;
 	CCtrlEdit edit_SERVER, edit_PASSWORD;
@@ -49,12 +54,12 @@ private:
 
 int WaMpdOptInit(WPARAM wParam,LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szTitle.w = LPGENW("Winamp Track");
 	odp.szGroup.w = LPGENW("Plugins");
 	odp.szTab.w = LPGENW("Watrack MPD");
 	odp.flags=ODPF_BOLDGROUPS|ODPF_UNICODE;
 	odp.pDialog = new COptWaMpdDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

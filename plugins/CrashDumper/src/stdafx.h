@@ -76,7 +76,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define MS_CRASHDUMPER_URL         "CrashDmp/StartUrl"
 #define MS_CRASHDUMPER_URLTOCLIP   "CrashDmp/CopyToClip"
 
-#define PluginName "Crash Dumper"
+#define MODULENAME "Crash Dumper"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 #define VI_FLAG_FORMAT  1
 #define VI_FLAG_PRNVAR  2
@@ -89,8 +97,6 @@ struct VerTrnsfr
 	bool  autot;
 };
 
-extern HMODULE hInst;
-extern DWORD mirandaVersion;
 extern LCID packlcid;
 extern bool servicemode, clsdates, dtsubfldr, catchcrashes, needrestart;
 
@@ -124,8 +130,7 @@ void StoreStringToClip(CMStringW& buffer);
 void ShowMessage(int type, const wchar_t* format, ...);
 bool IsPluginEnabled(wchar_t* filename);
 
-PLUGININFOEX* GetMirInfo(HMODULE hModule);
-const PLUGININFOEX* GetPluginInfoEx(void);
+const PLUGININFOEX* GetMirInfo(HMODULE hModule);
 
 void CreateMiniDump(HANDLE hDumpFile, PEXCEPTION_POINTERS exc_ptr);
 void CreateCrashReport(HANDLE hDumpFile, PEXCEPTION_POINTERS exc_ptr, const wchar_t* msg);

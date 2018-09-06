@@ -54,12 +54,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "resource.h"
 #include "version.h"
 
-WCHAR *any_to_IdleNotidleUnknown(MCONTACT hContact, const char *module_name, const char *setting_name, WCHAR *buff, int bufflen);
-WCHAR *any_to_Idle(MCONTACT hContact, const char *module_name, const char *setting_name, WCHAR *buff, int bufflen);
+wchar_t *any_to_IdleNotidleUnknown(MCONTACT hContact, const char *module_name, const char *setting_name, wchar_t *buff, int bufflen);
+wchar_t *any_to_Idle(MCONTACT hContact, const char *module_name, const char *setting_name, wchar_t *buff, int bufflen);
 
 #define NUM100NANOSEC  116444736000000000
 
 #define S_MOD "SeenModule"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 //#define UM_CHECKHOOKS (WM_USER+1)
 
@@ -104,7 +112,6 @@ int UserinfoInit(WPARAM,LPARAM);
 void InitMenuitem(void);
 int UpdateValues(WPARAM, LPARAM);
 int ModeChange(WPARAM,LPARAM);
-void SetOffline(void);
 int ModeChange_mo(WPARAM,LPARAM);
 int CheckIfOnline(void);
 void ShowHistory(MCONTACT hContact, BYTE isAlert);
@@ -119,7 +126,6 @@ struct logthread_info
 	WORD   currStatus;
 };
 
-extern HINSTANCE hInstance;
 extern DWORD StatusColors15bits[];
 extern BOOL includeIdle;
 extern HANDLE ehmissed, ehuserinfo, ehmissed_proto;

@@ -2,11 +2,12 @@
 ;============================================================
 ;  File: Omegle.dll
 ;  Plugin: Omegle protocol
-;  Version: 0.1.3.2
+;  Version: 0.1.3.3
 ;  Authors: Robert Pösel
 ;============================================================
 [Omegle protocol support for Miranda NG.]
 Підтримка протоколу Omegle в Miranda NG.
+;file \protocols\Omegle\res\omegle.rc
 [Server:]
 Сервер:
 [Language:]
@@ -35,6 +36,11 @@
 Шукати незнайомців із спільними інтересами
 [Your interests (separated by commas):]
 Ваші інтереси (розділяти комою):
+;file \protocols\Omegle\src\chat.cpp
+[There are three different modes of chatting:\n1) Standard mode\t - You chat with random stranger privately\n2) Question mode\t - You ask two strangers a question and see how they discuss it (you can't join their conversation, only watch)\n3) Spy mode\t - You and stranger got a question to discuss from third stranger (he can't join your conversation, only watch)\n\nSend '/commands' for available commands.]
+Існує три різних режими чату:\n1) Стандартний режим\t - Ви спілкуєтеся з незнайомцем наодинці\n2) Режим питань\t - Ви ставите питання двом незнайомцям і дивитесь, як вони обговорюють його (Ви не можете приєднатися до розмови, тільки спостерігаєте)\n3) Режим шпигуна\t - Ви і незнайомець обговорюєте питання ще одного незнайомця (Він не може приєднатися до вашої розмови, тільки спостерігає)\n\nВідправте '/commands' щоб показати список доступних команд.
+[You can use different commands:\n/help\t - show info about chat modes\n/new\t - start standard mode\n/ask <question> - start question mode with your question\n/ask\t - start question mode with your last asked question\n/spy\t - start spy mode\n/quit\t - disconnect from stranger or stop connecting\n/asl\t - send your predefined ASL message\n\nNote: You can reconnect to different stranger without disconnecting from current one.]
+Доступні команди:\n/help\t - показати інформацію про режими чату\n/new\t - запуск стандартного режиму\n/ask <питання> - запуск режиму питань з вказаним питанням\n/ask\t - запуск режиму питань з вашим останнім питанням\n/spy\t - запуск режиму шпигуна\n/quit\t - відключитися від незнайомця або зупинити підключення\n/asl\t - надіслати заздалегідь вказане повідомлення ASL\n\nПримітка: підключатися до іншого незнайомця можна без відключення від поточного.
 [Server]
 Сервер
 [Last question is empty.]
@@ -43,10 +49,6 @@
 Питання занадто коротке.
 [Your '/asl' setting is empty.]
 Повідомлення '/asl' порожнє.
-[There are three different modes of chatting:\n1) Standard mode\t - You chat with random stranger privately\n2) Question mode\t - You ask two strangers a question and see how they discuss it (you can't join their conversation, only watch)\n3) Spy mode\t - You and stranger got a question to discuss from third stranger (he can't join your conversation, only watch)\n\nSend '/commands' for available commands.]
-Існує три різних режими чату:\n1) Стандартний режим\t - Ви спілкуєтеся з незнайомцем наодинці\n2) Режим питань\t - Ви ставите питання двом незнайомцям і дивитесь, як вони обговорюють його (Ви не можете приєднатися до розмови, тільки спостерігаєте)\n3) Режим шпигуна\t - Ви і незнайомець обговорюєте питання ще одного незнайомця (Він не може приєднатися до вашої розмови, тільки спостерігає)\n\nВідправте '/commands' щоб показати список доступних команд.
-[You can use different commands:\n/help\t - show info about chat modes\n/new\t - start standard mode\n/ask <question> - start question mode with your question\n/ask\t - start question mode with your last asked question\n/spy\t - start spy mode\n/quit\t - disconnect from stranger or stop connecting\n/asl\t - send your predefined ASL message\n\nNote: You can reconnect to different stranger without disconnecting from current one.]
-Доступні команди:\n/help\t - показати інформацію про режими чату\n/new\t - запуск стандартного режиму\n/ask <питання> - запуск режиму питань з вказаним питанням\n/ask\t - запуск режиму питань з вашим останнім питанням\n/spy\t - запуск режиму шпигуна\n/quit\t - відключитися від незнайомця або зупинити підключення\n/asl\t - надіслати заздалегідь вказане повідомлення ASL\n\nПримітка: підключатися до іншого незнайомця можна без відключення від поточного.
 [Unknown command. Send '/commands' for list.]
 Невідома команда. Відправте '/commands' щоб показати список.
 [You aren't connected to any stranger. Send '/help' or '/commands' for help.]
@@ -61,6 +63,7 @@
 Omegle - чудовий спосіб знайти нових друзів!
 [You]
 Ви
+;file \protocols\Omegle\src\communication.cpp
 [Connection error.]
 Помилка підключення.
 [Connected to server %s. There are %s users online now.]
@@ -89,6 +92,7 @@ Omegle - чудовий спосіб знайти нових друзів!
 Помилка: %s
 [We are still waiting...]
 Ми досі чекаємо...
+;file \protocols\Omegle\src\connection.cpp
 [Connecting canceled.]
 Підключення скасовано.
 [Disconnecting...]
@@ -99,12 +103,14 @@ Omegle - чудовий спосіб знайти нових друзів!
 Підключення...
 [Waiting for Stranger...]
 Очікування незнайомця...
+;file \protocols\Omegle\src\constants.h
 [Random]
 Випадковий
 [Stranger is using Omegle's mobile Web site (omegle.com on a phone or tablet)]
 Незнайомець використовує мобільну сторінку Omegle (з телефону або планшету)
 [You both speak the same language.]
 Ви говорите однією мовою.
+;file \protocols\Omegle\src\proto.cpp
 [%s server connection]
 З'єднання з сервером %s
 [Unable to initialize Netlib for %s.]
@@ -123,5 +129,6 @@ Omegle - чудовий спосіб знайти нових друзів!
 Мережа
 [Account]
 Обліковий запис
+;file \protocols\Omegle\src\theme.cpp
 [Omegle Icon]
 Значок протоколу

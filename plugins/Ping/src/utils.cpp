@@ -16,7 +16,7 @@ LRESULT CALLBACK NullWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-void CALLBACK sttMainThreadCallback(ULONG_PTR dwParam)
+static INT_PTR CALLBACK sttMainThreadCallback(void *dwParam)
 {
 	POPUPDATAT* ppd = (POPUPDATAT*)dwParam;
 
@@ -24,6 +24,7 @@ void CALLBACK sttMainThreadCallback(ULONG_PTR dwParam)
 		PUAddPopupT(ppd);
 
 	free(ppd);
+	return 0;
 }
 
 void __stdcall	ShowPopup(wchar_t *line1, wchar_t *line2, int flags)
@@ -48,10 +49,10 @@ void __stdcall	ShowPopup(wchar_t *line1, wchar_t *line2, int flags)
 		ppd->PluginWindowProc = NullWindowProc;
 		ppd->PluginData = nullptr;
 
-		QueueUserAPC(sttMainThreadCallback, mainThread, (ULONG_PTR)ppd);
+		CallFunctionSync(sttMainThreadCallback, ppd);
 	}
 	else{
-		MessageBox(nullptr, line2, _A2W(PLUG) L" Message", MB_OK | MB_ICONINFORMATION);
+		MessageBox(nullptr, line2, _A2W(MODULENAME) L" Message", MB_OK | MB_ICONINFORMATION);
 		return;
 	}
 }
@@ -136,24 +137,24 @@ INT_PTR PluginPing(WPARAM, LPARAM lParam)
 
 INT_PTR PingDisableAll(WPARAM, LPARAM) {
 	PINGLIST pl;
-	CallService(PLUG "/GetPingList", 0, (LPARAM)&pl);
+	CallService(MODULENAME "/GetPingList", 0, (LPARAM)&pl);
 	for (pinglist_it i = pl.begin(); i != pl.end(); ++i) {
 		i->status = PS_DISABLED;
 		i->miss_count = 0;
 	}
-	CallService(PLUG "/SetPingList", (WPARAM)&pl, 0);
+	CallService(MODULENAME "/SetPingList", (WPARAM)&pl, 0);
 	return 0;
 }
 
 INT_PTR PingEnableAll(WPARAM, LPARAM) {
 	PINGLIST pl;
-	CallService(PLUG "/GetPingList", 0, (LPARAM)&pl);
+	CallService(MODULENAME "/GetPingList", 0, (LPARAM)&pl);
 	for (pinglist_it i = pl.begin(); i != pl.end(); ++i) {
 		if (i->status == PS_DISABLED) {
 			i->status = PS_NOTRESPONDING;
 		}
 	}
-	CallService(PLUG "/SetPingList", (WPARAM)&pl, 0);
+	CallService(MODULENAME "/SetPingList", (WPARAM)&pl, 0);
 	return 0;
 }
 
@@ -161,7 +162,7 @@ INT_PTR PingEnableAll(WPARAM, LPARAM) {
 INT_PTR ToggleEnabled(WPARAM wParam, LPARAM) {
 	int retval = 0;
 	PINGLIST pl;
-	CallService(PLUG "/GetPingList", 0, (LPARAM)&pl);
+	CallService(MODULENAME "/GetPingList", 0, (LPARAM)&pl);
 	for (pinglist_it i = pl.begin(); i != pl.end(); ++i) {
 		if (i->item_id == (DWORD)wParam) {
 
@@ -174,25 +175,25 @@ INT_PTR ToggleEnabled(WPARAM wParam, LPARAM) {
 			}
 		}
 	}
-	CallService(PLUG "/SetPingList", (WPARAM)&pl, 0);
+	CallService(MODULENAME "/SetPingList", (WPARAM)&pl, 0);
 	return 0;
 }
 
 INT_PTR EditContact(WPARAM wParam, LPARAM)
 {
 	PINGLIST pl;
-	HWND hwndList = pcli->hwndContactList;
+	HWND hwndList = g_clistApi.hwndContactList;
 
-	CallService(PLUG "/GetPingList", 0, (LPARAM)&pl);
+	CallService(MODULENAME "/GetPingList", 0, (LPARAM)&pl);
 	for (pinglist_it i = pl.begin(); i != pl.end(); ++i) {
 		if (i->item_id == (DWORD)wParam) {
 
 			add_edit_addr = *i;
 
-			if (DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG3), hwndList, DlgProcDestEdit) == IDOK) {
+			if (DialogBox(g_plugin.getInst(), MAKEINTRESOURCE(IDD_DIALOG3), hwndList, DlgProcDestEdit) == IDOK) {
 
 				*i = add_edit_addr;
-				CallService(PLUG "/SetAndSavePingList", (WPARAM)&pl, 0);
+				CallService(MODULENAME "/SetAndSavePingList", (WPARAM)&pl, 0);
 				return 0;
 			}
 		}
@@ -202,14 +203,14 @@ INT_PTR EditContact(WPARAM wParam, LPARAM)
 
 INT_PTR DblClick(WPARAM wParam, LPARAM) {
 	PINGLIST pl;
-	CallService(PLUG "/GetPingList", 0, (LPARAM)&pl);
+	CallService(MODULENAME "/GetPingList", 0, (LPARAM)&pl);
 	for (pinglist_it i = pl.begin(); i != pl.end(); ++i) {
 		if (i->item_id == (DWORD)wParam) {
 			if (mir_wstrlen(i->pszCommand)) {
 				ShellExecute(nullptr, L"open", i->pszCommand, i->pszParams, nullptr, SW_SHOW);
 			}
 			else {
-				return CallService(PLUG "/ToggleEnabled", wParam, 0);
+				return CallService(MODULENAME "/ToggleEnabled", wParam, 0);
 			}
 		}
 	}
@@ -222,7 +223,7 @@ void import_ping_address(int index, PINGADDRESS &pa) {
 	char buf[256];
 	mir_snprintf(buf, "Address%d", index);
 	if (!db_get_ws(0, "PingPlug", buf, &dbv)) {
-		mir_wstrncpy(pa.pszName, dbv.ptszVal, _countof(pa.pszName));
+		mir_wstrncpy(pa.pszName, dbv.pwszVal, _countof(pa.pszName));
 		db_free(&dbv);
 	}
 	else
@@ -230,7 +231,7 @@ void import_ping_address(int index, PINGADDRESS &pa) {
 
 	mir_snprintf(buf, "Label%d", index);
 	if (!db_get_ws(0, "PingPlug", buf, &dbv)) {
-		mir_wstrncpy(pa.pszLabel, dbv.ptszVal, _countof(pa.pszLabel));
+		mir_wstrncpy(pa.pszLabel, dbv.pwszVal, _countof(pa.pszLabel));
 		db_free(&dbv);
 	}
 	else
@@ -311,10 +312,10 @@ void InitUtils()
 	hIconDisabled = IcoLib_GetIcon("ping_disabled");
 
 	POPUPCLASS test = { sizeof(test) };
-	test.flags = PCF_TCHAR;
+	test.flags = PCF_UNICODE;
 	test.hIcon = hIconResponding;
 	test.iSeconds = -1;
-	test.pwszDescription = TranslateT("Ping");
+	test.pszDescription.w = TranslateT("Ping");
 	test.pszName = "pingpopups";
 	test.PluginWindowProc = NullWindowProc;
 	if (hPopupClass = Popup_RegisterClass(&test))

@@ -126,13 +126,12 @@ void UpdateFontSettings(FontIDW *font_id, FontSettingsW *fontsettings);
 void UpdateColourSettings(ColourIDW *colour_id, COLORREF *colour);
 void UpdateEffectSettings(EffectIDW *effect_id, FONTEFFECT* effectsettings);
 
-static void WriteLine(FILE *out, const char pszText[])
+static int CompareObj(const MBaseFontObjectW *p1, const MBaseFontObjectW *p2)
 {
-	fputs(pszText, out);
-	fputc('\n', out);
+	return strcmp(p1->dbSettingsGroup, p2->dbSettingsGroup);
 }
 
-static BOOL ExportSettings(HWND hwndDlg, const wchar_t *filename, OBJLIST<FontInternal>& flist, OBJLIST<ColourInternal>& clist, OBJLIST<EffectInternal>& elist)
+static BOOL ExportSettings(HWND hwndDlg, const wchar_t *filename, OBJLIST<FontInternal> &flist, OBJLIST<ColourInternal> &clist, OBJLIST<EffectInternal> &elist)
 {
 	FILE *out = _wfopen(filename, L"w");
 	if (out == nullptr) {
@@ -145,66 +144,69 @@ static BOOL ExportSettings(HWND hwndDlg, const wchar_t *filename, OBJLIST<FontIn
 
 	fputs("SETTINGS:\n\n", out);
 
-	for (auto &F : flist) {
-		mir_snprintf(buff, "\n[%s]", F->dbSettingsGroup);
+	LIST<MBaseFontObjectW> arObjects(100, CompareObj);
+	for (auto &it : flist)
+		arObjects.insert(it);
+	for (auto &it : clist)
+		arObjects.insert(it);
+	for (auto &it : elist)
+		arObjects.insert(it);
+
+	for (auto &it : arObjects) {
+		mir_snprintf(buff, "\n[%s]", it->dbSettingsGroup);
 		if (mir_strcmp(buff, header) != 0) {
 			strncpy(header, buff, _countof(header));
-			WriteLine(out, buff);
+			fputs(buff, out);
+			fputc('\n', out);
 		}
 
-		fprintf(out, (F->flags & FIDF_APPENDNAME) ? "%sName=s%S\n" : "%s=s%S\n", F->prefix, F->value.szFace);
+		FontInternal *F = (FontInternal*)it;
+		if (flist.indexOf(F) != -1) {
+			fprintf(out, (F->flags & FIDF_APPENDNAME) ? "%sName=s%S\n" : "%s=s%S\n", F->setting, F->value.szFace);
 
-		int iFontSize;
-		if (F->flags & FIDF_SAVEACTUALHEIGHT) {
-			SIZE size;
-			LOGFONT lf;
-			CreateFromFontSettings(&F->value, &lf);
-			HFONT hFont = CreateFontIndirect(&lf);
+			int iFontSize;
+			if (F->flags & FIDF_SAVEACTUALHEIGHT) {
+				LOGFONT lf;
+				CreateFromFontSettings(&F->value, &lf);
+				HFONT hFont = CreateFontIndirect(&lf);
 
-			HDC hdc = GetDC(hwndDlg);
-			HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
-			GetTextExtentPoint32(hdc, L"_W", 2, &size);
-			ReleaseDC(hwndDlg, hdc);
-			SelectObject(hdc, hOldFont);
-			DeleteObject(hFont);
+				HDC hdc = GetDC(hwndDlg);
+				HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
 
-			iFontSize = size.cy;
+				SIZE size;
+				GetTextExtentPoint32(hdc, L"_W", 2, &size);
+				ReleaseDC(hwndDlg, hdc);
+				SelectObject(hdc, hOldFont);
+				DeleteObject(hFont);
+
+				iFontSize = size.cy;
+			}
+			else if (F->flags & FIDF_SAVEPOINTSIZE) {
+				HDC hdc = GetDC(hwndDlg);
+				iFontSize = (BYTE)-MulDiv(F->value.size, 72, GetDeviceCaps(hdc, LOGPIXELSY));
+				ReleaseDC(hwndDlg, hdc);
+			}
+			else iFontSize = F->value.size;
+			fprintf(out, "%sSize=b%d\n", F->setting, iFontSize);
+
+			fprintf(out, "%sSty=b%d\n", F->setting, F->value.style);
+			fprintf(out, "%sSet=b%d\n", F->setting, F->value.charset);
+			fprintf(out, "%sCol=d%d\n", F->setting, F->value.colour);
+
+			if (F->flags & FIDF_NOAS)
+				fprintf(out, "%sAs=w%d\n", F->setting, 0x00FF);
+
+			fprintf(out, "%sFlags=w%d\n", F->setting, F->flags);
+			continue;
 		}
-		else if (F->flags & FIDF_SAVEPOINTSIZE) {
-			HDC hdc = GetDC(hwndDlg);
-			iFontSize = (BYTE)-MulDiv(F->value.size, 72, GetDeviceCaps(hdc, LOGPIXELSY));
-			ReleaseDC(hwndDlg, hdc);
+
+		ColourInternal *C = (ColourInternal*)it;
+		if (clist.indexOf(C) != -1) {
+			fprintf(out, "%s=d%d\n", C->setting, (DWORD)C->value);
+			continue;
 		}
-		else iFontSize = F->value.size;
-		fprintf(out, "%sSize=b%d\n", F->prefix, iFontSize);
 
-		fprintf(out, "%sSty=b%d\n", F->prefix, F->value.style);
-		fprintf(out, "%sSet=b%d\n", F->prefix, F->value.charset);
-		fprintf(out, "%sCol=d%d\n", F->prefix, F->value.colour);
-
-		if (F->flags & FIDF_NOAS)
-			fprintf(out, "%sAs=w%d\n", F->prefix, 0x00FF);
-
-		fprintf(out, "%sFlags=w%d\n", F->prefix, F->flags);
-	}
-
-	header[0] = 0;
-	for (auto &C : clist) {
-		mir_snprintf(buff, "\n[%s]", C->dbSettingsGroup);
-		if (mir_strcmp(buff, header) != 0) {
-			strncpy_s(header, buff, _TRUNCATE);
-			WriteLine(out, buff);
-		}
-		fprintf(out, "%s=d%d\n", C->setting, (DWORD)C->value);
-	}
-
-	header[0] = 0;
-	for (auto &E : elist) {
-		mir_snprintf(buff, "\n[%s]", E->dbSettingsGroup);
-		if (mir_strcmp(buff, header) != 0) {
-			strncpy_s(header, buff, _TRUNCATE);
-			WriteLine(out, buff);
-		}
+		EffectInternal *E = (EffectInternal*)it;
 		fprintf(out, "%sEffect=b%d\n", E->setting, E->value.effectIndex);
 		fprintf(out, "%sEffectCol1=d%d\n", E->setting, E->value.baseColour);
 		fprintf(out, "%sEffectCol2=d%d\n", E->setting, E->value.secondaryColour);
@@ -316,7 +318,7 @@ static HTREEITEM sttFindNamedTreeItemAt(HWND hwndTree, HTREEITEM hItem, const wc
 	return nullptr;
 }
 
-static void sttFsuiCreateSettingsTreeNode(HWND hwndTree, const wchar_t *groupName, int _hLang)
+static void sttFsuiCreateSettingsTreeNode(HWND hwndTree, const wchar_t *groupName, HPLUGIN pPlugin)
 {
 	wchar_t itemName[1024];
 	wchar_t* sectionName;
@@ -335,7 +337,7 @@ static void sttFsuiCreateSettingsTreeNode(HWND hwndTree, const wchar_t *groupNam
 		if (sectionName = wcschr(sectionName, '/'))
 			*sectionName = 0;
 
-		pItemName = TranslateW_LP(pItemName, _hLang);
+		pItemName = TranslateW_LP(pItemName, pPlugin);
 
 		hItem = sttFindNamedTreeItemAt(hwndTree, hSection, pItemName);
 		if (!sectionName || !hItem) {
@@ -496,9 +498,9 @@ static void sttSaveFontData(HWND hwndDlg, FontInternal &F)
 	char str[128];
 
 	if (F.flags & FIDF_APPENDNAME)
-		mir_snprintf(str, "%sName", F.prefix);
+		mir_snprintf(str, "%sName", F.setting);
 	else
-		strncpy_s(str, F.prefix, _TRUNCATE);
+		strncpy_s(str, F.setting, _TRUNCATE);
 
 	if (db_set_ws(0, F.dbSettingsGroup, str, F.value.szFace)) {
 		char buff[1024];
@@ -506,7 +508,7 @@ static void sttSaveFontData(HWND hwndDlg, FontInternal &F)
 		db_set_s(0, F.dbSettingsGroup, str, buff);
 	}
 
-	mir_snprintf(str, "%sSize", F.prefix);
+	mir_snprintf(str, "%sSize", F.setting);
 	if (F.flags & FIDF_SAVEACTUALHEIGHT) {
 		SIZE size;
 		CreateFromFontSettings(&F.value, &lf);
@@ -527,17 +529,17 @@ static void sttSaveFontData(HWND hwndDlg, FontInternal &F)
 	}
 	else db_set_b(0, F.dbSettingsGroup, str, F.value.size);
 
-	mir_snprintf(str, "%sSty", F.prefix);
+	mir_snprintf(str, "%sSty", F.setting);
 	db_set_b(0, F.dbSettingsGroup, str, F.value.style);
-	mir_snprintf(str, "%sSet", F.prefix);
+	mir_snprintf(str, "%sSet", F.setting);
 	db_set_b(0, F.dbSettingsGroup, str, F.value.charset);
-	mir_snprintf(str, "%sCol", F.prefix);
+	mir_snprintf(str, "%sCol", F.setting);
 	db_set_dw(0, F.dbSettingsGroup, str, F.value.colour);
 	if (F.flags & FIDF_NOAS) {
-		mir_snprintf(str, "%sAs", F.prefix);
+		mir_snprintf(str, "%sAs", F.setting);
 		db_set_w(0, F.dbSettingsGroup, str, (WORD)0x00FF);
 	}
-	mir_snprintf(str, "%sFlags", F.prefix);
+	mir_snprintf(str, "%sFlags", F.setting);
 	db_set_w(0, F.dbSettingsGroup, str, (WORD)F.flags);
 }
 
@@ -555,19 +557,19 @@ static void RebuildTree(HWND hwndDlg)
 	for (auto &F : font_id_list_w2) {
 		// sync settings with database
 		UpdateFontSettings(F, &F->value);
-		sttFsuiCreateSettingsTreeNode(GetDlgItem(hwndDlg, IDC_FONTGROUP), F->group, F->hLangpack);
+		sttFsuiCreateSettingsTreeNode(GetDlgItem(hwndDlg, IDC_FONTGROUP), F->group, F->pPlugin);
 	}
 
 	for (auto &C : colour_id_list_w2) {
 		// sync settings with database
 		UpdateColourSettings(C, &C->value);
-		sttFsuiCreateSettingsTreeNode(GetDlgItem(hwndDlg, IDC_FONTGROUP), C->group, C->hLangpack);
+		sttFsuiCreateSettingsTreeNode(GetDlgItem(hwndDlg, IDC_FONTGROUP), C->group, C->pPlugin);
 	}
 
 	for (auto &E : effect_id_list_w2) {
 		// sync settings with database
 		UpdateEffectSettings(E, &E->value);
-		sttFsuiCreateSettingsTreeNode(GetDlgItem(hwndDlg, IDC_FONTGROUP), E->group, E->hLangpack);
+		sttFsuiCreateSettingsTreeNode(GetDlgItem(hwndDlg, IDC_FONTGROUP), E->group, E->pPlugin);
 	}
 }
 
@@ -983,7 +985,7 @@ static INT_PTR CALLBACK DlgProcLogOptions(HWND hwndDlg, UINT msg, WPARAM wParam,
 				EffectInternal& E = effect_id_list_w2[itemData->effect_id];
 
 				FONTEFFECT es = E.value;
-				if (IDOK == DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_CHOOSE_FONT_EFFECT), hwndDlg, ChooseEffectDlgProc, (LPARAM)&es)) {
+				if (IDOK == DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_CHOOSE_FONT_EFFECT), hwndDlg, ChooseEffectDlgProc, (LPARAM)&es)) {
 					for (int i = 0; i < selCount; i++) {
 						itemData = (FSUIListItemData *)SendDlgItemMessage(hwndDlg, IDC_FONTLIST, LB_GETITEMDATA, selItems[i], 0);
 						if (itemData->effect_id < 0)
@@ -1183,24 +1185,23 @@ static INT_PTR CALLBACK DlgProcLogOptions(HWND hwndDlg, UINT msg, WPARAM wParam,
 
 int OptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -790000000;
-	odp.hInstance = g_hInst;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_FONTS);
 	odp.szTitle.a = LPGEN("Fonts and colors");
 	odp.szGroup.a = LPGEN("Customize");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = DlgProcLogOptions;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-static FontInternal* sttFindFont(OBJLIST<FontInternal> &fonts, char *module, char *prefix)
+static FontInternal* sttFindFont(OBJLIST<FontInternal> &fonts, char *module, char *setting)
 {
 	for (auto &F : fonts)
-		if (!mir_strcmp(F->dbSettingsGroup, module) && !mir_strcmp(F->prefix, prefix))
+		if (!mir_strcmp(F->dbSettingsGroup, module) && !mir_strcmp(F->setting, setting))
 			return F;
 
 	return nullptr;

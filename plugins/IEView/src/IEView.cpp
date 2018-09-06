@@ -39,11 +39,11 @@ static LRESULT CALLBACK IEViewServerWindowProcedure(HWND hwnd, UINT message, WPA
 			if (LOWORD(wParam) == VK_ESCAPE && !(GetKeyState(VK_SHIFT) & 0x8000) && !(GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000))
 				SendMessage(GetParent(GetParent(GetParent(hwnd))), WM_COMMAND, IDCANCEL, 0);
 			break;
-		
+
 		case WM_KEYDOWN:
 			view->translateAccelerator(message, wParam, lParam);
 			break;
-		
+
 		case WM_SETFOCUS:
 			RECT rcWindow;
 			POINT cursor;
@@ -55,7 +55,7 @@ static LRESULT CALLBACK IEViewServerWindowProcedure(HWND hwnd, UINT message, WPA
 			if (view->setFocus((HWND)wParam))
 				return TRUE;
 			break;
-		
+
 		case WM_LBUTTONDOWN:
 			POINT pt;
 			pt.x = LOWORD(lParam);
@@ -201,7 +201,7 @@ void IEViewSink::FileDownload(VARIANT_BOOL*) {}
 
 static void __cdecl StartThread(void *vptr)
 {
-	IEView *iev = (IEView *) vptr;
+	IEView *iev = (IEView *)vptr;
 	iev->waitWhileBusy();
 	return;
 }
@@ -250,13 +250,10 @@ IEView::IEView(HWND _parent, HTMLBuilder *_builder, int x, int y, int cx, int cy
 			pOleObject->SetClientSite(this);
 			pOleObject->DoVerb(OLEIVERB_INPLACEACTIVATE, &msg, this, 0, this->parent, &rcClient);
 		}
-		else MessageBox(nullptr, TranslateT("IID_IOleObject failed."), TranslateT("RESULT"), MB_OK);
 
 		CComPtr<IOleInPlaceObject> pOleInPlace;
 		if (SUCCEEDED(pWebBrowser.QueryInterface(&pOleInPlace)))
 			pOleInPlace->GetWindow(&hwnd);
-		else
-			MessageBox(nullptr, TranslateT("IID_IOleInPlaceObject failed."), TranslateT("RESULT"), MB_OK);
 
 		setBorder();
 		CComPtr<IConnectionPointContainer> pCPContainer;
@@ -268,8 +265,7 @@ IEView::IEView(HWND _parent, HTMLBuilder *_builder, int x, int y, int cx, int cy
 				// Step 3: Advise the connection point that you
 				// want to sink its events.
 				sink = new IEViewSink(this);
-				if (FAILED(m_pConnectionPoint->Advise(sink, &m_dwCookie)))
-					MessageBox(nullptr, TranslateT("Failed to Advise"), TranslateT("C++ Event Sink"), MB_OK);
+				m_pConnectionPoint->Advise(sink, &m_dwCookie);
 			}
 		}
 		setMainWndProc((WNDPROC)SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)IEViewWindowProcedure));
@@ -304,8 +300,6 @@ IEView::~IEView()
 	CComPtr<IOleObject> pOleObject;
 	if (SUCCEEDED(pWebBrowser.QueryInterface(&pOleObject)))
 		pOleObject->SetClientSite(nullptr);
-	else
-		MessageBox(nullptr, TranslateT("IID_IOleObject failed."), TranslateT("RESULT"), MB_OK);
 
 	if (builder != nullptr) {
 		delete builder;
@@ -417,12 +411,12 @@ STDMETHODIMP IEView::GetTypeInfoCount(UINT *pctinfo)
 	*pctinfo = 4;
 	return S_OK;
 }
-STDMETHODIMP IEView::GetTypeInfo(UINT, LCID, LPTYPEINFO*) 
-{ 
-	return S_OK; 
+STDMETHODIMP IEView::GetTypeInfo(UINT, LCID, LPTYPEINFO*)
+{
+	return S_OK;
 }
 STDMETHODIMP IEView::GetIDsOfNames(REFIID /*riid*/, LPOLESTR *rgszNames, UINT cNames, LCID /*lcid*/, DISPID *rgDispId)
-{ 
+{
 	HRESULT retval = S_OK;
 	for (size_t i = 0; i < cNames; i++)
 	{
@@ -450,17 +444,17 @@ STDMETHODIMP IEView::GetIDsOfNames(REFIID /*riid*/, LPOLESTR *rgszNames, UINT cN
 			retval = DISP_E_UNKNOWNNAME;
 		}
 	}
-	return retval; 
+	return retval;
 }
 
 STDMETHODIMP IEView::Invoke(DISPID dispIdMember,
-							REFIID /*riid*/,
-							LCID /*lcid*/, 
-							WORD /*wFlags*/, 
-							DISPPARAMS *pDispParams,
-							VARIANT *pVarResult, 
-							EXCEPINFO * /*pExcepInfo*/,
-							UINT * /*puArgErr*/)
+	REFIID /*riid*/,
+	LCID /*lcid*/,
+	WORD /*wFlags*/,
+	DISPPARAMS *pDispParams,
+	VARIANT *pVarResult,
+	EXCEPINFO * /*pExcepInfo*/,
+	UINT * /*puArgErr*/)
 {
 
 	switch (dispIdMember)
@@ -628,7 +622,7 @@ STDMETHODIMP IEView::ShowContextMenu(DWORD dwID, POINT *ppt, IUnknown *pcmdTarge
 			HWND hSPWnd;
 			pOleWindow->GetWindow(&hSPWnd);
 
-			HMENU hMenu = GetSubMenu(LoadMenu(hInstance, MAKEINTRESOURCE(IDR_CONTEXTMENU)), 0);
+			HMENU hMenu = GetSubMenu(LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_CONTEXTMENU)), 0);
 			TranslateMenu(hMenu);
 			if (dwID == 5) // anchor
 				EnableMenuItem(hMenu, ID_MENU_COPYLINK, MF_BYCOMMAND | MF_ENABLED);
@@ -849,7 +843,7 @@ void IEView::scrollToBottom()
 			}
 		}
 	}
-	
+
 	CComPtr<IHTMLWindow2> pWindow;
 	if (SUCCEEDED(document->get_parentWindow(&pWindow)) && pWindow != nullptr)
 		pWindow->scrollBy(-0x0000FFFF, 0x0000FFFF);
@@ -934,7 +928,7 @@ void IEView::appendEvent(IEVIEWEVENT *event)
 		clear(event);
 
 	if (event->eventData == nullptr)
-		return; 
+		return;
 
 	if (builder != nullptr)
 		builder->appendEventNew(this, event);
@@ -959,7 +953,7 @@ void IEView::clear(IEVIEWEVENT *event)
 	else {
 		document->close();
 		VARIANT open_name, open_features, open_replace;
-		
+
 		VariantInit(&open_name);
 		open_name.vt = VT_BSTR;
 		open_name.bstrVal = SysAllocString(L"_self");
@@ -1043,7 +1037,7 @@ WCHAR* IEView::getSelection()
 	BSTR text = nullptr;
 	if (FAILED(pRange->get_text(&text)))
 		return nullptr;
-		
+
 	WCHAR *res = mir_wstrdup(text);
 	::SysFreeString(text);
 	return res;

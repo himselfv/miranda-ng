@@ -1,7 +1,6 @@
 #ifndef TTB_COMMON_H
 #define TTB_COMMON_H
 
-
 #include <windows.h>
 #include <commctrl.h>
 #include <stddef.h>
@@ -37,6 +36,14 @@
 
 #define TTBBF_INTERNAL 0x1000000
 #define TTBBF_OPTIONAL 0x2000000
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // TopButtonInt class
@@ -77,7 +84,7 @@ struct TopButtonInt : public MZeroedObject
 	LPARAM lParamDown;
 	WPARAM wParamDown;
 
-	int    hLangpack;
+	HPLUGIN pPlugin;
 	wchar_t *ptszTooltipUp, *ptszTooltipDn;
 };
 
@@ -102,7 +109,6 @@ int ArrangeButtons();
 extern TTBCtrl* g_ctrl;
 
 extern LIST<TopButtonInt> Buttons;
-extern HINSTANCE hInst;
 extern HBITMAP hBmpBackground;
 extern mir_cs csButtonsHook;
 extern pfnCustomProc g_CustomProc;

@@ -359,7 +359,6 @@ extern unsigned status, old_status;
 extern MWindowList hDataWindowList, hWindowList;
 
 extern HNETLIBUSER hNetlibUser;
-extern HNETLIBCONN hNetlibHttp;
 extern HANDLE hHookWeatherUpdated, hHookWeatherError, hTBButton, hUpdateMutex;
 extern UINT_PTR timerId;
 
@@ -435,7 +434,6 @@ void DBDataManage(MCONTACT hContact, WORD Mode, WPARAM wParam, LPARAM lParam);
 // functions in weather_http.c
 int InternetDownloadFile (char *szUrl, char *cookie, char *userAgent, wchar_t** szData);
 void NetlibInit();
-void NetlibHttpDisconnect(void);
 
 // functions in weather_ini.c
 WIDATA* GetWIData(wchar_t *pszServ);
@@ -521,12 +519,9 @@ void   ReleaseIconEx(HICON hIcon);
 
 struct CMPlugin : public PLUGIN<CMPlugin>
 {
-	CMPlugin() :
-		PLUGIN<CMPlugin>(WEATHERPROTONAME)
-	{
-		opt.NoProtoCondition = db_get_b(NULL, WEATHERPROTONAME, "NoStatus", true);
-		RegisterProtocol((opt.NoProtoCondition) ? PROTOTYPE_VIRTUAL : PROTOTYPE_PROTOCOL);
-		SetUniqueId("ID");
-	}
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
 };
 

@@ -1,9 +1,10 @@
 #include "stdafx.h"
 
-int hLangpack;
-HINSTANCE g_hInst;
+CMPlugin g_plugin;
 
-PLUGININFOEX pluginInfo = 
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = 
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -18,26 +19,15 @@ PLUGININFOEX pluginInfo =
 
 };
 
-BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD, LPVOID)
-{
-	g_hInst = hInstance;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
 	HookEvent(ME_SYSTEM_MODULESLOADED, OnModulesLoaded);
 	InitServices();
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

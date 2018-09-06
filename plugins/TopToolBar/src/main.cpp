@@ -1,11 +1,25 @@
 
 #include "stdafx.h"
 
-CLIST_INTERFACE *pcli;
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
-PLUGININFOEX pluginInfo =
+IconItem iconList[] =
+{
+	{ LPGEN("Execute"),               "run",          IDI_RUN },
+	{ LPGEN("Hide offline contacts"), "hide_offline", IDI_HIDEOFFLINE },
+	{ LPGEN("Show offline contacts"), "show_offline", IDI_SHOWOFFLINE },
+	{ LPGEN("Disable groups"),        "groups_off",   IDI_GROUPSOFF },
+	{ LPGEN("Enable groups"),         "groups_on",    IDI_GROUPSON },
+	{ LPGEN("Disable sounds"),        "sounds_off",   IDI_SOUNDSOFF },
+	{ LPGEN("Enable sounds"),         "sounds_on",    IDI_SOUNDSON },
+	{ LPGEN("Disable metacontacts"),  "meta_off",     IDI_METAON },
+	{ LPGEN("Enable metacontacts"),   "meta_on",      IDI_METAOFF },
+	{ LPGEN("Separator"),             "separator",    IDI_SEPARATOR }
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -19,33 +33,15 @@ PLUGININFOEX pluginInfo =
 	{0xf593c752, 0x51d8, 0x4d46, {0xba, 0x27, 0x37, 0x57, 0x79, 0x53, 0xf5, 0x5c}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
-
-IconItem iconList[] =
-{
-	{ LPGEN("Execute"),               "run",          IDI_RUN         },
-	{ LPGEN("Hide offline contacts"), "hide_offline", IDI_HIDEOFFLINE },
-	{ LPGEN("Show offline contacts"), "show_offline", IDI_SHOWOFFLINE },
-	{ LPGEN("Disable groups"),        "groups_off",   IDI_GROUPSOFF   },
-	{ LPGEN("Enable groups"),         "groups_on",    IDI_GROUPSON    },
-	{ LPGEN("Disable sounds"),        "sounds_off",   IDI_SOUNDSOFF   },
-	{ LPGEN("Enable sounds"),         "sounds_on",    IDI_SOUNDSON    },
-	{ LPGEN("Disable metacontacts"),  "meta_off",     IDI_METAON      },
-	{ LPGEN("Enable metacontacts"),   "meta_on",      IDI_METAOFF     },
-	{ LPGEN("Separator"),             "separator",    IDI_SEPARATOR   }
-};
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(TTB_OPTDIR, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
-	Icon_Register(hInst, TTB_OPTDIR, iconList, _countof(iconList), TTB_OPTDIR);
+	g_plugin.registerIcon(TTB_OPTDIR, iconList, TTB_OPTDIR);
 
 	LoadToolbarModule();
 	return 0;
@@ -53,16 +49,8 @@ extern "C" int __declspec(dllexport) Load(void)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	UnloadToolbarModule();
 	return 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
 }

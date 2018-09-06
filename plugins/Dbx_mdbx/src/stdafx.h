@@ -48,7 +48,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <m_netlib.h>
 #include <m_gui.h>
 
-#include "libmdbx/mdbx.h"
+#include "../../Libs/libmdbx/src/mdbx.h"
 
 #ifndef thread_local
 #	define thread_local __declspec(thread)
@@ -109,18 +109,9 @@ class txn_ptr_ro
 	mir_cslock lock;
 
 public:
-	__forceinline txn_ptr_ro(CMDBX_txn_ro &_txn) : txn(_txn), lock(txn.cs)
-	{
-		int rc = mdbx_txn_renew(txn);
-		if (rc != MDBX_SUCCESS)
-			DebugBreak();
-	}
-	__forceinline ~txn_ptr_ro()
-	{
-		int rc = mdbx_txn_reset(txn);
-		if (rc != MDBX_SUCCESS)
-			DebugBreak();
-	}
+	txn_ptr_ro(CMDBX_txn_ro &_txn);
+	~txn_ptr_ro();
+
 	__forceinline operator MDBX_txn*() const { return txn; }
 };
 
@@ -162,6 +153,12 @@ public:
 #include "resource.h"
 #include "version.h"
 
-extern HINSTANCE g_hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
 
 #include "ui.h"
+

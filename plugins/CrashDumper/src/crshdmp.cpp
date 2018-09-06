@@ -18,10 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "stdafx.h"
 
-int hLangpack;
+CMPlugin g_plugin;
 
-HINSTANCE hInst;
-DWORD mirandaVersion;
 LCID packlcid;
 //HANDLE hCrashLogFolder, hVerInfoFolder;
 HANDLE hVerInfoFolder;
@@ -37,8 +35,9 @@ bool servicemode, clsdates, dtsubfldr, catchcrashes, needrestart = 0;
 
 extern HWND hViewWnd;
 
-static const PLUGININFOEX pluginInfoEx =
-{
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -51,16 +50,16 @@ static const PLUGININFOEX pluginInfoEx =
 	{ 0xf62c1d7a, 0xffa4, 0x4065, { 0xa2, 0x51, 0x4c, 0x9d, 0xd9, 0x10, 0x1c, 0xc8 } }
 };
 
-const PLUGININFOEX* GetPluginInfoEx(void) { return &pluginInfoEx; }
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD mirVersion)
-{
-	::mirandaVersion = mirVersion;
-	return (PLUGININFOEX*)&pluginInfoEx;
-}
-
+/////////////////////////////////////////////////////////////////////////////////////////
 // MirandaInterfaces - returns the protocol interface to the core
+
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_SERVICEMODE, MIID_LAST };
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 INT_PTR StoreVersionInfoToFile(WPARAM, LPARAM lParam)
 {
@@ -119,7 +118,7 @@ INT_PTR ViewVersionInfo(WPARAM wParam, LPARAM)
 	}
 	else {
 		DWORD dwFlags = wParam ? (VI_FLAG_PRNVAR | VI_FLAG_PRNDLL) : VI_FLAG_PRNVAR;
-		hViewWnd = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_VIEWVERSION), nullptr, DlgProcView, dwFlags);
+		hViewWnd = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_VIEWVERSION), nullptr, DlgProcView, dwFlags);
 	}
 
 	return 0;
@@ -155,7 +154,7 @@ INT_PTR OpenUrl(WPARAM wParam, LPARAM)
 
 INT_PTR CopyLinkToClipboard(WPARAM, LPARAM)
 {
-	ptrW tmp(db_get_wsa(NULL, PluginName, "Username"));
+	ptrW tmp(db_get_wsa(NULL, MODULENAME, "Username"));
 	if (tmp != NULL) {
 		wchar_t buffer[MAX_PATH];
 		mir_snwprintf(buffer, L"https://vi.miranda-ng.org/detail/%s", tmp);
@@ -200,13 +199,12 @@ int OptionsInit(WPARAM wParam, LPARAM)
 {
 	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -790000000;
-	odp.hInstance = hInst;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
-	odp.szTitle.a = PluginName;
+	odp.szTitle.a = MODULENAME;
 	odp.szGroup.a = LPGEN("Services");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = DlgProcOptions;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -217,23 +215,23 @@ static int ToolbarModulesLoaded(WPARAM, LPARAM)
 	ttb.name = ttb.pszTooltipUp = LPGEN("Version Information To Clipboard");
 	ttb.hIconHandleUp = GetIconHandle(IDI_VITOCLIP);
 	ttb.dwFlags = TTBBF_VISIBLE;
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 
 	ttb.pszService = MS_CRASHDUMPER_STORETOFILE;
 	ttb.name = ttb.pszTooltipUp = LPGEN("Version Information To File");
 	ttb.hIconHandleUp = GetIconHandle(IDI_VITOFILE);
 	ttb.dwFlags = 0;
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 
 	ttb.pszService = MS_CRASHDUMPER_VIEWINFO;
 	ttb.name = ttb.pszTooltipUp = LPGEN("Show Version Information");
 	ttb.hIconHandleUp = GetIconHandle(IDI_VISHOW);
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 
 	ttb.pszService = MS_CRASHDUMPER_UPLOAD;
 	ttb.name = ttb.pszTooltipUp = LPGEN("Upload Version Information");
 	ttb.hIconHandleUp = GetIconHandle(IDI_VIUPLOAD);
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 	return 0;
 }
 
@@ -247,15 +245,15 @@ static int ModulesLoaded(WPARAM, LPARAM)
 		replaceStrW(profpath, L"%miranda_userdata%");
 
 		// Removed because it isn't available on Load()
-		//		hCrashLogFolder = FoldersRegisterCustomPathT(PluginName, LPGEN("Crash Reports"), CrashLogFolder);
-		hVerInfoFolder = FoldersRegisterCustomPathT(PluginName, LPGEN("Version Information"), VersionInfoFolder);
+		//		hCrashLogFolder = FoldersRegisterCustomPathT(MODULENAME, LPGEN("Crash Reports"), CrashLogFolder);
+		hVerInfoFolder = FoldersRegisterCustomPathT(MODULENAME, LPGEN("Version Information"), VersionInfoFolder);
 
 		HookEvent(ME_FOLDERS_PATH_CHANGED, FoldersPathChanged);
 		FoldersPathChanged(0, 0);
 	}
 
-	CMenuItem mi;
-	mi.root = Menu_CreateRoot(MO_MAIN, LPGENW("Version Information"), 2000089999, GetIconHandle(IDI_VI));
+	CMenuItem mi(&g_plugin);
+	mi.root = g_plugin.addRootMenu(MO_MAIN, LPGENW("Version Information"), 2000089999, GetIconHandle(IDI_VI));
 	Menu_ConfigureItem(mi.root, MCI_OPT_UID, "9A7A9C76-7FD8-4C05-B402-6C46060C2D78");
 
 	SET_UID(mi, 0x52930e40, 0xb2ee, 0x4433, 0xad, 0x77, 0xf5, 0x42, 0xe, 0xf6, 0x57, 0xc1);
@@ -317,17 +315,17 @@ static int ModulesLoaded(WPARAM, LPARAM)
 	Menu_ConfigureItem(Menu_AddMainMenuItem(&mi), MCI_OPT_EXECPARAM, 1);
 
 	HOTKEYDESC hk = {};
-	hk.szSection.a = PluginName;
+	hk.szSection.a = MODULENAME;
 
 	hk.szDescription.a = LPGEN("Copy Version Info to clipboard");
 	hk.pszName = "CopyVerInfo";
 	hk.pszService = MS_CRASHDUMPER_STORETOCLIP;
-	Hotkey_Register(&hk);
+	g_plugin.addHotkey(&hk);
 
 	hk.szDescription.a = LPGEN("Show Version Info");
 	hk.pszName = "ShowVerInfo";
 	hk.pszService = MS_CRASHDUMPER_VIEWINFO;
-	Hotkey_Register(&hk);
+	g_plugin.addHotkey(&hk);
 
 	UploadInit();
 
@@ -338,7 +336,7 @@ static int ModulesLoaded(WPARAM, LPARAM)
 
 	if (servicemode)
 		ViewVersionInfo(0, 0);
-	else if (db_get_b(NULL, PluginName, "UploadChanged", 0) && !ProcessVIHash(false))
+	else if (db_get_b(NULL, MODULENAME, "UploadChanged", 0) && !ProcessVIHash(false))
 		UploadVersionInfo(0, 0xa1);
 
 	return 0;
@@ -351,17 +349,15 @@ static int PreShutdown(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
 	hMsftedit = LoadLibrary(L"Msftedit.dll");
 	if (hMsftedit == nullptr)
 		return 1;
 
-	clsdates = db_get_b(NULL, PluginName, "ClassicDates", 1) != 0;
-	dtsubfldr = db_get_b(NULL, PluginName, "SubFolders", 1) != 0;
-	catchcrashes = db_get_b(NULL, PluginName, "CatchCrashes", 1) != 0;
-
-	mir_getLP(&pluginInfoEx);
+	clsdates = db_get_b(NULL, MODULENAME, "ClassicDates", 1) != 0;
+	dtsubfldr = db_get_b(NULL, MODULENAME, "SubFolders", 1) != 0;
+	catchcrashes = db_get_b(NULL, MODULENAME, "CatchCrashes", 1) != 0;
 
 	profname = Utils_ReplaceVarsW(L"%miranda_profilename%.dat");
 	profpath = Utils_ReplaceVarsW(L"%miranda_userdata%");
@@ -391,7 +387,9 @@ extern "C" int __declspec(dllexport) Load(void)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	DestroyAllWindows();
 
@@ -403,10 +401,4 @@ extern "C" int __declspec(dllexport) Unload(void)
 	mir_free(vertxt);
 	FreeLibrary(hMsftedit);
 	return 0;
-}
-
-extern "C" BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
 }

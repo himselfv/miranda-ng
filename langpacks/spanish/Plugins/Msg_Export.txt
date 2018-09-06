@@ -2,38 +2,218 @@
 ;============================================================
 ;  File: Msg_Export.dll
 ;  Plugin: Message export
-;  Version: 3.1.2.1
+;  Version: 3.1.2.3
 ;  Authors: Kennet Nielsen, mod by ring0
 ;============================================================
+[Exports every message, URL or file you receive to a text file.]
+
+;file \plugins\Msg_Export\res\resource.rc
+[Export directory]
+
 [Browse]
 Navegar
+[Default file]
+
+[File viewer]
+
+[Use internal viewer]
+
+[Replace Miranda history]
+
+[Export format]
+
+[Max column width]
+
+[Note: 0 = no limit]
+
+[Time format]
+
+[Use JSON format for export]
+
+[Use UTF8 in new files]
+
+[Append extra new line]
+
+[Use << and >>]
+
+[Auto filename]
+
 [Clear all]
 Limpiar todo
 [Help]
 Ayuda
+[Export all history]
+
+[Exporting old messages]
+
+[History file for %s (%s, format %s)]
+
 [&Find...]
 &Buscar...
+[&External]
+
 [&Close]
 &Cerrar
+[When filename changes]
+
+[Prompt for action]
+
+[Rename file]
+
 [Do nothing]
 No hacer nada
+[When user is deleted]
+
+[Delete file]
+
+[Debug]
+
 [User &details]
 &Detalles del usuario
+[Export selected]
+
+[Set to default filename]
+
 [Copy]
 Copiar
-[Failed to create file]
-No se pudo crear el archivo
-[File]
-Archivo
-[Nick]
-Apodo
+;file \plugins\Msg_Export\src\FileViewer.cpp
+[Miranda database contains %d events]
+
+[Search string was not found!]
+
+[Save as RTF]
+
+[Color...]
+
+[Font...]
+
+[Syntax highlight]
+
+[History was saved successfully in file\r\n]
+
+;file \plugins\Msg_Export\src\main.cpp
+[Open E&xported History]
+
+;file \plugins\Msg_Export\src\options.cpp
+[Reading database information (Phase 1 of 2)]
+
+[Sorting and writing database information (Phase 2 of 2)]
+
+[Failed to open or create file:\n]
+
+[Max line width must be at least %d. Or use 0 for no limit.]
+
+[You need to restart Miranda to change the history function]
+
 [Executable files]
 Archivos ejecutables
 [All files]
 Todos los archivos
+[Select Destination Directory]
+
+[File]
+Archivo
+[Nick]
+Apodo
+[Proto]
+
+[UIN]
+
+[No contacts found to export]
+
+[Export Protocols]
+
+[Message export]
+
 [History]
 Historial
 [General]
 General
+[Contacts]
+Contactos
+[Additional]
+
+;file \plugins\Msg_Export\src\stdafx.h
+[Miranda NG (Message Export Plugin)]
+
+;file \plugins\Msg_Export\src\utils.cpp
+[No_Group]
+
 [(Unknown Contact)]
 (Contacto desconocido)
+[File name for the user "%s" has changed!\n\nfrom:\t%s\nto:\t%s\n\nDo you wish to rename file?]
+
+[Failed to rename file\n\nfrom:\t%s\nto:\t%s\n\nFailed with error: %s]
+
+[\nError: ]
+
+[\nMessage has not been saved!\n]
+
+[Do you wish to save debug information?]
+
+[All\0*.*\0Text\0*.TXT\0\0]
+
+[FirstName]
+Nombre
+[LastName]
+Apellido
+[e-mail]
+E-mail
+[Age]
+Edad
+[Gender]
+Genero
+[City]
+Ciudad
+[State]
+Estado
+[Phone]
+Telefono
+[Homepage]
+Sitio web
+[About]
+Acerca de
+[      History for]
+
+[User]
+
+[Protocol]
+Protocolo
+[URL: ]
+
+[File: ]
+Archivo:\s
+[Description: ]
+
+[Nick      :]
+Apodo      :
+[FirstName :]
+Nombre     :
+[LastName  :]
+Apellido   :
+[e-mail    :]
+E-mail     :
+[Reason    :]
+
+[Invalid Database event received. Type %d, size %d]
+
+[The following user made an authorization request:]
+
+[The following user added you to their contact list:]
+
+[UIN       :]
+
+[EmailExpress from:]
+
+[WebPager from:]
+
+[No from address]
+
+[Unknown event type %d, size %d]
+
+[User has been deleted. Do you want to delete the file?]
+
+[Failed to delete the file]
+
+[No_Nick]
+

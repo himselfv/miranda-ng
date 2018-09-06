@@ -257,8 +257,7 @@ struct GGGETAVATARDATA
 
 struct GaduProto;
 
-extern CLIST_INTERFACE *pcli;
-extern PLUGININFOEX pluginInfo;
+extern PLUGININFOEX pluginInfoEx;
 extern IconItem iconList[];
 extern SSL_API sslApi;
 

@@ -1,4 +1,4 @@
-/* 
+/*
 Copyright (C) 2005-2009 Ricardo Pescuma Domenecci
 
 This is free software; you can redistribute it and/or
@@ -14,7 +14,7 @@ Library General Public License for more details.
 You should have received a copy of the GNU Library General Public
 License along with this file; see the file license.txt.  If
 not, write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  
+Boston, MA 02111-1307, USA.
 */
 
 #include "../stdafx.h"
@@ -127,7 +127,7 @@ void CodeInjectionPlayer::InjectCode()
 
 	// Get the dll path
 	char dll_path[1024] = { 0 };
-	if (!GetModuleFileNameA(hInst, dll_path, _countof(dll_path)))
+	if (!GetModuleFileNameA(g_plugin.getInst(), dll_path, _countof(dll_path)))
 		return;
 
 	char *p = strrchr(dll_path, '\\');

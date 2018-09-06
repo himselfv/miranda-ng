@@ -23,14 +23,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #define LIB_REG		2
 #define LIB_USE		3
 
-HINSTANCE g_hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
 HANDLE hHeap = nullptr;
 
-//End of header
+/////////////////////////////////////////////////////////////////////////////////////////
+// PluginInfoEx
 
-// PluginInfo & PluginInfoEx
 PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -44,28 +43,21 @@ PLUGININFOEX pluginInfoEx = {
 	{ 0x687364af, 0x58b0, 0x4af2, { 0xa4, 0xee, 0x20, 0xf4, 0xa, 0x8d, 0x9a, 0xfb } }
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	g_hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int	__declspec(dllexport) Load(void)
+int CMPlugin::Load(void)
 {
-	mir_getLP(&pluginInfoEx);
-
 	InitFingerModule();
 	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-extern "C" int	__declspec(dllexport) Unload()
+int CMPlugin::Unload()
 {
 	HeapDestroy(hHeap);
 	ClearFI();

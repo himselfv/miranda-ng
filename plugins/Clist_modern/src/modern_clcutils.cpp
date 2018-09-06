@@ -234,7 +234,7 @@ static LRESULT CALLBACK RenameEditSubclassProc(HWND hwnd, UINT uMsg, WPARAM wPar
 	
 	case WM_KILLFOCUS:
 		Clist_EndRename((ClcData*)GetWindowLongPtr(hwnd, GWLP_USERDATA), 1);
-		SendMessage(pcli->hwndContactTree, WM_SIZE, 0, 0);
+		SendMessage(g_clistApi.hwndContactTree, WM_SIZE, 0, 0);
 		return 0;
 	}
 	return mir_callNextSubclass(hwnd, RenameEditSubclassProc, uMsg, wParam, lParam);
@@ -283,9 +283,9 @@ void cliBeginRenameSelection(HWND hwnd, ClcData *dat)
 	if (dat->text_rtl)
 		a |= EN_ALIGN_RTL_EC;
 	if (contact->type == CLCIT_GROUP)
-		dat->hwndRenameEdit = CreateWindow(L"EDIT", contact->szText, WS_POPUP | WS_BORDER | ES_AUTOHSCROLL | a, x, y, w, h, hwnd, nullptr, g_hInst, nullptr);
+		dat->hwndRenameEdit = CreateWindow(L"EDIT", contact->szText, WS_POPUP | WS_BORDER | ES_AUTOHSCROLL | a, x, y, w, h, hwnd, nullptr, g_plugin.getInst(), nullptr);
 	else
-		dat->hwndRenameEdit = CreateWindow(L"EDIT", Clist_GetContactDisplayName(contact->hContact), WS_POPUP | WS_BORDER | ES_AUTOHSCROLL | a, x, y, w, h, hwnd, nullptr, g_hInst, nullptr);
+		dat->hwndRenameEdit = CreateWindow(L"EDIT", Clist_GetContactDisplayName(contact->hContact), WS_POPUP | WS_BORDER | ES_AUTOHSCROLL | a, x, y, w, h, hwnd, nullptr, g_plugin.getInst(), nullptr);
 
 	SetWindowLongPtr(dat->hwndRenameEdit, GWL_STYLE, GetWindowLongPtr(dat->hwndRenameEdit, GWL_STYLE)&(~WS_CAPTION) | WS_BORDER);
 	SetWindowLongPtr(dat->hwndRenameEdit, GWLP_USERDATA, (LONG_PTR)dat);
@@ -407,10 +407,13 @@ int GetDropTargetInformation(HWND hwnd, ClcData *dat, POINT pt)
 	}
 	dat->selection = hit;
 
-	if (!mir_strcmp(contact->pce->szProto, META_PROTO))
-		return DROPTARGET_ONMETACONTACT;
+	if (contact->pce)
+		if (!mir_strcmp(contact->pce->szProto, META_PROTO))
+			return DROPTARGET_ONMETACONTACT;
+
 	if (contact->iSubNumber)
 		return DROPTARGET_ONSUBCONTACT;
+
 	return DROPTARGET_ONCONTACT;
 }
 
@@ -464,7 +467,7 @@ void cli_LoadCLCOptions(HWND hwnd, ClcData *dat, BOOL bFirst)
 	// Row
 	dat->row_min_heigh = db_get_w(0, "CList", "MinRowHeight", CLCDEFAULT_ROWHEIGHT);
 	dat->row_border = db_get_w(0, "CList", "RowBorder", SETTING_ROWBORDER_DEFAULT);
-	dat->row_before_group_space = ((hwnd != pcli->hwndContactTree && pcli->hwndContactTree != nullptr)
+	dat->row_before_group_space = ((hwnd != g_clistApi.hwndContactTree && g_clistApi.hwndContactTree != nullptr)
 		|| !db_get_b(0, "ModernData", "UseAdvancedRowLayout", SETTING_ROW_ADVANCEDLAYOUT_DEFAULT)) ? 0 : db_get_w(0, "ModernSkin", "SpaceBeforeGroup", SKIN_SPACEBEFOREGROUP_DEFAULT);
 	dat->row_variable_height = db_get_b(0, "CList", "VariableRowHeight", SETTING_VARIABLEROWHEIGHT_DEFAULT);
 	dat->row_align_left_items_to_left = db_get_b(0, "CList", "AlignLeftItemsToLeft", SETTING_ALIGNLEFTTOLEFT_DEFAULT);
@@ -472,7 +475,7 @@ void cli_LoadCLCOptions(HWND hwnd, ClcData *dat, BOOL bFirst)
 	dat->row_align_right_items_to_right = db_get_b(0, "CList", "AlignRightItemsToRight", SETTING_ALIGNRIGHTORIGHT_DEFAULT);
 	//TODO: Add to settings
 	dat->row_align_group_mode = db_get_b(0, "CList", "AlignGroupCaptions", SETTING_ALIGNGROPCAPTION_DEFAULT);
-	if (pcli->hwndContactTree == nullptr || dat->hWnd == pcli->hwndContactTree) {
+	if (g_clistApi.hwndContactTree == nullptr || dat->hWnd == g_clistApi.hwndContactTree) {
 
 		int defItemsOrder[NUM_ITEM_TYPE] = SETTINS_ROWITEMORDER_DEFAULT;
 		for (int i = 0; i < NUM_ITEM_TYPE; i++) {
@@ -488,7 +491,7 @@ void cli_LoadCLCOptions(HWND hwnd, ClcData *dat, BOOL bFirst)
 	}
 
 	// Avatar
-	if (pcli->hwndContactTree == hwnd || pcli->hwndContactTree == nullptr) {
+	if (g_clistApi.hwndContactTree == hwnd || g_clistApi.hwndContactTree == nullptr) {
 		dat->avatars_show = ServiceExists(MS_AV_GETAVATARBITMAP) && db_get_b(0, "CList", "AvatarsShow", SETTINGS_SHOWAVATARS_DEFAULT);
 		dat->avatars_draw_border = db_get_b(0, "CList", "AvatarsDrawBorders", SETTINGS_AVATARDRAWBORDER_DEFAULT);
 		dat->avatars_border_color = (COLORREF)db_get_dw(0, "CList", "AvatarsBorderColor", SETTINGS_AVATARBORDERCOLOR_DEFAULT);
@@ -516,7 +519,7 @@ void cli_LoadCLCOptions(HWND hwnd, ClcData *dat, BOOL bFirst)
 	}
 
 	// Icon
-	if (pcli->hwndContactTree == hwnd || pcli->hwndContactTree == nullptr) {
+	if (g_clistApi.hwndContactTree == hwnd || g_clistApi.hwndContactTree == nullptr) {
 		dat->icon_hide_on_avatar = db_get_b(0, "CList", "IconHideOnAvatar", SETTING_HIDEICONONAVATAR_DEFAULT);
 		dat->icon_draw_on_avatar_space = db_get_b(0, "CList", "IconDrawOnAvatarSpace", SETTING_ICONONAVATARPLACE_DEFAULT);
 		dat->icon_ignore_size_for_row_height = db_get_b(0, "CList", "IconIgnoreSizeForRownHeight", SETTING_ICONIGNORESIZE_DEFAULT);
@@ -528,7 +531,7 @@ void cli_LoadCLCOptions(HWND hwnd, ClcData *dat, BOOL bFirst)
 	}
 
 	// Contact time
-	if (pcli->hwndContactTree == hwnd || pcli->hwndContactTree == nullptr) {
+	if (g_clistApi.hwndContactTree == hwnd || g_clistApi.hwndContactTree == nullptr) {
 		dat->contact_time_show = db_get_b(0, "CList", "ContactTimeShow", SETTING_SHOWTIME_DEFAULT);
 		dat->contact_time_show_only_if_different = db_get_b(0, "CList", "ContactTimeShowOnlyIfDifferent", SETTING_SHOWTIMEIFDIFF_DEFAULT);
 	}
@@ -545,7 +548,7 @@ void cli_LoadCLCOptions(HWND hwnd, ClcData *dat, BOOL bFirst)
 	dat->text_smiley_height = 0;
 	dat->text_use_protocol_smileys = db_get_b(0, "CList", "TextUseProtocolSmileys", SETTING_TEXT_PROTOSMILEY_DEFAULT);
 
-	if (pcli->hwndContactTree == hwnd || pcli->hwndContactTree == nullptr)
+	if (g_clistApi.hwndContactTree == hwnd || g_clistApi.hwndContactTree == nullptr)
 		dat->text_ignore_size_for_row_height = db_get_b(0, "CList", "TextIgnoreSizeForRownHeight", SETTING_TEXT_IGNORESIZE_DEFAULT);
 	else
 		dat->text_ignore_size_for_row_height = 0;
@@ -556,7 +559,7 @@ void cli_LoadCLCOptions(HWND hwnd, ClcData *dat, BOOL bFirst)
 	gl_TrimText = db_get_b(0, "CList", "TrimText", SETTING_FIRSTLINE_TRIMTEXT_DEFAULT);
 
 	// Second line
-	if (pcli->hwndContactTree == hwnd || pcli->hwndContactTree == nullptr) {
+	if (g_clistApi.hwndContactTree == hwnd || g_clistApi.hwndContactTree == nullptr) {
 		dat->secondLine.show = db_get_b(0, "CList", "SecondLineShow", SETTING_SECONDLINE_SHOW_DEFAULT);
 		dat->secondLine.top_space = db_get_w(0, "CList", "SecondLineTopSpace", SETTING_SECONDLINE_TOPSPACE_DEFAULT);
 		dat->secondLine.draw_smileys = db_get_b(0, "CList", "SecondLineDrawSmileys", SETTING_SECONDLINE_SMILEYS_DEFAULT);
@@ -564,7 +567,7 @@ void cli_LoadCLCOptions(HWND hwnd, ClcData *dat, BOOL bFirst)
 
 		ptrW tszLineText(db_get_wsa(0, "CList", "SecondLineText"));
 		if (tszLineText)
-			mir_wstrncpy(dat->secondLine.text, tszLineText, _countof(dat->secondLine.text));
+			wcsncpy_s(dat->secondLine.text, tszLineText, _TRUNCATE);
 		else
 			dat->secondLine.text[0] = '\0';
 
@@ -576,7 +579,7 @@ void cli_LoadCLCOptions(HWND hwnd, ClcData *dat, BOOL bFirst)
 	else memset(&dat->secondLine, 0, sizeof(dat->secondLine));
 
 	// Third line
-	if (pcli->hwndContactTree == hwnd || pcli->hwndContactTree == nullptr) {
+	if (g_clistApi.hwndContactTree == hwnd || g_clistApi.hwndContactTree == nullptr) {
 		dat->thirdLine.show = db_get_b(0, "CList", "ThirdLineShow", SETTING_THIRDLINE_SHOW_DEFAULT);
 		dat->thirdLine.top_space = db_get_w(0, "CList", "ThirdLineTopSpace", SETTING_THIRDLINE_TOPSPACE_DEFAULT);
 		dat->thirdLine.draw_smileys = db_get_b(0, "CList", "ThirdLineDrawSmileys", SETTING_THIRDLINE_SMILEYS_DEFAULT);
@@ -584,7 +587,7 @@ void cli_LoadCLCOptions(HWND hwnd, ClcData *dat, BOOL bFirst)
 
 		ptrW tszLineText(db_get_wsa(0, "CList", "ThirdLineText"));
 		if (tszLineText)
-			mir_wstrncpy(dat->thirdLine.text, tszLineText, _countof(dat->thirdLine.text));
+			wcsncpy_s(dat->thirdLine.text, tszLineText, _TRUNCATE);
 		else
 			dat->thirdLine.text[0] = '\0';
 
@@ -596,7 +599,9 @@ void cli_LoadCLCOptions(HWND hwnd, ClcData *dat, BOOL bFirst)
 	else memset(&dat->thirdLine, 0, sizeof(dat->thirdLine));
 
 	dat->rightMargin = db_get_b(0, "CLC", "RightMargin", CLCDEFAULT_RIGHTMARGIN);
-	dat->bForceInDialog = (pcli->hwndContactTree) ? (hwnd != pcli->hwndContactTree) : 0;
+	dat->topMargin = db_get_b(0, "CLC", "TopMargin", 0);
+	dat->bottomMargin = db_get_b(0, "CLC", "BottomMargin", 0);
+	dat->bForceInDialog = (g_clistApi.hwndContactTree) ? (hwnd != g_clistApi.hwndContactTree) : 0;
 	dat->subIndent = db_get_b(0, "CLC", "SubIndent", CLCDEFAULT_GROUPINDENT);
 
 	if (dat->hBmpBackground) { DeleteObject(dat->hBmpBackground); dat->hBmpBackground = nullptr; }
@@ -619,7 +624,7 @@ void cli_LoadCLCOptions(HWND hwnd, ClcData *dat, BOOL bFirst)
 
 	dat->IsMetaContactsEnabled = (!(GetWindowLongPtr(hwnd, GWL_STYLE)&CLS_MANUALUPDATE)) && db_get_b(0, META_PROTO, "Enabled", 1);
 
-	if (pcli->hwndContactTree == nullptr || dat->hWnd == pcli->hwndContactTree)
+	if (g_clistApi.hwndContactTree == nullptr || dat->hWnd == g_clistApi.hwndContactTree)
 		dat->bMetaIgnoreEmptyExtra = db_get_b(0, "CLC", "MetaIgnoreEmptyExtra", SETTING_METAIGNOREEMPTYEXTRA_DEFAULT) != 0;
 	else
 		dat->bMetaIgnoreEmptyExtra = false;
@@ -651,7 +656,7 @@ int ExpandMetaContact(HWND hwnd, ClcContact *contact, ClcData *dat)
 	contact->bSubExpanded = true;
 	db_set_b(contact->hContact, "CList", "Expanded", contact->bSubExpanded);
 	dat->bNeedsResort = true;
-	pcli->pfnSortCLC(hwnd, dat, 1);
+	g_clistApi.pfnSortCLC(hwnd, dat, 1);
 	cliRecalcScrollBar(hwnd, dat);
 	return contact->bSubExpanded;
 }
@@ -685,8 +690,8 @@ int cliFindRowByText(HWND hwnd, ClcData *dat, const wchar_t *text, int prefixOk)
 				ClcGroup *ccGroup = group;
 				int ccScanIndex = group->scanIndex;
 				for (; group; group = group->parent)
-					pcli->pfnSetGroupExpand(hwnd, dat, group, 1);
-				return pcli->pfnGetRowsPriorTo(&dat->list, ccGroup, ccScanIndex + SubCount);
+					g_clistApi.pfnSetGroupExpand(hwnd, dat, group, 1);
+				return g_clistApi.pfnGetRowsPriorTo(&dat->list, ccGroup, ccScanIndex + SubCount);
 			}
 			
 			if (cc->type == CLCIT_GROUP) {
@@ -716,10 +721,10 @@ int cliFindRowByText(HWND hwnd, ClcData *dat, const wchar_t *text, int prefixOk)
 						ClcGroup *ccGroup = group;
 						int ccScanIndex = group->scanIndex;
 						for (; group; group = group->parent)
-							pcli->pfnSetGroupExpand(hwnd, dat, group, 1);
+							g_clistApi.pfnSetGroupExpand(hwnd, dat, group, 1);
 						if (!cc->bSubExpanded)
 							ExpandMetaContact(hwnd, cc, dat);
-						return pcli->pfnGetRowsPriorTo(&dat->list, ccGroup, ccScanIndex + SubCount + i + 1);
+						return g_clistApi.pfnGetRowsPriorTo(&dat->list, ccGroup, ccScanIndex + SubCount + i + 1);
 					}
 				}
 			}

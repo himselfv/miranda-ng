@@ -20,13 +20,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 
-char ModuleName[] = "Folders";
-HINSTANCE hInstance;
-int hLangpack;
+CMPlugin g_plugin;
 
 OBJLIST<CFolderItem> lstRegisteredFolders(10, PtrKeySortT);
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -36,32 +36,27 @@ PLUGININFOEX pluginInfo = {
 	__AUTHORWEB,
 	UNICODE_AWARE,
 	// {2F129563-2C7D-4A9A-B948-97DFCC0AFDD7}
-	{ 0x2f129563, 0x2c7d, 0x4a9a, { 0xb9, 0x48, 0x97, 0xdf, 0xcc, 0x0a, 0xfd, 0xd7 } }
+	{0x2f129563, 0x2c7d, 0x4a9a, {0xb9, 0x48, 0x97, 0xdf, 0xcc, 0x0a, 0xfd, 0xd7}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(ModuleName, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) int Load(void)
-{
-	mir_getLP(&pluginInfo);
+/////////////////////////////////////////////////////////////////////////////////////////
 
+int CMPlugin::Load()
+{
 	InitServices();
 	InitEvents();
 	InitOptions();
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload()
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	DestroyEvents();
 	return 0;
-}
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInstance = hinstDLL;
-	return TRUE;
 }

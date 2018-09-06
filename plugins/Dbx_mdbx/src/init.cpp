@@ -23,21 +23,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 
-EXTERN_C void NTAPI tls_callback(PVOID module, DWORD reason, PVOID reserved);
-
-HINSTANCE g_hInst = nullptr;
-int hLangpack;
-
-BOOL WINAPI DllMain(HINSTANCE hInstDLL, DWORD reason, LPVOID reserved)
-{
-	g_hInst = hInstDLL;
-	tls_callback(hInstDLL, reason, reserved);
-	return TRUE;
-}
+CMPlugin g_plugin;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-static PLUGININFOEX pluginInfo =
+static PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -51,13 +41,22 @@ static PLUGININFOEX pluginInfo =
 	{ 0x7c3d0a33, 0x2646, 0x4001, { 0x91, 0x7, 0xf3, 0x5e, 0xa2, 0x99, 0xd2, 0x92 } }
 };
 
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_DATABASE, MIID_LAST };
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static void logger(int type, const char *function, int line, const char *msg, va_list args)
+{
+	char tmp[4096];
+	_vsnprintf_s(tmp, _countof(tmp), msg, args);
+	Netlib_Logf(nullptr, "MDBX[%d] (%s, %d): %s", type, function, line, tmp);
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -65,7 +64,7 @@ extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_DATABA
 static int makeDatabase(const TCHAR *profile)
 {
 	std::unique_ptr<CDbxMDBX> db(new CDbxMDBX(profile, 0));
-	return (db->Map() == MDBX_SUCCESS) ? 0 : EGROKPRF_CANTREAD;
+	return db->Map();
 }
 
 // returns 0 if the given profile has a valid header
@@ -78,9 +77,6 @@ static int grokHeader(const TCHAR *profile)
 // returns 0 if all the APIs are injected otherwise, 1
 static MDatabaseCommon* loadDatabase(const TCHAR *profile, BOOL bReadOnly)
 {
-	// set the memory, lists & UTF8 manager
-	mir_getLP(&pluginInfo);
-
 	std::unique_ptr<CDbxMDBX> db(new CDbxMDBX(profile, (bReadOnly) ? DBMODE_READONLY : 0));
 	if (db->Map() != ERROR_SUCCESS)
 		return nullptr;
@@ -101,15 +97,9 @@ static DATABASELINK dblink =
 	loadDatabase
 };
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
+	mdbx_setup_debug(MDBX_DBG_ASSERT | MDBX_DBG_PRINT, &logger);
 	RegisterDatabasePlugin(&dblink);
-	return 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-extern "C" __declspec(dllexport) int Unload(void)
-{
 	return 0;
 }

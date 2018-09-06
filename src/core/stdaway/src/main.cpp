@@ -23,10 +23,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 int LoadAwayMsgModule(void);
 
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	MIRANDA_VERSION_DWORD,
@@ -39,28 +40,18 @@ PLUGININFOEX pluginInfo = {
 	{ 0xe58558e3, 0x83e7, 0x44ef, {0x8e, 0x39, 0xd9, 0xe0, 0x54, 0x19, 0x56, 0xdf}}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_SRAWAY, MIID_LAST };
 
-extern "C" int __declspec(dllexport) Load(void)
-{
-	mir_getLP(&pluginInfo);
+/////////////////////////////////////////////////////////////////////////////////////////
 
+int CMPlugin::Load()
+{
 	LoadAwayMsgModule();
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

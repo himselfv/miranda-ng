@@ -23,13 +23,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 int LoadSendRecvFileModule(void);
 
-CLIST_INTERFACE* pcli;
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
 ITaskbarList3 * pTaskbarInterface;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	MIRANDA_VERSION_DWORD,
@@ -42,24 +42,18 @@ PLUGININFOEX pluginInfo = {
 	{ 0x39698dce, 0x7ed4, 0x4334, {0xac, 0x4c, 0xba, 0x8b, 0x37, 0xa8, 0x6f, 0x13}}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_SRFILE, MIID_LAST };
 
-extern "C" int __declspec(dllexport) Load(void)
-{
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
+/////////////////////////////////////////////////////////////////////////////////////////
 
+int CMPlugin::Load()
+{
 	if ( IsWinVer7Plus())
 		CoCreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_ALL, IID_ITaskbarList3, (void**)&pTaskbarInterface);
 
@@ -67,7 +61,9 @@ extern "C" int __declspec(dllexport) Load(void)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	if (pTaskbarInterface)
 		pTaskbarInterface->Release();

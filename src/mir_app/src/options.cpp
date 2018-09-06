@@ -172,14 +172,14 @@ class COptionPageDialog : public CDlgBase
 	LPARAM  m_lParam;
 
 public:
-	COptionPageDialog(HINSTANCE hInst, int idDialog, DLGPROC pProc, LPARAM lParam) :
-		CDlgBase(hInst, idDialog),
+	COptionPageDialog(CMPluginBase &pPlug, int idDialog, DLGPROC pProc, LPARAM lParam) :
+		CDlgBase(pPlug, idDialog),
 		m_wndProc(pProc),
 		m_lParam(lParam)
 	{
 	}
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
 	{
 		if (msg == WM_INITDIALOG)
 			lParam = m_lParam;
@@ -199,14 +199,16 @@ struct OptionsPageData : public MZeroedObject
 {
 	OptionsPageData(const OPTIONSDIALOGPAGE &src)
 	{
-		if (src.hInstance != nullptr && src.pszTemplate != nullptr)
-			pDialog = new COptionPageDialog(src.hInstance, (INT_PTR)src.pszTemplate, src.pfnDlgProc, src.dwInitParam);
+		if (src.pszTemplate != nullptr) {
+			CMPluginBase *p = (CMPluginBase*)src.pPlugin;
+			pDialog = new COptionPageDialog(*p, (INT_PTR)src.pszTemplate, src.pfnDlgProc, src.dwInitParam);
+		}
 		else
 			pDialog = src.pDialog;
 		assert(pDialog != nullptr);
 
 		flags = src.flags;
-		hLangpack = src.hLangpack;
+		pPlugin = src.pPlugin;
 
 		if (src.flags & ODPF_UNICODE)
 			ptszTitle = mir_wstrdup(src.szTitle.w);
@@ -231,7 +233,7 @@ struct OptionsPageData : public MZeroedObject
 	}
 
 	CDlgBase *pDialog;
-	int hLangpack;
+	HPLUGIN pPlugin;
 	ptrW ptszTitle, ptszGroup, ptszTab;
 	HTREEITEM hTreeItem;
 	bool bChanged, bInsideTab;
@@ -246,7 +248,7 @@ struct OptionsPageData : public MZeroedObject
 	{
 		if (flags & ODPF_DONTTRANSLATE)
 			return ptszStr;
-		return TranslateW_LP(ptszStr, hLangpack);
+		return TranslateW_LP(ptszStr, pPlugin);
 	}
 
 	HWND CreateOptionWindow(HWND hWndParent) const
@@ -406,21 +408,22 @@ class COptionsDlg : public CDlgBase
 		return nullptr;
 	}
 
+	void GetTreeSettingName(int idx, char *buf, size_t bufSize)
+	{
+		mir_snprintf(buf, bufSize, "%s%S", OPTSTATE_PREFIX, (idx < 0) ? m_arOpd[-idx]->ptszGroup : m_arOpd[idx]->ptszTitle);
+	}
+
 	void SaveOptionsTreeState()
 	{
-		wchar_t str[128];
 		TVITEMEX tvi;
-		tvi.mask = TVIF_TEXT | TVIF_STATE;
-		tvi.pszText = str;
-		tvi.cchTextMax = _countof(str);
-		tvi.hItem = m_pageTree.GetRoot();
-		while (tvi.hItem != nullptr) {
-			if (m_pageTree.GetItem(&tvi)) {
-				char buf[130];
-				mir_snprintf(buf, "%s%S", OPTSTATE_PREFIX, str);
-				db_set_b(0, "Options", buf, (BYTE)((tvi.state & TVIS_EXPANDED) ? 1 : 0));
-			}
-			tvi.hItem = m_pageTree.GetNextSibling(tvi.hItem);
+		tvi.mask = TVIF_STATE | TVIF_PARAM;
+		for (tvi.hItem = m_pageTree.GetRoot(); tvi.hItem != nullptr; tvi.hItem = m_pageTree.GetNextSibling(tvi.hItem)) {
+			if (m_pageTree.GetChild(tvi.hItem) == nullptr) continue;
+			if (!m_pageTree.GetItem(&tvi)) continue;
+
+			char buf[130];
+			GetTreeSettingName(tvi.lParam, buf, _countof(buf));
+			db_set_b(0, "Options", buf, (BYTE)((tvi.state & TVIS_EXPANDED) ? 1 : 0));
 		}
 	}
 
@@ -438,13 +441,13 @@ class COptionsDlg : public CDlgBase
 		int countKnownInst = 0;
 		m_keywordFilter.ResetContent();
 		m_keywordFilter.AddString(ALL_MODULES_FILTER, 0);
-		m_keywordFilter.AddString(CORE_MODULES_FILTER, (LPARAM)g_hInst);
+		m_keywordFilter.AddString(CORE_MODULES_FILTER, (LPARAM)g_plugin.getInst());
 
 		for (auto &opd : m_arOpd) {
 			opd->FindFilterStrings(false, 0, m_hwnd); // only modules name (fast enougth)
 
 			HINSTANCE inst = opd->getInst();
-			if (inst == g_hInst)
+			if (inst == g_plugin.getInst())
 				continue;
 
 			int j;
@@ -512,7 +515,7 @@ class COptionsDlg : public CDlgBase
 		else if (mir_wstrcmp(m_szFilterString, CORE_MODULES_FILTER) == 0) {
 			// replace string with process name - that will show core settings
 			wchar_t szFileName[300];
-			GetModuleFileName(g_hInst, szFileName, _countof(szFileName));
+			GetModuleFileName(g_plugin.getInst(), szFileName, _countof(szFileName));
 			wchar_t *pos = wcsrchr(szFileName, '\\');
 			if (pos)
 				pos++;
@@ -565,30 +568,29 @@ class COptionsDlg : public CDlgBase
 				continue;
 
 			opd = m_arOpd[i];
-			wchar_t *ptszGroup = TranslateW_LP(opd->ptszGroup, opd->hLangpack);
-			wchar_t *ptszTitle = opd->getString(opd->ptszTitle), *useTitle;
-			wchar_t *ptszTab = TranslateW_LP(opd->ptszTab, opd->hLangpack);
+			wchar_t *ptszGroup = TranslateW_LP(opd->ptszGroup, opd->pPlugin);
+			wchar_t *ptszTab = TranslateW_LP(opd->ptszTab, opd->pPlugin);
+			wchar_t *ptszTitle = opd->getString(opd->ptszTitle);
 
 			tvis.hParent = nullptr;
-			useTitle = ptszTitle;
 
 			if (ptszGroup != nullptr) {
 				tvis.hParent = FindNamedTreeItem(nullptr, ptszGroup);
 				if (tvis.hParent == nullptr) {
-					tvis.item.lParam = -1;
+					tvis.item.lParam = -i;
 					tvis.item.pszText = ptszGroup;
 					tvis.hParent = m_pageTree.InsertItem(&tvis);
 				}
 			}
 			else {
-				tvi.hItem = FindNamedTreeItem(nullptr, useTitle);
+				tvi.hItem = FindNamedTreeItem(nullptr, ptszTitle);
 				if (tvi.hItem != nullptr) {
 					if (i == m_currentPage)
 						m_hCurrentPage = tvi.hItem;
 					
 					tvi.mask = TVIF_PARAM;
 					m_pageTree.GetItem(&tvi);
-					if (tvi.lParam == -1) {
+					if (tvi.lParam < 0) {
 						tvi.lParam = i;
 						m_pageTree.SetItem(&tvi);
 						continue;
@@ -599,41 +601,31 @@ class COptionsDlg : public CDlgBase
 			if (ptszTab != nullptr) {
 				HTREEITEM hItem;
 				if (tvis.hParent == nullptr)
-					hItem = FindNamedTreeItem(nullptr, useTitle);
+					hItem = FindNamedTreeItem(nullptr, ptszTitle);
 				else
-					hItem = FindNamedTreeItem(tvis.hParent, useTitle);
+					hItem = FindNamedTreeItem(tvis.hParent, ptszTitle);
 				if (hItem != nullptr) {
-					if (i == m_currentPage) {
-						tvi.hItem = hItem;
-						tvi.mask = TVIF_PARAM;
-						tvi.lParam = m_currentPage;
-						m_pageTree.SetItem(&tvi);
+					if (i == m_currentPage)
 						m_hCurrentPage = hItem;
-					}
 					continue;
 				}
 			}
 
-			tvis.item.pszText = useTitle;
+			tvis.item.pszText = ptszTitle;
 			tvis.item.lParam = i;
 			opd->hTreeItem = m_pageTree.InsertItem(&tvis);
 			if (i == m_currentPage)
 				m_hCurrentPage = opd->hTreeItem;
 		}
 
-		wchar_t str[128];
-		tvi.mask = TVIF_TEXT | TVIF_STATE;
-		tvi.pszText = str;
-		tvi.cchTextMax = _countof(str);
-		tvi.hItem = m_pageTree.GetRoot();
-		while (tvi.hItem != nullptr) {
-			if (m_pageTree.GetItem(&tvi)) {
-				char buf[130];
-				mir_snprintf(buf, "%s%S", OPTSTATE_PREFIX, str);
-				if (!db_get_b(0, "Options", buf, 1))
-					m_pageTree.Expand(tvi.hItem, TVE_COLLAPSE);
-			}
-			tvi.hItem = m_pageTree.GetNextSibling(tvi.hItem);
+		tvi.mask = TVIF_STATE | TVIF_PARAM;
+		for (tvi.hItem = m_pageTree.GetRoot(); tvi.hItem != nullptr; tvi.hItem = m_pageTree.GetNextSibling(tvi.hItem)) {
+			if (!m_pageTree.GetItem(&tvi)) continue;
+
+			char buf[130];
+			GetTreeSettingName(tvi.lParam, buf, _countof(buf));
+			if (!db_get_b(0, "Options", buf, 1))
+				m_pageTree.Expand(tvi.hItem, TVE_COLLAPSE);
 		}
 
 		if (m_hCurrentPage == nullptr) {
@@ -685,7 +677,7 @@ class COptionsDlg : public CDlgBase
 
 public:
 	COptionsDlg(const wchar_t *pszCaption, const wchar_t *pszGroup, const wchar_t *pszPage, const wchar_t *pszTab, bool bSinglePage, const OptionsPageList &arPages) :
-		CDlgBase(g_hInst, bSinglePage ? IDD_OPTIONSPAGE : IDD_OPTIONS),
+		CDlgBase(g_plugin, bSinglePage ? IDD_OPTIONSPAGE : IDD_OPTIONS),
 		m_btnApply(this, IDC_APPLY),
 		m_btnCancel(this, IDCANCEL),
 		m_pageTree(this, IDC_PAGETREE),
@@ -714,7 +706,7 @@ public:
 		m_timerRebuild.OnEvent = Callback(this, &COptionsDlg::onNewPageTimer);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		Utils_RestoreWindowPositionNoSize(m_hwnd, 0, "Options", "");
 		Window_SetSkinIcon_IcoLib(m_hwnd, SKINICON_OTHER_OPTIONS);
@@ -787,9 +779,10 @@ public:
 
 		FillFilterCombo();
 		RebuildPageTree();
+		return true;
 	}
 
-	virtual void OnDestroy() override
+	void OnDestroy() override
 	{
 		ClearFilterStrings();
 		m_szFilterString[0] = 0;
@@ -824,7 +817,7 @@ public:
 		pOptionsDlg = nullptr;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		m_btnApply.Disable();
 		SetFocus(m_pageTree.GetHwnd());
@@ -836,7 +829,7 @@ public:
 			pshn.hdr.code = PSN_KILLACTIVE;
 			pshn.hdr.hwndFrom = opd->getHwnd();
 			if (SendMessage(opd->getHwnd(), WM_NOTIFY, 0, (LPARAM)&pshn))
-				return;
+				return false;
 		}
 
 		LIST<OptionsPageData> arChanged(10, CompareOPD);
@@ -863,7 +856,7 @@ public:
 				if (opd)
 					opd->pDialog->Show();
 				m_bInsideApply = false;
-				return;
+				return false;
 			}
 		}
 		m_bInsideApply = false;
@@ -886,6 +879,7 @@ public:
 
 			SendMessage(p->pDialog->GetHwnd(), WM_NOTIFY, 0, (LPARAM)&pshn);
 		}
+		return true;
 	}
 
 	void btnApply_Click(CCtrlButton*)
@@ -985,7 +979,7 @@ public:
 				if (mir_wstrcmp(opd->ptszTitle, p->ptszTitle) || mir_wstrcmp(opd->ptszGroup, p->ptszGroup))
 					continue;
 
-				tie.pszText = TranslateW_LP(p->ptszTab, p->hLangpack);
+				tie.pszText = TranslateW_LP(p->ptszTab, p->pPlugin);
 				tie.lParam = i;
 				TabCtrl_InsertItem(hwndTab, pages, &tie);
 				if (!mir_wstrcmp(opd->ptszTab, p->ptszTab))
@@ -1038,7 +1032,7 @@ public:
 		SetFocus(m_pageTree.GetHwnd());
 	}
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (msg) {
 		case PSM_CHANGED:
@@ -1104,18 +1098,18 @@ public:
 		RebuildPageTree();
 	}
 
-	void Locate(const wchar_t *pszGroup, const wchar_t *pszPage, int _hLang)
+	void Locate(const wchar_t *pszGroup, const wchar_t *pszPage, HPLUGIN pPlugin)
 	{
 		ShowWindow(GetHwnd(), SW_RESTORE);
 		SetForegroundWindow(m_hwnd);
 		if (pszPage != nullptr) {
 			HTREEITEM hItem = nullptr;
 			if (pszGroup != nullptr) {
-				hItem = FindNamedTreeItem(nullptr, TranslateW_LP(pszGroup, _hLang));
+				hItem = FindNamedTreeItem(nullptr, TranslateW_LP(pszGroup, pPlugin));
 				if (hItem != nullptr)
-					hItem = FindNamedTreeItem(hItem, TranslateW_LP(pszPage, _hLang));
+					hItem = FindNamedTreeItem(hItem, TranslateW_LP(pszPage, pPlugin));
 			}
-			else hItem = FindNamedTreeItem(nullptr, TranslateW_LP(pszPage, _hLang));
+			else hItem = FindNamedTreeItem(nullptr, TranslateW_LP(pszPage, pPlugin));
 
 			if (hItem != nullptr)
 				m_pageTree.SelectItem(hItem);
@@ -1136,10 +1130,10 @@ public:
 		}
 	}
 
-	void KillModule(int _hLang)
+	void KillModule(HPLUGIN pPlugin)
 	{
 		for (auto &opd : m_arOpd) {
-			if (opd->hLangpack != _hLang)
+			if (opd->pPlugin != pPlugin)
 				continue;
 
 			if (opd->pDialog != nullptr) {
@@ -1171,7 +1165,7 @@ void OpenAccountOptions(PROTOACCOUNT *pa)
 	pOptionsDlg->Show();
 }
 
-static void OpenOptionsNow(int _hLang, const wchar_t *pszGroup, const wchar_t *pszPage, const wchar_t *pszTab, bool bSinglePage)
+static void OpenOptionsNow(HPLUGIN pPlugin, const wchar_t *pszGroup, const wchar_t *pszPage, const wchar_t *pszTab, bool bSinglePage)
 {
 	if (pOptionsDlg == nullptr) {
 		OptionsPageList arPages(1);
@@ -1182,24 +1176,24 @@ static void OpenOptionsNow(int _hLang, const wchar_t *pszGroup, const wchar_t *p
 		pOptionsDlg = new COptionsDlg(TranslateT("Miranda NG options"), pszGroup, pszPage, pszTab, bSinglePage, arPages);
 		pOptionsDlg->Show();
 	}
-	else pOptionsDlg->Locate(pszGroup, pszPage, _hLang);
+	else pOptionsDlg->Locate(pszGroup, pszPage, pPlugin);
 }
 
-MIR_APP_DLL(int) Options_Open(const wchar_t *pszGroup, const wchar_t *pszPage, const wchar_t *pszTab, int _hLangpack)
+MIR_APP_DLL(int) Options_Open(const wchar_t *pszGroup, const wchar_t *pszPage, const wchar_t *pszTab, HPLUGIN pPlugin)
 {
-	OpenOptionsNow(_hLangpack, pszGroup, pszPage, pszTab, false);
+	OpenOptionsNow(pPlugin, pszGroup, pszPage, pszTab, false);
 	return 0;
 }
 
-MIR_APP_DLL(HWND) Options_OpenPage(const wchar_t *pszGroup, const wchar_t *pszPage, const wchar_t *pszTab, int _hLangpack)
+MIR_APP_DLL(HWND) Options_OpenPage(const wchar_t *pszGroup, const wchar_t *pszPage, const wchar_t *pszTab, HPLUGIN pPlugin)
 {
-	OpenOptionsNow(_hLangpack, pszGroup, pszPage, pszTab, true);
+	OpenOptionsNow(pPlugin, pszGroup, pszPage, pszTab, true);
 	return pOptionsDlg->GetHwnd();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-MIR_APP_DLL(int) Options_AddPage(WPARAM wParam, OPTIONSDIALOGPAGE *odp, int _hLangpack)
+MIR_APP_DLL(int) Options_AddPage(WPARAM wParam, OPTIONSDIALOGPAGE *odp, HPLUGIN pPlugin)
 {
 	OptionsPageList *pList = (OptionsPageList*)wParam;
 	if (odp == nullptr)
@@ -1207,7 +1201,7 @@ MIR_APP_DLL(int) Options_AddPage(WPARAM wParam, OPTIONSDIALOGPAGE *odp, int _hLa
 
 	OptionsPage *dst = new OptionsPage();
 	memcpy(dst, odp, sizeof(OPTIONSDIALOGPAGE));
-	dst->hLangpack = _hLangpack;
+	dst->pPlugin = pPlugin;
 
 	if (odp->szTitle.w != nullptr) {
 		if (odp->flags & ODPF_UNICODE)
@@ -1249,10 +1243,10 @@ MIR_APP_DLL(int) Options_AddPage(WPARAM wParam, OPTIONSDIALOGPAGE *odp, int _hLa
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-MIR_APP_DLL(void) KillModuleOptions(int _hLang)
+MIR_APP_DLL(void) KillModuleOptions(HPLUGIN pPlugin)
 {
 	if (pOptionsDlg != nullptr)
-		pOptionsDlg->KillModule(_hLang);
+		pOptionsDlg->KillModule(pPlugin);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -1272,7 +1266,7 @@ static int OptDynamicLoadOptions(WPARAM, LPARAM hInstance)
 
 static int OptModulesLoaded(WPARAM, LPARAM)
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0xc1284523, 0x548d, 0x4744, 0xb0, 0x9, 0xfb, 0xa0, 0x4, 0x8e, 0xa8, 0x67);
 	mi.hIcolibItem = Skin_GetIconHandle(SKINICON_OTHER_OPTIONS);
 	mi.position = 1900000000;

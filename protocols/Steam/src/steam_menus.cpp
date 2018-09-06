@@ -107,16 +107,16 @@ int CSteamProto::OnPrebuildContactMenu(WPARAM hContact, LPARAM)
 
 int CSteamProto::PrebuildContactMenu(WPARAM hContact, LPARAM lParam)
 {
-	for (int i = 0; i < CMI_MAX; i++)
-		Menu_ShowItem(CSteamProto::contactMenuItems[i], false);
+	for (auto &it : contactMenuItems)
+		Menu_ShowItem(it, false);
 
-	CSteamProto* ppro = CMPlugin::getInstance((MCONTACT)hContact);
+	CSteamProto *ppro = CMPlugin::getInstance((MCONTACT)hContact);
 	return (ppro) ? ppro->OnPrebuildContactMenu(hContact, lParam) : 0;
 }
 
 void CSteamProto::OnInitStatusMenu()
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.flags = CMIF_UNICODE;
 	mi.root = Menu_GetProtocolRoot(this);
 
@@ -134,7 +134,7 @@ void CSteamProto::InitMenus()
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Contact menu initialization
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.flags = CMIF_UNICODE;
 
 	// "Block"
@@ -165,4 +165,6 @@ void CSteamProto::InitMenus()
 	mi.hIcolibItem = nullptr;
 	contactMenuItems[CMI_JOIN_GAME] = Menu_AddContactMenuItem(&mi);
 	CreateServiceFunction(mi.pszService, GlobalService<&CSteamProto::JoinToGameCommand>);
+
+	HookEvent(ME_CLIST_PREBUILDCONTACTMENU, &CSteamProto::PrebuildContactMenu);
 }

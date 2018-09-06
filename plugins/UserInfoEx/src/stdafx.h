@@ -158,18 +158,24 @@ unsigned int hashSettingW_M2(const char * key);		//new Murma2 hash
  * UserInfoEx global variables
  ***********************************************************************************************************/
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 typedef struct _MGLOBAL
 {
-	DWORD		mirandaVersion;					// mirandaVersion
-	BYTE		CanChangeDetails : 1;			// is service to upload own contact information for icq present?
-	BYTE		TzIndexExist : 1;				// Win Reg has Timzone Index Info
-	BYTE		PopupActionsExist : 1;			// Popup++ or MS_POPUP_REGISTERACTIONS exist
-	BYTE		ShowPropsheetColours : 1;		// cached SET_PROPSHEET_SHOWCOLOURS database value
-	BYTE		WantAeroAdaption : 1;			// reserved for later use
+	BYTE		CanChangeDetails : 1;         // is service to upload own contact information for icq present?
+	BYTE		TzIndexExist : 1;             // Win Reg has Timzone Index Info
+	BYTE		PopupActionsExist : 1;        // Popup++ or MS_POPUP_REGISTERACTIONS exist
+	BYTE		ShowPropsheetColours : 1;     // cached SET_PROPSHEET_SHOWCOLOURS database value
+	BYTE		WantAeroAdaption : 1;         // reserved for later use
 } MGLOBAL, *LPMGLOBAL;
 
-extern HINSTANCE		ghInst;
-extern MGLOBAL			myGlobals;
+extern MGLOBAL myGlobals;
 extern int nCountriesCount;
 extern struct CountryListEntry *countries;
 

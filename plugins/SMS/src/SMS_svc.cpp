@@ -4,7 +4,7 @@ int LoadServices(void)
 {
 	char szServiceFunction[MAX_PATH], *pszServiceFunctionName;
 
-	memcpy(szServiceFunction, PROTOCOL_NAMEA, PROTOCOL_NAME_SIZE);
+	memcpy(szServiceFunction, MODULENAME, PROTOCOL_NAME_SIZE);
 	pszServiceFunctionName = szServiceFunction + PROTOCOL_NAME_LEN;
 
 	// Service creation
@@ -25,9 +25,9 @@ int LoadModules(void)
 	HookEvent(ME_PROTO_ACCLISTCHANGED, RefreshAccountList);
 
 	char szServiceFunction[MAX_PATH];
-	mir_snprintf(szServiceFunction, "%s%s", PROTOCOL_NAMEA, SMS_SEND);
+	mir_snprintf(szServiceFunction, "%s%s", MODULENAME, SMS_SEND);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 
 	SET_UID(mi, 0x3ce387db, 0xbaac, 0x490f, 0xac, 0xab, 0x8c, 0xf7, 0xe9, 0xcd, 0x86, 0xa1);
 	mi.position = 300050000;
@@ -45,8 +45,8 @@ int LoadModules(void)
 	mi.flags = CMIF_UNICODE;
 	ssSMSSettings.hContactMenuItems[0] = Menu_AddContactMenuItem(&mi);
 
-	Skin_AddSound("RecvSMSMsg", PROTOCOL_NAMEW, LPGENW("Incoming SMS Message"));
-	Skin_AddSound("RecvSMSConfirmation", PROTOCOL_NAMEW, LPGENW("Incoming SMS Confirmation"));
+	g_plugin.addSound("RecvSMSMsg", PROTOCOL_NAMEW, LPGENW("Incoming SMS Message"));
+	g_plugin.addSound("RecvSMSConfirmation", PROTOCOL_NAMEW, LPGENW("Incoming SMS Confirmation"));
 
 	RefreshAccountList(NULL, NULL);
 	return 0;

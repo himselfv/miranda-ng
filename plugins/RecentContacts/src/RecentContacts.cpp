@@ -7,11 +7,8 @@ using namespace std;
 static const basic_string <char>::size_type npos = -1;
 
 char *szProto;
-HINSTANCE hInst = nullptr;
-int hLangpack = 0;
+CMPlugin g_plugin;
 
-CHAT_MANAGER *pci;
-CLIST_INTERFACE *pcli;
 HANDLE hTopToolbarButtonShowList;
 HANDLE hMsgWndEvent;
 HGENMENU hMenuItemRemove;
@@ -20,17 +17,14 @@ const INT_PTR boo = 0;
 
 LastUCOptions LastUCOpt = {0};
 
-/////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
+static IconItem iconList[] =
 {
-	hInst = hinstDLL;
-	return TRUE;
-}
+	{ LPGEN("Main icon"), "recent_main", IDI_SHOWRECENT }
+};
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-PLUGININFOEX pluginInfo =
+PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -44,12 +38,9 @@ PLUGININFOEX pluginInfo =
 	{0x0e5f3b9d, 0xebcd, 0x44d7, {0x93, 0x74, 0xd8, 0xe5, 0xd8, 0x8d, 0xf4, 0xe3}}
 };
 
-static IconItem icon = { LPGEN("Main icon"), "recent_main", IDI_SHOWRECENT };
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -60,14 +51,11 @@ void LoadDBSettings()
 	LastUCOpt.HideOffline = db_get_b(NULL, MODULENAME, dbLastUC_HideOfflineContacts, 0);
 	LastUCOpt.WindowAutoSize = db_get_b(NULL, MODULENAME, dbLastUC_WindowAutosize, 0);
 
-	DBVARIANT dbv;
-	dbv.type = DBVT_ASCIIZ;
-	dbv.pszVal = nullptr;
-	if (db_get(NULL, MODULENAME, dbLastUC_DateTimeFormat, &dbv) == 0 && dbv.pszVal[0] != 0) {
-		LastUCOpt.DateTimeFormat = dbv.pszVal;
-		db_free(&dbv);
-	}
-	else LastUCOpt.DateTimeFormat = "(%Y-%m-%d %H:%M)  ";
+	ptrA szFormat(db_get_sa(NULL, MODULENAME, dbLastUC_DateTimeFormat));
+	if (szFormat)
+		LastUCOpt.DateTimeFormat = szFormat;
+	else
+		LastUCOpt.DateTimeFormat = "(%Y-%m-%d %H:%M)  ";
 }
 
 void ShowListMainDlgProc_AdjustListPos(HWND hDlg, LASTUC_DLG_DATA *DlgDat)
@@ -217,15 +205,9 @@ INT_PTR CALLBACK ShowListMainDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM 
 			std::wstring str;
 			char strtim[256 + 16];
 
-			string strtimformat;
-			DBVARIANT dbv;
-			dbv.type = DBVT_ASCIIZ;
-			dbv.pszVal = nullptr;
-			if (db_get(NULL, MODULENAME, dbLastUC_DateTimeFormat, &dbv) == 0) {
-				strtimformat = dbv.pszVal;
-				db_free(&dbv);
-			}
-			else strtimformat = dbLastUC_DateTimeFormatDefault;
+			ptrA szFormat(db_get_sa(NULL, MODULENAME, dbLastUC_DateTimeFormat));
+			if (!szFormat)
+				szFormat = mir_strdup(dbLastUC_DateTimeFormatDefault);
 
 			for (auto curContact = DlgDat->Contacts->begin(); curContact != DlgDat->Contacts->end(); curContact++) {
 				if (curContact->second != NULL && db_get_b(curContact->second, MODULENAME, dbLastUC_IgnoreContact, 0) == 0) {
@@ -243,7 +225,7 @@ INT_PTR CALLBACK ShowListMainDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM 
 					lvi.iSubItem = 0;
 					lvi.lParam = (LPARAM)curContact->second;
 
-					strftime(strtim, 256, strtimformat.c_str(), _localtime64(&curContact->first));
+					strftime(strtim, 256, szFormat, _localtime64(&curContact->first));
 					strtim[255] = 0;
 					str = _A2T(strtim);
 					str += cname;
@@ -251,19 +233,18 @@ INT_PTR CALLBACK ShowListMainDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM 
 					lvi.iImage = Clist_GetContactIcon(curContact->second);
 					ListView_InsertItem(hList, &lvi);
 					i++;
-
 				}
+
 				if (LastUCOpt.MaxShownContacts > 0 && i >= LastUCOpt.MaxShownContacts)
 					break;
 			}
-
 
 			// window autosize/autopos - ike blaster
 			bool restorePos = !LastUCOpt.WindowAutoSize;
 
 			if (!restorePos) {
 				RECT rect;
-				if (GetWindowRect(pcli->hwndContactList, &rect)) {
+				if (GetWindowRect(g_clistApi.hwndContactList, &rect)) {
 					WINDOWPLACEMENT wp;
 
 					wp.length = sizeof(wp);
@@ -274,7 +255,7 @@ INT_PTR CALLBACK ShowListMainDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM 
 					int width = db_get_dw(NULL, MODULENAME, szSettingName, -1);
 
 					int right = rect.left - 6;
-					if (!IsWindowVisible(pcli->hwndContactList)) right = rect.right;
+					if (!IsWindowVisible(g_clistApi.hwndContactList)) right = rect.right;
 
 					wp.rcNormalPosition.left = right - width;
 					wp.rcNormalPosition.top = rect.top;
@@ -300,37 +281,35 @@ INT_PTR CALLBACK ShowListMainDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM 
 		break;
 
 	case WM_NOTIFY:
-		{
-			LPNMHDR lpNmhdr;
-			lpNmhdr = (LPNMHDR)lParam;
-			if (lpNmhdr->hwndFrom == hList) {
-				if (lpNmhdr->code == NM_CLICK || lpNmhdr->code == NM_RCLICK) {
-					RECT r;
-					POINT p;
-					GetCursorPos(&p);
-					GetWindowRect(hList, &r);
-					if (PtInRect(&r, p)) {
-						LVHITTESTINFO lvh;
-						memset(&lvh, 0, sizeof(lvh));
-						lvh.pt = p;
-						ScreenToClient(hList, &lvh.pt);
-						ListView_HitTest(hList, &lvh);
-						if ((lvh.flags & (LVHT_ONITEMICON | LVHT_ONITEMLABEL | LVHT_ONITEMSTATEICON)) && lvh.iItem != -1) {
-							if (lpNmhdr->code == NM_CLICK) {
-								if (ShowListMainDlgProc_OpenContact(hList, lvh.iItem))
-									SendMessage(hDlg, WM_CLOSE, 0, 0);
-							}
-							else ShowListMainDlgProc_OpenContactMenu(hDlg, hList, lvh.iItem, DlgDat);
+		LPNMHDR lpNmhdr;
+		lpNmhdr = (LPNMHDR)lParam;
+		if (lpNmhdr->hwndFrom == hList) {
+			if (lpNmhdr->code == NM_CLICK || lpNmhdr->code == NM_RCLICK) {
+				RECT r;
+				POINT p;
+				GetCursorPos(&p);
+				GetWindowRect(hList, &r);
+				if (PtInRect(&r, p)) {
+					LVHITTESTINFO lvh;
+					memset(&lvh, 0, sizeof(lvh));
+					lvh.pt = p;
+					ScreenToClient(hList, &lvh.pt);
+					ListView_HitTest(hList, &lvh);
+					if ((lvh.flags & (LVHT_ONITEMICON | LVHT_ONITEMLABEL | LVHT_ONITEMSTATEICON)) && lvh.iItem != -1) {
+						if (lpNmhdr->code == NM_CLICK) {
+							if (ShowListMainDlgProc_OpenContact(hList, lvh.iItem))
+								SendMessage(hDlg, WM_CLOSE, 0, 0);
 						}
+						else ShowListMainDlgProc_OpenContactMenu(hDlg, hList, lvh.iItem, DlgDat);
 					}
 				}
-				else if (lpNmhdr->code == NM_RETURN) {
-					if (ShowListMainDlgProc_OpenContact(hList, ListView_GetNextItem(hList, -1, LVIS_SELECTED)))
-						SendMessage(hDlg, WM_CLOSE, 0, 0);
-				}
 			}
-			break;
+			else if (lpNmhdr->code == NM_RETURN) {
+				if (ShowListMainDlgProc_OpenContact(hList, ListView_GetNextItem(hList, -1, LVIS_SELECTED)))
+					SendMessage(hDlg, WM_CLOSE, 0, 0);
+			}
 		}
+		break;
 
 	case WM_MEASUREITEM:
 		return Menu_MeasureItem(lParam);
@@ -415,7 +394,7 @@ INT_PTR OnMenuCommandShowList(WPARAM, LPARAM)
 			contacts->insert(cpair(curTime, curContact));
 	}
 
-	HWND hWndMain = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_LASTUC_DIALOG), nullptr, ShowListMainDlgProc, (LPARAM)contacts);
+	HWND hWndMain = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_LASTUC_DIALOG), nullptr, ShowListMainDlgProc, (LPARAM)contacts);
 	if (hWndMain == nullptr)
 		return -1;
 
@@ -439,26 +418,26 @@ static int OnContactSettingChanged(WPARAM hContact, LPARAM lParam)
 int Create_TopToolbarShowList(WPARAM, LPARAM)
 {
 	TTBButton ttb = {};
-	ttb.hIconHandleUp = icon.hIcolib;
+	ttb.hIconHandleUp = iconList[0].hIcolib;
 	ttb.pszService = msLastUC_ShowList;
 	ttb.dwFlags = TTBBF_VISIBLE | TTBBF_SHOWTOOLTIP;
 	ttb.name = ttb.pszTooltipUp = LPGEN("Recent Contacts");
-	hTopToolbarButtonShowList = TopToolbar_AddButton(&ttb);
+	hTopToolbarButtonShowList = g_plugin.addTTB(&ttb);
 	return 0;
 }
 
 int Create_MenuitemShowList(void)
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0xe22ce213, 0x362a, 0x444a, 0xa5, 0x82, 0xc, 0xcf, 0xf5, 0x4b, 0xd1, 0x8e);
-	mi.hIcolibItem = icon.hIcolib;
+	mi.hIcolibItem = iconList[0].hIcolib;
 	mi.name.a = LPGEN("Recent Contacts");
 	mi.pszService = msLastUC_ShowList;
 	Menu_AddMainMenuItem(&mi);
 
 	SET_UID(mi, 0xe22ce213, 0x362a, 0x444a, 0xa5, 0x82, 0xc, 0xcf, 0xf5, 0x4b, 0xd1, 0x8e);
 	mi.position = 0xFFFFF;
-	mi.hIcolibItem = icon.hIcolib;
+	mi.hIcolibItem = iconList[0].hIcolib;
 	mi.name.a = LPGEN("Toggle Ignore");
 	mi.pszService = V_RECENTCONTACTS_TOGGLE_IGNORE;
 	hMenuItemRemove = Menu_AddContactMenuItem(&mi);
@@ -476,7 +455,7 @@ static int OnGCInEvent(WPARAM, LPARAM lParam)
 {
 	GCEVENT *gce = (GCEVENT*)lParam;
 	if (gce->iType == GC_EVENT_MESSAGE) {
-		SESSION_INFO *si = pci->SM_FindSession(gce->ptszID, gce->pszModule);
+		SESSION_INFO *si = g_chatApi.SM_FindSession(gce->ptszID, gce->pszModule);
 		if (si && si->hContact) {
 			// skip old events
 			if (gce->time && gce->time <= GetLastUsedTimeStamp(si->hContact))
@@ -491,7 +470,7 @@ static int OnGCOutEvent(WPARAM, LPARAM lParam)
 {
 	GCEVENT *gce = (GCEVENT*)lParam;
 	if (gce->iType == GC_USER_MESSAGE) {
-		SESSION_INFO *si = pci->SM_FindSession(gce->ptszID, gce->pszModule);
+		SESSION_INFO *si = g_chatApi.SM_FindSession(gce->ptszID, gce->pszModule);
 		if (si && si->hContact)
 			SaveLastUsedTimeStamp(si->hContact);
 	}
@@ -537,7 +516,7 @@ static int OnModulesLoaded(WPARAM, LPARAM)
 	hk.szDescription.a = LPGEN("Show Recent Contacts");
 	hk.pszService = msLastUC_ShowList;
 	hk.DefHotKey = MAKEWORD('R', HOTKEYF_CONTROL | HOTKEYF_SHIFT);
-	Hotkey_Register(&hk);
+	g_plugin.addHotkey(&hk);
 	return 0;
 }
 
@@ -554,15 +533,11 @@ static INT_PTR ToggleIgnore(WPARAM hContact, LPARAM)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-	pci = Chat_GetInterface();
-
 	CoInitialize(nullptr);
 
-	Icon_Register(hInst, "Recent Contacts", &icon, 1);
+	g_plugin.registerIcon("Recent Contacts", iconList);
 
 	CreateServiceFunction(msLastUC_ShowList, OnMenuCommandShowList);
 	CreateServiceFunction(V_RECENTCONTACTS_TOGGLE_IGNORE, ToggleIgnore);
@@ -580,7 +555,7 @@ extern "C" __declspec(dllexport) int Load(void)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	CoUninitialize();
 	return 0;

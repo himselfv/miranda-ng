@@ -58,13 +58,11 @@ Called when the toolbar services are available
 /*
 toptoolbar/addbutton service
 wparam = (TTBButton*)lpTTBButton
-lparam = hLangpack
+lparam = (HPLUGIN)&g_pPlugin
 returns: hTTBButton - handle of added button on success, -1 on failure.
 */
 
-__forceinline HANDLE TopToolbar_AddButton(TTBButton *pButton)
-{	return (HANDLE)CallService("TopToolBar/AddButton", (WPARAM)pButton, hLangpack);
-}
+#define MS_TTB_ADDBUTTON                  "TopToolBar/AddButton"
 
 /*
 toptoolbar/removebutton service
@@ -151,7 +149,7 @@ struct TTBCtrlButton
 struct TTBCtrl
 {
 	HWND   hWnd;
-	HANDLE hFrame;
+	int    hFrame;
 	int    nButtonWidth;
 	int    nButtonHeight;
 	int    nButtonSpace;

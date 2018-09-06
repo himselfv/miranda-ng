@@ -122,7 +122,7 @@ IniParser::IniParser(wchar_t * tcsFileName, BYTE flags) : _Flags(flags)
 
 	if (tcsFileName[0] == '%') {
 		//TODO: Add parser of resource filename here
-		_LoadResourceIni(g_hInst, MAKEINTRESOURCEA(IDR_MSF_DEFAULT_SKIN), "MSF");
+		_LoadResourceIni(g_plugin.getInst(), MAKEINTRESOURCEA(IDR_MSF_DEFAULT_SKIN), "MSF");
 		return;
 	}
 
@@ -1585,11 +1585,11 @@ static HBITMAP ske_LoadGlyphImage_TGA(const wchar_t *szFilename)
 	}
 	else {
 		/* reading from resources IDR_TGA_DEFAULT_SKIN */
-		HRSRC hRSrc = FindResourceA(g_hInst, MAKEINTRESOURCEA(IDR_TGA_DEFAULT_SKIN), "TGA");
+		HRSRC hRSrc = FindResourceA(g_plugin.getInst(), MAKEINTRESOURCEA(IDR_TGA_DEFAULT_SKIN), "TGA");
 		if (!hRSrc) return nullptr;
-		HGLOBAL hRes = LoadResource(g_hInst, hRSrc);
+		HGLOBAL hRes = LoadResource(g_plugin.getInst(), hRSrc);
 		if (!hRes) return nullptr;
-		DWORD size = SizeofResource(g_hInst, hRSrc);
+		DWORD size = SizeofResource(g_plugin.getInst(), hRSrc);
 		BYTE *mem = (BYTE*)LockResource(hRes);
 		if (size > sizeof(header)) {
 			tga_header_t *tgahdr = (tga_header_t*)mem;
@@ -1936,7 +1936,7 @@ void ske_LoadSkinFromDB(void)
 
 static int ske_LoadSkinFromResource(BOOL bOnlyObjects)
 {
-	IniParser parser(g_hInst, MAKEINTRESOURCEA(IDR_MSF_DEFAULT_SKIN), "MSF", bOnlyObjects ? IniParser::FLAG_ONLY_OBJECTS : IniParser::FLAG_WITH_SETTINGS);
+	IniParser parser(g_plugin.getInst(), MAKEINTRESOURCEA(IDR_MSF_DEFAULT_SKIN), "MSF", bOnlyObjects ? IniParser::FLAG_ONLY_OBJECTS : IniParser::FLAG_WITH_SETTINGS);
 	if (parser.CheckOK()) {
 		db_delete_module(0, "ModernSkin");
 		db_set_s(0, SKIN, "SkinFolder", "%Default%");
@@ -2708,7 +2708,7 @@ int ske_RedrawCompleteWindow()
 		ske_DrawNonFramedObjects(TRUE, nullptr);
 		CallService(MS_SKINENG_INVALIDATEFRAMEIMAGE, 0, 0);
 	}
-	else RedrawWindow(pcli->hwndContactList, nullptr, nullptr, RDW_ALLCHILDREN | RDW_ERASE | RDW_INVALIDATE | RDW_FRAME);
+	else RedrawWindow(g_clistApi.hwndContactList, nullptr, nullptr, RDW_ALLCHILDREN | RDW_ERASE | RDW_INVALIDATE | RDW_FRAME);
 
 	return 0;
 }
@@ -2727,7 +2727,7 @@ static INT_PTR ske_Service_UpdateFrameImage(WPARAM wParam, LPARAM)           // 
 	bool NoCancelPost = false;
 	bool IsAnyQueued = false;
 	if (!g_CluiData.mutexOnEdgeSizing)
-		GetWindowRect(pcli->hwndContactList, &wnd);
+		GetWindowRect(g_clistApi.hwndContactList, &wnd);
 	else
 		wnd = g_rcEdgeSizingRect;
 
@@ -2815,7 +2815,7 @@ static INT_PTR ske_Service_InvalidateFrameImage(WPARAM wParam, LPARAM lParam)   
 	else Sync(QueueAllFramesUpdating, true);
 
 	if (!flag_bUpdateQueued || g_flag_bPostWasCanceled)
-		if (PostMessage(pcli->hwndContactList, UM_UPDATE, 0, 0)) {
+		if (PostMessage(g_clistApi.hwndContactList, UM_UPDATE, 0, 0)) {
 			flag_bUpdateQueued = 1;
 			g_flag_bPostWasCanceled = 0;
 		}
@@ -2832,7 +2832,7 @@ static int ske_ValidateSingleFrameImage(FRAMEWND * Frame, BOOL SkipBkgBlitting) 
 	RECT ru = { 0 };
 	int w1, h1, x1, y1;
 
-	CLUI_SizingGetWindowRect(pcli->hwndContactList, &wnd);
+	CLUI_SizingGetWindowRect(g_clistApi.hwndContactList, &wnd);
 	rcPaint = Frame->wndSize;
 	{
 		int dx, dy, bx, by;
@@ -2984,7 +2984,7 @@ int ske_BltBackImage(HWND destHWND, HDC destDC, RECT *BltClientRect)
 	ptChildWnd.x = w.left;
 	ptChildWnd.y = w.top;
 	ClientToScreen(destHWND, &ptChildWnd);
-	ClientToScreen(pcli->hwndContactList, &ptMainWnd);
+	ClientToScreen(g_clistApi.hwndContactList, &ptMainWnd);
 	//TODO if main not relative to client area
 	return BitBlt(destDC, w.left, w.top, (w.right - w.left), (w.bottom - w.top), g_pCachedWindow->hBackDC, (ptChildWnd.x - ptMainWnd.x), (ptChildWnd.y - ptMainWnd.y), SRCCOPY);
 
@@ -2995,7 +2995,7 @@ int ske_ReCreateBackImage(BOOL Erase, RECT *w)
 	RECT wnd = { 0 };
 	BOOL IsNewCache = 0;
 	if (g_CluiData.fDisableSkinEngine) return 0;
-	GetClientRect(pcli->hwndContactList, &wnd);
+	GetClientRect(g_clistApi.hwndContactList, &wnd);
 	if (w) wnd = *w;
 	//-- Check cached.
 	if (g_pCachedWindow == nullptr) {
@@ -3052,7 +3052,7 @@ int ske_DrawNonFramedObjects(BOOL Erase, RECT *r)
 {
 	RECT w, wnd;
 	if (r) w = *r;
-	else CLUI_SizingGetWindowRect(pcli->hwndContactList, &w);
+	else CLUI_SizingGetWindowRect(g_clistApi.hwndContactList, &w);
 	if (!g_CluiData.fLayered) return ske_ReCreateBackImage(FALSE, nullptr);
 	if (g_pCachedWindow == nullptr)
 		return ske_ValidateFrameImageProc(&w);
@@ -3090,7 +3090,7 @@ int ske_ValidateFrameImageProc(RECT *r)
 	BOOL IsNewCache = 0;
 	BOOL IsForceAllPainting = 0;
 	if (r) wnd = *r;
-	else GetWindowRect(pcli->hwndContactList, &wnd);
+	else GetWindowRect(g_clistApi.hwndContactList, &wnd);
 	if (wnd.right - wnd.left == 0 || wnd.bottom - wnd.top == 0)
 		return 0;
 
@@ -3163,7 +3163,7 @@ int ske_UpdateWindowImage()
 
 	if (g_CluiData.fLayered) {
 		RECT r;
-		GetWindowRect(pcli->hwndContactList, &r);
+		GetWindowRect(g_clistApi.hwndContactList, &r);
 		return ske_UpdateWindowImageRect(&r);
 	}
 	else ske_ReCreateBackImage(FALSE, nullptr);
@@ -3191,7 +3191,7 @@ int ske_UpdateWindowImageRect(RECT *r)                                     // Up
 void ske_ApplyTranslucency()
 {
 	int IsTransparancy;
-	HWND hwnd = pcli->hwndContactList;
+	HWND hwnd = g_clistApi.hwndContactList;
 	BOOL layered = (GetWindowLongPtr(hwnd, GWL_EXSTYLE) & WS_EX_LAYERED) ? TRUE : FALSE;
 
 	IsTransparancy = g_CluiData.fSmoothAnimation || g_bTransparentFlag;
@@ -3215,7 +3215,7 @@ int ske_JustUpdateWindowImage()
 		ske_ApplyTranslucency();
 		return 0;
 	}
-	GetWindowRect(pcli->hwndContactList, &r);
+	GetWindowRect(g_clistApi.hwndContactList, &r);
 	return ske_JustUpdateWindowImageRect(&r);
 }
 
@@ -3226,7 +3226,7 @@ int ske_JustUpdateWindowImageRect(RECT *rty)
 		ske_ApplyTranslucency();
 		return 0;
 	}
-	if (!pcli->hwndContactList)
+	if (!g_clistApi.hwndContactList)
 		return 0;
 
 	RECT wnd = *rty;
@@ -3236,16 +3236,16 @@ int ske_JustUpdateWindowImageRect(RECT *rty)
 	dest.y = rect.top;
 	SIZE sz = { rect.right - rect.left, rect.bottom - rect.top };
 	if (g_CluiData.fLayered) {
-		if (!(GetWindowLongPtr(pcli->hwndContactList, GWL_EXSTYLE)&WS_EX_LAYERED))
-			SetWindowLongPtr(pcli->hwndContactList, GWL_EXSTYLE, GetWindowLongPtr(pcli->hwndContactList, GWL_EXSTYLE) | WS_EX_LAYERED);
+		if (!(GetWindowLongPtr(g_clistApi.hwndContactList, GWL_EXSTYLE)&WS_EX_LAYERED))
+			SetWindowLongPtr(g_clistApi.hwndContactList, GWL_EXSTYLE, GetWindowLongPtr(g_clistApi.hwndContactList, GWL_EXSTYLE) | WS_EX_LAYERED);
 		Sync(SetAlpha, g_CluiData.bCurrentAlpha);
 
 		BLENDFUNCTION bf = { AC_SRC_OVER, 0, g_CluiData.bCurrentAlpha, AC_SRC_ALPHA };
-		UpdateLayeredWindow(pcli->hwndContactList, g_pCachedWindow->hScreenDC, &dest, &sz, g_pCachedWindow->hImageDC, &src, RGB(1, 1, 1), &bf, ULW_ALPHA);
+		UpdateLayeredWindow(g_clistApi.hwndContactList, g_pCachedWindow->hScreenDC, &dest, &sz, g_pCachedWindow->hImageDC, &src, RGB(1, 1, 1), &bf, ULW_ALPHA);
 		g_CluiData.fAeroGlass = false;
 		CLUI_UpdateAeroGlass();
 	}
-	else InvalidateRect(pcli->hwndContactList, nullptr, TRUE);
+	else InvalidateRect(g_clistApi.hwndContactList, nullptr, TRUE);
 	return 0;
 }
 
@@ -3422,7 +3422,7 @@ static void ske_AddParseSkinFont(char * szFontID, char * szDefineString)
 	logfont.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
 
 	char buf[255];
-	mir_strncpy(logfont.lfFaceName, GetParamN(szDefineString, buf, sizeof(buf), 0, ',', TRUE), _countof(logfont.lfFaceName));
+	strncpy_s(logfont.lfFaceName, GetParamN(szDefineString, buf, sizeof(buf), 0, ',', TRUE), _TRUNCATE);
 	logfont.lfHeight = atoi(GetParamN(szDefineString, buf, sizeof(buf), 1, ',', TRUE));
 	if (logfont.lfHeight < 0) {
 		HDC hdc = CreateCompatibleDC(nullptr);

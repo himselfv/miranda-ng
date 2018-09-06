@@ -23,14 +23,14 @@ Boston, MA 02111-1307, USA.
 
 #include "extraicons.h"
 
-BaseExtraIcon::BaseExtraIcon(int id, const char *name, const wchar_t *description, const char *descIcon, MIRANDAHOOKPARAM OnClick, LPARAM param) :
+BaseExtraIcon::BaseExtraIcon(const char *name, const wchar_t *description, const char *descIcon, MIRANDAHOOKPARAM OnClick, LPARAM param) :
 	ExtraIcon(name),
-	m_id(id),
 	m_OnClick(OnClick),
 	m_onClickParam(param),
 	m_tszDescription(mir_wstrdup(description)),
 	m_szDescIcon(mir_strdup(descIcon))
 {
+	m_id = registeredExtraIcons.getCount() + 1;
 }
 
 BaseExtraIcon::~BaseExtraIcon()
@@ -43,14 +43,9 @@ void BaseExtraIcon::setOnClick(MIRANDAHOOKPARAM pFunc, LPARAM pParam)
 	m_onClickParam = pParam;
 }
 
-int BaseExtraIcon::getID() const
-{
-	return m_id;
-}
-
 const wchar_t* BaseExtraIcon::getDescription() const
 {
-	return TranslateW_LP(m_tszDescription, m_hLangpack);
+	return TranslateW_LP(m_tszDescription, m_pPlugin);
 }
 
 void BaseExtraIcon::setDescription(const wchar_t *desc)
@@ -76,8 +71,7 @@ void BaseExtraIcon::onClick(MCONTACT hContact)
 
 int BaseExtraIcon::ClistSetExtraIcon(MCONTACT hContact, HANDLE hImage)
 {
-	ExtraIcon *tmp = extraIconsByHandle[m_id - 1];
-	if (tmp != nullptr && tmp != this)
-		return tmp->ClistSetExtraIcon(hContact, hImage);
+	if (m_pParent)
+		return m_pParent->ClistSetExtraIcon(hContact, hImage);
 	return Clist_SetExtraIcon(hContact, m_slot, hImage);
 }

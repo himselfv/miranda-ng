@@ -529,15 +529,14 @@ recvRest:
 			ProtoBroadcastAck(0, ACKTYPE_STATUS, ACKRESULT_SUCCESS, (HANDLE)oldStatus, m_iStatus);
 
 
-			m_StrmMgmt.OnDisconnect();
-
 			// Set all contacts to offline
 			if (!m_StrmMgmt.IsResumeIdPresent())
 			{
-				debugLogA("1");
+				m_StrmMgmt.ResetState(); //fully reset strm_mgmt state
+//				debugLogA("1"); //i think this log calls does not needed anymore ? //sss
 				for (auto &hContact : AccContacts())
 					SetContactOfflineStatus(hContact);
-				debugLogA("2");
+//				debugLogA("2");
 			}
 
 			mir_free(m_szJabberJID);
@@ -1066,15 +1065,13 @@ MCONTACT CJabberProto::CreateTemporaryContact(const wchar_t *szJid, JABBER_LIST_
 
 void CJabberProto::OnProcessMessage(HXML node, ThreadData *info)
 {
-	HXML xNode, n;
-
 	if (!XmlGetName(node) || mir_wstrcmp(XmlGetName(node), L"message"))
 		return;
 
 	const wchar_t *from, *type = XmlGetAttrValue(node, L"type");
 	if ((from = XmlGetAttrValue(node, L"from")) == nullptr)
 		return;
-
+	
 	const wchar_t *idStr = XmlGetAttrValue(node, L"id");
 	pResourceStatus pFromResource(ResourceInfoFromJID(from));
 
@@ -1091,10 +1088,10 @@ void CJabberProto::OnProcessMessage(HXML node, ThreadData *info)
 	if (m_messageManager.HandleMessagePermanent(node, info))
 		return;
 
-	//Handle carbons. The message MUST be coming from our bare JID.
+	// Handle carbons. The message MUST be coming from our bare JID.
 	HXML carbon = nullptr;
 	bool carbonSent = false; //2 cases: received or sent.
-	if (this->IsMyOwnJID(from)) {
+	if (IsMyOwnJID(from)) {
 		carbon = XmlGetChildByTag(node, "received", "xmlns", JABBER_FEAT_CARBONS);
 		if (!carbon) {
 			carbon = XmlGetChildByTag(node, "sent", "xmlns", JABBER_FEAT_CARBONS);
@@ -1102,13 +1099,13 @@ void CJabberProto::OnProcessMessage(HXML node, ThreadData *info)
 				carbonSent = true;
 		}
 		if (carbon) {
-			//If carbons are disabled in options, we should ignore occasional carbons sent to us by server
+			// If carbons are disabled in options, we should ignore occasional carbons sent to us by server
 			if (!m_bEnableCarbons)
 				return;
 
 			HXML forwarded = nullptr;
 			HXML message = nullptr;
-			//Carbons MUST have forwarded/message content
+			// Carbons MUST have forwarded/message content
 			if (!(forwarded = XmlGetChildByTag(carbon, "forwarded", "xmlns", JABBER_XMLNS_FORWARD))
 				|| !(message = XmlGetChild(forwarded, "message")))
 				return;
@@ -1118,13 +1115,13 @@ void CJabberProto::OnProcessMessage(HXML node, ThreadData *info)
 			type = XmlGetAttrValue(node, L"type");
 
 			if (!carbonSent) {
-				//Received should just be treated like incoming messages, except maybe not flash the flasher. Simply unwrap.
+				// Received should just be treated like incoming messages, except maybe not flash the flasher. Simply unwrap.
 				from = XmlGetAttrValue(node, L"from");
 				if (from == nullptr)
 					return;
 			}
 			else {
-				//Sent should set SENT flag and invert from/to.
+				// Sent should set SENT flag and invert from/to.
 				from = XmlGetAttrValue(node, L"to");
 				if (from == nullptr)
 					return;
@@ -1163,6 +1160,7 @@ void CJabberProto::OnProcessMessage(HXML node, ThreadData *info)
 		szMessage = szTmp;
 	}
 
+	HXML n;
 	if (szMessage && (n = XmlGetChildByTag(node, "addresses", "xmlns", JABBER_FEAT_EXT_ADDRESSING))) {
 		HXML addressNode = XmlGetChildByTag(n, "address", "type", L"ofrom");
 		if (addressNode) {
@@ -1269,6 +1267,7 @@ void CJabberProto::OnProcessMessage(HXML node, ThreadData *info)
 	}
 
 	// parsing extensions
+	HXML xNode;
 	for (int i = 0; (xNode = XmlGetChild(node, i)) != nullptr; i++) {
 		if (m_bUseOMEMO)
 		{
@@ -1289,8 +1288,8 @@ void CJabberProto::OnProcessMessage(HXML node, ThreadData *info)
 					}
 				}
 			}
+ 		}
 
-		}
 		if ((xNode = XmlGetNthChild(node, L"x", i + 1)) == nullptr)
 			continue;
 
@@ -1702,13 +1701,13 @@ void CJabberProto::OnProcessPresence(HXML node, ThreadData *info)
 		}
 		debugLogW(L"%s (%s) online, set contact status to %s", nick, from, Clist_GetStatusModeDescription(status, 0));
 
-		HXML xNode;
 		if (m_bEnableAvatars) {
+			HXML xNode;
 			bool bHasAvatar = false, bRemovedAvatar = false;
 
 			debugLogA("Avatar enabled");
 			for (int i = 1; (xNode = XmlGetNthChild(node, L"x", i)) != nullptr; i++) {
-				if (!mir_wstrcmp(XmlGetAttrValue(xNode, L"xmlns"), L"jabber:x:avatar")) {
+				if (!bHasAvatar && !mir_wstrcmp(XmlGetAttrValue(xNode, L"xmlns"), L"jabber:x:avatar")) {
 					const wchar_t *ptszHash = XmlGetText(XmlGetChild(xNode, "hash"));
 					if (ptszHash != nullptr) {
 						delSetting(hContact, "AvatarXVcard");
@@ -1723,26 +1722,35 @@ void CJabberProto::OnProcessPresence(HXML node, ThreadData *info)
 					}
 					else bRemovedAvatar = true;
 				}
-			}
-			if (!bHasAvatar) { //no jabber:x:avatar. try vcard-temp:x:update
-				debugLogA("Not hasXAvatar");
-				for (int i = 1; (xNode = XmlGetNthChild(node, L"x", i)) != nullptr; i++) {
-					if (!mir_wstrcmp(XmlGetAttrValue(xNode, L"xmlns"), L"vcard-temp:x:update")) {
-						if ((xNode = XmlGetChild(xNode, "photo")) != nullptr) {
-							const wchar_t *txt = XmlGetText(xNode);
-							if (txt != nullptr && txt[0] != 0) {
-								setByte(hContact, "AvatarXVcard", 1);
-								debugLogA("AvatarXVcard set");
-								setWString(hContact, "AvatarHash", txt);
-								bHasAvatar = true;
-								ptrW saved(getWStringA(hContact, "AvatarSaved"));
-								if (saved == nullptr || mir_wstrcmp(saved, txt)) {
-									debugLogA("Avatar was changed. Using vcard-temp:x:update");
-									ProtoBroadcastAck(hContact, ACKTYPE_AVATAR, ACKRESULT_STATUS, nullptr, 0);
-								}
+				else if (!mir_wstrcmp(XmlGetAttrValue(xNode, L"xmlns"), L"vcard-temp:x:update")) {
+					HXML xPhoto = XmlGetChild(xNode, "photo");
+					if (xPhoto && !bHasAvatar) {
+						const wchar_t *txt = XmlGetText(xPhoto);
+						if (mir_wstrlen(txt)) {
+							setByte(hContact, "AvatarXVcard", 1);
+							debugLogA("AvatarXVcard set");
+							setWString(hContact, "AvatarHash", txt);
+							bHasAvatar = true;
+							ptrW saved(getWStringA(hContact, "AvatarSaved"));
+							if (saved == nullptr || mir_wstrcmp(saved, txt)) {
+								debugLogA("Avatar was changed. Using vcard-temp:x:update");
+								ProtoBroadcastAck(hContact, ACKTYPE_AVATAR, ACKRESULT_STATUS, nullptr, 0);
 							}
-							else bRemovedAvatar = true;
-			}	}	}	}
+						}
+						else bRemovedAvatar = true;
+					}
+
+					const wchar_t *txt = xmlGetAttrValue(xNode, L"vcard");
+					if (mir_wstrlen(txt)) {
+						ptrW saved(getWStringA(hContact, "VCardHash"));
+						if (saved == nullptr || mir_wstrcmp(saved, txt)) {
+							debugLogA("Vcard was changed, let's read it");
+							setWString(hContact, "VCardHash", txt);
+							SendGetVcard(from);
+						}
+					}
+				}
+			}
 
 			if (!bHasAvatar && bRemovedAvatar) {
 				debugLogA("Has no avatar");
@@ -1751,7 +1759,9 @@ void CJabberProto::OnProcessPresence(HXML node, ThreadData *info)
 				if (ptrW(getWStringA(hContact, "AvatarSaved")) != nullptr) {
 					delSetting(hContact, "AvatarSaved");
 					ProtoBroadcastAck(hContact, ACKTYPE_AVATAR, ACKRESULT_SUCCESS, nullptr, 0);
-		}	}	}
+				}
+			}
+		}
 		return;
 	}
 
@@ -2172,5 +2182,4 @@ int ThreadData::send_no_strm_mgmt(HXML node)
 	xmlFree(str);
 
 	return result;
-
 }

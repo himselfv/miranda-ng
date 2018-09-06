@@ -27,8 +27,11 @@ MWindowList hWindowList;
 HNETLIBUSER hNetlibUser;
 HANDLE hHookDisplayDataAlert, hHookAlertPopup, hHookAlertWPopup, hHookErrorPopup, hHookAlertOSD;
 
-int    hLangpack = 0;
+CMPlugin g_plugin;
+
 static HMODULE hRichEd = nullptr;
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
@@ -43,9 +46,11 @@ PLUGININFOEX pluginInfoEx = {
 	{0xcd5427fb, 0x5320, 0x4f65, {0xb4, 0xbf, 0x86, 0xb7, 0xcf, 0x7b, 0x50, 0x87}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
 {
-	return &pluginInfoEx;
+	RegisterProtocol(PROTOTYPE_PROTOCOL);
+	SetUniqueId("PreserveName");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -86,16 +91,8 @@ extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_PROTOC
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-CMPlugin g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-extern "C" int __declspec(dllexport) Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-
 	HookEvent(ME_CLIST_DOUBLECLICKED, Doubleclick);
    
 	hMenu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_CONTEXT));
@@ -124,18 +121,18 @@ extern "C" int __declspec(dllexport) Load()
 	InitServices();
 
 	//add sound event to options
-	Skin_AddSound("webviewalert", _A2W(MODULENAME), LPGENW("Alert event"));
+	g_plugin.addSound("webviewalert", _A2W(MODULENAME), LPGENW("Alert event"));
 
 	//value is 1 if menu is disabled
 	db_set_b(NULL, MODULENAME, MENU_IS_DISABLED_KEY, 1);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.flags = CMIF_UNICODE;
 	if ( db_get_b(NULL, MODULENAME, MENU_OFF, 0)) {
 		//value is 0 if menu is enabled
 		db_set_b(NULL, MODULENAME, MENU_IS_DISABLED_KEY, 0);
 
-		mi.root = Menu_CreateRoot(MO_MAIN, _A2W(MODULENAME), 20200001);
+		mi.root = g_plugin.addRootMenu(MO_MAIN, _A2W(MODULENAME), 20200001);
 		Menu_ConfigureItem(mi.root, MCI_OPT_UID, "403BE07B-7954-4F3E-B318-4301571776B8");
 
 		/*DISABLE WEBVIEW*/
@@ -254,7 +251,7 @@ extern "C" int __declspec(dllexport) Load()
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	ChangeContactStatus(0);
 

@@ -1,15 +1,29 @@
 #include "stdafx.h"
 
-int hLangpack;
+CMPlugin g_plugin;
 LPTSTR ptszLayStrings[20];
 HANDLE hChangeLayout, hGetLayoutOfText, hChangeTextLayout;
 HICON hPopupIcon, hCopyIcon;
 HKL hklLayouts[20];
 BYTE bLayNum;
-HINSTANCE hInst;
 HHOOK kbHook_All;
 MainOptions moOptions;
 PopupOptions poOptions, poOptionsTemp;
+
+LPCTSTR ptszKeybEng = L"`1234567890- = \\qwertyuiop[]asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+|QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>?";
+HKL hklEng = (HKL)0x04090409;
+
+LPCTSTR ptszSeparators = L" \t\n\r";
+
+HANDLE hOptionsInitialize;
+
+static IconItem iconList[] =
+{
+	{ LPGEN("Popup"), "ckl_popup_icon", IDI_POPUPICON },
+	{ LPGEN("Copy to clipboard"), "ckl_copy_icon", IDI_COPYICON }
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
@@ -24,43 +38,24 @@ PLUGININFOEX pluginInfoEx = {
 	{0xc5ef53a8, 0x80d4, 0x4ce9, {0xb3, 0x41, 0xec, 0x90, 0xd3, 0xec, 0x91, 0x56}}
 };
 
-LPCTSTR ptszKeybEng = L"`1234567890- = \\qwertyuiop[]asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+|QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>?";
-HKL hklEng = (HKL)0x04090409;
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-LPCTSTR ptszSeparators = L" \t\n\r";
+/////////////////////////////////////////////////////////////////////////////////////////
 
-HANDLE hOptionsInitialize;
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
+int CMPlugin::Load()
 {
-	hInst = hinstDLL;
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
-
-static IconItem iconList[] =
-{
-	{ LPGEN("Popup"), "ckl_popup_icon", IDI_POPUPICON },
-	{ LPGEN("Copy to clipboard"), "ckl_copy_icon", IDI_COPYICON }
-};
-
-extern "C" __declspec(dllexport) int Load(void)
-{	
-	mir_getLP(&pluginInfoEx);
 	memset(hklLayouts, 0, sizeof(hklLayouts));
 	bLayNum = GetKeyboardLayoutList(20, hklLayouts);
-	if (bLayNum < 2) 
+	if (bLayNum < 2)
 		return 1;
-	
+
 	HookEvent(ME_OPT_INITIALISE, OnOptionsInitialise);
 	HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoaded);
 
 	// IcoLib support
-	Icon_Register(hInst, ModuleName, iconList, _countof(iconList));
+	g_plugin.registerIcon(MODULENAME, iconList);
 
 	HookEvent(ME_SKIN2_ICONSCHANGED, OnIconsChanged);
 
@@ -69,9 +64,9 @@ extern "C" __declspec(dllexport) int Load(void)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
-	for (int i = 0; i < bLayNum; i++)	
+	for (int i = 0; i < bLayNum; i++)
 		mir_free(ptszLayStrings[i]);
 
 	DestroyServiceFunction(hChangeLayout);

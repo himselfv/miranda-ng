@@ -105,36 +105,36 @@ INT_PTR FreeOwnerDataGroupMenu(WPARAM, LPARAM lParam)
 
 static INT_PTR HideGroupsHelper(WPARAM, LPARAM)
 {
-	int newVal = !(GetWindowLongPtr(cli.hwndContactTree, GWL_STYLE) & CLS_HIDEEMPTYGROUPS);
+	int newVal = !(GetWindowLongPtr(g_clistApi.hwndContactTree, GWL_STYLE) & CLS_HIDEEMPTYGROUPS);
 	db_set_b(0, "CList", "HideEmptyGroups", (BYTE)newVal);
-	SendMessage(cli.hwndContactTree, CLM_SETHIDEEMPTYGROUPS, newVal, 0);
+	SendMessage(g_clistApi.hwndContactTree, CLM_SETHIDEEMPTYGROUPS, newVal, 0);
 	return newVal;
 }
 
 static INT_PTR UseGroupsHelper(WPARAM, LPARAM)
 {
-	int newVal = !(GetWindowLongPtr(cli.hwndContactTree, GWL_STYLE) & CLS_USEGROUPS);
+	int newVal = !(GetWindowLongPtr(g_clistApi.hwndContactTree, GWL_STYLE) & CLS_USEGROUPS);
 	db_set_b(0, "CList", "UseGroups", (BYTE)newVal);
-	SendMessage(cli.hwndContactTree, CLM_SETUSEGROUPS, newVal,0);
+	SendMessage(g_clistApi.hwndContactTree, CLM_SETUSEGROUPS, newVal,0);
 	return newVal;
 }
 
 static INT_PTR HideOfflineHelper(WPARAM, LPARAM)
 {
-	return cli.pfnSetHideOffline(-1);
+	return g_clistApi.pfnSetHideOffline(-1);
 }
 
 static INT_PTR HideOfflineRootHelper(WPARAM, LPARAM)
 {
-	int newVal = !SendMessage(cli.hwndContactTree, CLM_GETHIDEOFFLINEROOT, 0, 0);
-	SendMessage(cli.hwndContactTree, CLM_SETHIDEOFFLINEROOT, newVal, 0);
+	int newVal = !SendMessage(g_clistApi.hwndContactTree, CLM_GETHIDEOFFLINEROOT, 0, 0);
+	SendMessage(g_clistApi.hwndContactTree, CLM_SETHIDEOFFLINEROOT, newVal, 0);
 	return newVal;
 }
 
 static INT_PTR CreateGroupHelper(WPARAM, LPARAM)
 {
-	SendMessage(cli.hwndContactTree, CLM_SETHIDEEMPTYGROUPS, 0, 0);
-	SendMessage(cli.hwndContactTree, CLM_SETUSEGROUPS, 1, 0);
+	SendMessage(g_clistApi.hwndContactTree, CLM_SETHIDEEMPTYGROUPS, 0, 0);
+	SendMessage(g_clistApi.hwndContactTree, CLM_SETUSEGROUPS, 1, 0);
 	Clist_GroupCreate(0, nullptr);
 	return 0;
 }
@@ -144,10 +144,10 @@ static int OnBuildGroupMenu(WPARAM, LPARAM)
 	bool bChecked = db_get_b(0, "CList", "HideOffline", SETTING_HIDEOFFLINE_DEFAULT) != 0;
 	Menu_SetChecked(hHideOfflineUsersMenuItem, bChecked);
 
-	bChecked = SendMessage(cli.hwndContactTree, CLM_GETHIDEOFFLINEROOT, 0, 0) != 0;
+	bChecked = SendMessage(g_clistApi.hwndContactTree, CLM_GETHIDEOFFLINEROOT, 0, 0) != 0;
 	Menu_SetChecked(hHideOfflineUsersOutHereMenuItem, bChecked);
 
-	DWORD dwStyle = GetWindowLongPtr(cli.hwndContactTree, GWL_STYLE);
+	DWORD dwStyle = GetWindowLongPtr(g_clistApi.hwndContactTree, GWL_STYLE);
 	Menu_SetChecked(hHideEmptyGroupsMenuItem, (dwStyle & CLS_HIDEEMPTYGROUPS) != 0);
 	Menu_SetChecked(hDisableGroupsMenuItem, (dwStyle & CLS_USEGROUPS) == 0);
 	return 0;
@@ -263,7 +263,7 @@ static int OnBuildSubGroupMenu(WPARAM wParam, LPARAM)
 
 static INT_PTR GroupMenuExecProxy(WPARAM wParam, LPARAM lParam)
 {
-	SendMessage(lParam ? (HWND)lParam : (HWND)cli.hwndContactTree, WM_COMMAND, wParam, 0);
+	SendMessage(lParam ? (HWND)lParam : (HWND)g_clistApi.hwndContactTree, WM_COMMAND, wParam, 0);
 	return 0;
 }
 
@@ -285,7 +285,7 @@ void InitGroupMenus(void)
 	Menu_ConfigureObject(hGroupMenuObject, MCO_OPT_FREE_SERVICE, "CLISTMENUSGroup/FreeOwnerDataGroupMenu");
 	Menu_ConfigureObject(hGroupMenuObject, MCO_OPT_ONADD_SERVICE, "CLISTMENUSGroup/GroupMenuOnAddService");
 	{
-		CMenuItem mi;
+		CMenuItem mi(&g_plugin);
 
 		SET_UID(mi, 0x2f75bc72, 0xd836, 0x4922, 0x9f, 0xe, 0xed, 0x9e, 0xe7, 0x2b, 0x84, 0xf0);
 		mi.position = 100000;
@@ -346,7 +346,7 @@ void InitGroupMenus(void)
 	Menu_ConfigureObject(hSubGroupMenuObject, MCO_OPT_FREE_SERVICE, "CLISTMENUSSubGroup/FreeOwnerDataSubGroupMenu");
 	Menu_ConfigureObject(hSubGroupMenuObject, MCO_OPT_CHECK_SERVICE, "CLISTMENUSSubGroup/SubGroupMenuCheckService");
 	{
-		CMenuItem mi;
+		CMenuItem mi(&g_plugin);
 
 		SET_UID(mi, 0xd208f1d2, 0x7220, 0x4d37, 0xb6, 0xe4, 0xd5, 0x4a, 0xe8, 0xa3, 0xf4, 0x53);
 		mi.position = 1000;

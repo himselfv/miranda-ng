@@ -41,7 +41,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "resource.h"
 
 #include <win2k.h>
-
 #include <newpluginapi.h>
 #include <m_system.h>
 #include <m_database.h>
@@ -93,8 +92,6 @@ struct LOGSTREAMDATA : public GCLogStreamDataBase {};
 #define GC_TABCHANGE     (WM_USER+0x105)
 #define GC_SWITCHTAB     (WM_USER+0x106)
 
-extern HINSTANCE g_hInst;
-
 /////////////////////////////////////////////////////////////////////////////////////////
 
 struct GlobalLogSettings : public GlobalLogSettingsBase
@@ -109,10 +106,18 @@ struct GlobalLogSettings : public GlobalLogSettingsBase
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
 extern GlobalLogSettings g_Settings;
 extern HMENU g_hMenu;
-
-extern HINSTANCE g_hInst;
 
 // main.cpp
 void LoadIcons(void);
@@ -168,11 +173,11 @@ public:
 	void SetTabHighlight(CMsgDialog*);
 	void TabClicked();
 
-	virtual void OnInitDialog() override;
-	virtual void OnDestroy() override;
+	bool OnInitDialog() override;
+	void OnDestroy() override;
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
-	virtual int Resizer(UTILRESIZECONTROL *urc) override;
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
+	int Resizer(UTILRESIZECONTROL *urc) override;
 };
 
 extern CTabbedWindow *g_pTabDialog;

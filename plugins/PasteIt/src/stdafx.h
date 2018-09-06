@@ -36,7 +36,14 @@
 #include "resource.h"
 #include "Options.h"
 
-extern HINSTANCE hInst;
 extern PasteToWeb* pasteToWebs[PasteToWeb::pages];
 
-#define MODULE				"PasteIt"
+#define MODULENAME "PasteIt"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};

@@ -64,7 +64,7 @@ void MySetPos(HWND hwndParent)
 
 // ================================================ Message options ================================================
 
-COptPage g_MessagesOptPage(MOD_NAME, nullptr);
+COptPage g_MessagesOptPage(MODULENAME, nullptr);
 
 void EnableMessagesOptDlgControls(CMsgTree* MsgTree)
 {
@@ -326,7 +326,7 @@ static INT_PTR CALLBACK MessagesOptDlg(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 
 // ================================================ Main options ================================================
 
-COptPage g_MoreOptPage(MOD_NAME, nullptr);
+COptPage g_MoreOptPage(MODULENAME, nullptr);
 
 void EnableMoreOptDlgControls()
 {
@@ -446,7 +446,7 @@ static INT_PTR CALLBACK MoreOptDlg(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 
 // ================================================ Autoreply options ================================================
 
-COptPage g_AutoreplyOptPage(MOD_NAME, nullptr);
+COptPage g_AutoreplyOptPage(MODULENAME, nullptr);
 
 void EnableAutoreplyOptDlgControls()
 {
@@ -1020,34 +1020,33 @@ int OptsDlgInit(WPARAM wParam, LPARAM)
 {
 	OPTIONSDIALOGPAGE optDi = { sizeof(optDi) };
 	optDi.position = 920000000;
-	optDi.hInstance = g_hInstance;
 	optDi.flags = ODPF_BOLDGROUPS;
 
 	optDi.szTitle.a = OPT_MAINGROUP;
 	optDi.pfnDlgProc = MessagesOptDlg;
 	optDi.pszTemplate = MAKEINTRESOURCEA(IDD_MESSAGES);
 	optDi.szTab.a = LPGEN("Status messages");
-	Options_AddPage(wParam, &optDi);
+	g_plugin.addOptions(wParam, &optDi);
 
 	optDi.pfnDlgProc = MoreOptDlg;
 	optDi.pszTemplate = MAKEINTRESOURCEA(IDD_MOREOPTDIALOG);
 	optDi.szTab.a = LPGEN("Main options");
-	Options_AddPage(wParam, &optDi);
+	g_plugin.addOptions(wParam, &optDi);
 
 	optDi.pfnDlgProc = AutoreplyOptDlg;
 	optDi.pszTemplate = MAKEINTRESOURCEA(IDD_AUTOREPLY);
 	optDi.szTab.a = LPGEN("Autoreply");
-	Options_AddPage(wParam, &optDi);
+	g_plugin.addOptions(wParam, &optDi);
 
 	optDi.pfnDlgProc = ContactsOptDlg;
 	optDi.pszTemplate = MAKEINTRESOURCEA(IDD_CONTACTSOPTDLG);
 	optDi.szTab.a = LPGEN("Contacts");
-	Options_AddPage(wParam, &optDi);
+	g_plugin.addOptions(wParam, &optDi);
 	return 0;
 }
 
-COptPage g_SetAwayMsgPage(MOD_NAME, nullptr);
-COptPage g_MsgTreePage(MOD_NAME, nullptr);
+COptPage g_SetAwayMsgPage(MODULENAME, nullptr);
+COptPage g_MsgTreePage(MODULENAME, nullptr);
 
 void InitOptions()
 {

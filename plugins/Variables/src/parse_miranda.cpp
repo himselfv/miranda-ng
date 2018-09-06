@@ -1,20 +1,20 @@
 /*
-    Variables Plugin for Miranda-IM (www.miranda-im.org)
-    Copyright 2003-2006 P. Boon
+	Variables Plugin for Miranda-IM (www.miranda-im.org)
+	Copyright 2003-2006 P. Boon
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "stdafx.h"
@@ -24,7 +24,7 @@ static wchar_t* parseCodeToStatus(ARGUMENTSINFO *ai)
 	if (ai->argc != 2)
 		return nullptr;
 
-	unsigned int status = ttoi(ai->targv[1]);
+	unsigned int status = ttoi(ai->argv.w[1]);
 	wchar_t *szStatus = Clist_GetStatusModeDescription(status, 0);
 	if (szStatus != nullptr)
 		return mir_wstrdup(szStatus);
@@ -81,13 +81,13 @@ static wchar_t* parseContact(ARGUMENTSINFO *ai)
 
 	int n = 0;
 	if (ai->argc == 4) {
-		if (*ai->targv[3] != 'r') // random contact
+		if (*ai->argv.w[3] != 'r') // random contact
 			n = -1;
 		else
-			n = ttoi(ai->targv[3]) - 1;
+			n = ttoi(ai->argv.w[3]) - 1;
 	}
 
-	MCONTACT hContact = getContactFromString(ai->targv[1], getContactInfoFlags(ai->targv[2]), n);
+	MCONTACT hContact = getContactFromString(ai->argv.w[1], getContactInfoFlags(ai->argv.w[2]), n);
 	if (hContact == INVALID_CONTACT_ID)
 		return nullptr;
 
@@ -100,7 +100,7 @@ static wchar_t* parseContactCount(ARGUMENTSINFO *ai)
 	if (ai->argc != 3)
 		return nullptr;
 
-	int count = getContactFromString(ai->targv[1], CI_NEEDCOUNT | getContactInfoFlags(ai->targv[2]));
+	int count = getContactFromString(ai->argv.w[1], CI_NEEDCOUNT | getContactInfoFlags(ai->argv.w[2]));
 	return itot(count);
 }
 
@@ -109,11 +109,11 @@ static wchar_t* parseContactInfo(ARGUMENTSINFO *ai)
 	if (ai->argc != 3)
 		return nullptr;
 
-	MCONTACT hContact = getContactFromString(ai->targv[1], CI_ALLFLAGS);
+	MCONTACT hContact = getContactFromString(ai->argv.w[1], CI_ALLFLAGS);
 	if (hContact == INVALID_CONTACT_ID)
 		return nullptr;
 
-	BYTE type = getContactInfoType(ai->targv[2]);
+	BYTE type = getContactInfoType(ai->argv.w[2]);
 	if (type == 0)
 		return nullptr;
 
@@ -166,7 +166,7 @@ static wchar_t* getDBSetting(MCONTACT hContact, char* module, char* setting, wch
 		var = mir_wstrdup(dbv.pwszVal);
 		break;
 	case DBVT_UTF8:
-		Utf8Decode(dbv.pszVal, &var);
+		mir_utf8decode(dbv.pszVal, &var);
 		break;
 	}
 
@@ -180,23 +180,23 @@ static wchar_t* parseDBSetting(ARGUMENTSINFO *ai)
 		return nullptr;
 
 	MCONTACT hContact = NULL;
-	if (mir_wstrlen(ai->targv[1]) > 0) {
-		hContact = getContactFromString(ai->targv[1], CI_ALLFLAGS);
+	if (mir_wstrlen(ai->argv.w[1]) > 0) {
+		hContact = getContactFromString(ai->argv.w[1], CI_ALLFLAGS);
 		if (hContact == INVALID_CONTACT_ID)
 			return nullptr;
 	}
 
-	char *szModule = mir_u2a(ai->targv[2]);
+	char *szModule = mir_u2a(ai->argv.w[2]);
 	if (szModule == nullptr)
 		return nullptr;
 
-	char *szSetting = mir_u2a(ai->targv[3]);
+	char *szSetting = mir_u2a(ai->argv.w[3]);
 	if (szSetting == nullptr) {
 		mir_free(szModule);
 		return nullptr;
 	}
 
-	wchar_t *szDefaultValue = ((ai->argc > 4 && mir_wstrlen(ai->targv[4]) > 0) ? mir_wstrdup(ai->targv[4]) : nullptr);
+	wchar_t *szDefaultValue = ((ai->argc > 4 && mir_wstrlen(ai->argv.w[4]) > 0) ? mir_wstrdup(ai->argv.w[4]) : nullptr);
 	wchar_t *res = getDBSetting(hContact, szModule, szSetting, szDefaultValue);
 	mir_free(szDefaultValue);
 	mir_free(szSetting);
@@ -209,15 +209,15 @@ static wchar_t* parseLastSeenDate(ARGUMENTSINFO *ai)
 	if (ai->argc <= 1)
 		return nullptr;
 
-	MCONTACT hContact = getContactFromString(ai->targv[1], CI_ALLFLAGS);
+	MCONTACT hContact = getContactFromString(ai->argv.w[1], CI_ALLFLAGS);
 	if (hContact == INVALID_CONTACT_ID)
 		return nullptr;
 
 	wchar_t *szFormat;
-	if (ai->argc == 2 || (ai->argc > 2 && mir_wstrlen(ai->targv[2]) == 0))
+	if (ai->argc == 2 || (ai->argc > 2 && mir_wstrlen(ai->argv.w[2]) == 0))
 		szFormat = nullptr;
 	else
-		szFormat = ai->targv[2];
+		szFormat = ai->argv.w[2];
 
 	SYSTEMTIME lsTime = { 0 };
 	char *szModule = SEEN_MODULE;
@@ -234,7 +234,7 @@ static wchar_t* parseLastSeenDate(ARGUMENTSINFO *ai)
 	lsTime.wMonth = db_get_w(hContact, szModule, "Month", 0);
 
 	int len = GetDateFormat(LOCALE_USER_DEFAULT, 0, &lsTime, szFormat, nullptr, 0);
-	wchar_t *res = (wchar_t*)mir_alloc((len + 1)*sizeof(wchar_t));
+	wchar_t *res = (wchar_t*)mir_alloc((len + 1) * sizeof(wchar_t));
 	if (res == nullptr)
 		return nullptr;
 
@@ -251,15 +251,15 @@ static wchar_t* parseLastSeenTime(ARGUMENTSINFO *ai)
 	if (ai->argc <= 1)
 		return nullptr;
 
-	MCONTACT hContact = getContactFromString(ai->targv[1], CI_ALLFLAGS);
+	MCONTACT hContact = getContactFromString(ai->argv.w[1], CI_ALLFLAGS);
 	if (hContact == INVALID_CONTACT_ID)
 		return nullptr;
 
 	wchar_t *szFormat;
-	if (ai->argc == 2 || (ai->argc > 2 && mir_wstrlen(ai->targv[2]) == 0))
+	if (ai->argc == 2 || (ai->argc > 2 && mir_wstrlen(ai->argv.w[2]) == 0))
 		szFormat = nullptr;
 	else
-		szFormat = ai->targv[2];
+		szFormat = ai->argv.w[2];
 
 	SYSTEMTIME lsTime = { 0 };
 	char *szModule = SEEN_MODULE;
@@ -277,7 +277,7 @@ static wchar_t* parseLastSeenTime(ARGUMENTSINFO *ai)
 	lsTime.wYear = db_get_w(hContact, szModule, "Year", 0);
 
 	int len = GetTimeFormat(LOCALE_USER_DEFAULT, 0, &lsTime, szFormat, nullptr, 0);
-	wchar_t *res = (wchar_t*)mir_alloc((len + 1)*sizeof(wchar_t));
+	wchar_t *res = (wchar_t*)mir_alloc((len + 1) * sizeof(wchar_t));
 	if (res == nullptr)
 		return nullptr;
 
@@ -294,7 +294,7 @@ static wchar_t* parseLastSeenStatus(ARGUMENTSINFO *ai)
 	if (ai->argc != 2)
 		return nullptr;
 
-	MCONTACT hContact = getContactFromString(ai->targv[1], CI_ALLFLAGS);
+	MCONTACT hContact = getContactFromString(ai->argv.w[1], CI_ALLFLAGS);
 	if (hContact == INVALID_CONTACT_ID)
 		return nullptr;
 
@@ -329,10 +329,10 @@ static wchar_t* parseMyStatus(ARGUMENTSINFO *ai)
 		return nullptr;
 
 	int status;
-	if (ai->argc == 1 || mir_wstrlen(ai->targv[1]) == 0)
+	if (ai->argc == 1 || mir_wstrlen(ai->argv.w[1]) == 0)
 		status = CallService(MS_CLIST_GETSTATUSMODE, 0, 0);
 	else
-		status = Proto_GetStatus(_T2A(ai->targv[1]));
+		status = Proto_GetStatus(_T2A(ai->argv.w[1]));
 
 	wchar_t *szStatus = Clist_GetStatusModeDescription(status, 0);
 	return (szStatus != nullptr) ? mir_wstrdup(szStatus) : nullptr;
@@ -345,21 +345,21 @@ static wchar_t* parseProtoInfo(ARGUMENTSINFO *ai)
 
 	const char *szRes = nullptr;
 	wchar_t *tszRes = nullptr;
-	ptrA szProto(mir_u2a(ai->targv[1]));
+	ptrA szProto(mir_u2a(ai->argv.w[1]));
 
-	if (!mir_wstrcmp(ai->targv[2], _A2W(STR_PINAME)))
+	if (!mir_wstrcmp(ai->argv.w[2], _A2W(STR_PINAME)))
 		tszRes = Hlp_GetProtocolName(szProto);
-	else if (!mir_wstrcmp(ai->targv[2], _A2W(STR_PIUIDTEXT))) {
+	else if (!mir_wstrcmp(ai->argv.w[2], _A2W(STR_PIUIDTEXT))) {
 		szRes = (const char *)CallProtoService(szProto, PS_GETCAPS, (WPARAM)PFLAG_UNIQUEIDTEXT, 0);
 		if (INT_PTR(szRes) == CALLSERVICE_NOTFOUND || szRes == nullptr)
 			return nullptr;
 	}
-	else if (!mir_wstrcmp(ai->targv[2], _A2W(STR_PIUIDSETTING))) {
+	else if (!mir_wstrcmp(ai->argv.w[2], _A2W(STR_PIUIDSETTING))) {
 		szRes = Proto_GetUniqueId(szProto);
 		if (szRes == nullptr)
 			return nullptr;
 	}
-	else if (!mir_wstrcmp(ai->targv[2], _A2W(STR_PINICK)))
+	else if (!mir_wstrcmp(ai->argv.w[2], _A2W(STR_PINICK)))
 		tszRes = Contact_GetInfo(CNF_DISPLAY, NULL, szProto);
 
 	if (szRes == nullptr && tszRes == nullptr)
@@ -514,8 +514,7 @@ static MEVENT findDbEvent(MCONTACT hContact, MEVENT hDbEvent, int flags)
 				flags &= ~DBE_LAST;
 			}
 		}
-	}
-	while ((!bEventOk) && (hDbEvent != NULL));
+	} while ((!bEventOk) && (hDbEvent != NULL));
 
 	return hDbEvent;
 }
@@ -527,7 +526,7 @@ static wchar_t* parseDbEvent(ARGUMENTSINFO *ai)
 		return nullptr;
 
 	int flags = DBE_MESSAGE;
-	switch (*ai->targv[2]) {
+	switch (*ai->argv.w[2]) {
 	case 'f':
 		flags |= DBE_FIRST;
 		break;
@@ -535,7 +534,7 @@ static wchar_t* parseDbEvent(ARGUMENTSINFO *ai)
 		flags |= DBE_LAST;
 		break;
 	}
-	switch (*ai->targv[3]) {
+	switch (*ai->argv.w[3]) {
 	case 's':
 		flags |= DBE_SENT;
 		break;
@@ -546,7 +545,7 @@ static wchar_t* parseDbEvent(ARGUMENTSINFO *ai)
 		flags |= DBE_RCVD | DBE_SENT;
 		break;
 	}
-	switch (*ai->targv[4]) {
+	switch (*ai->argv.w[4]) {
 	case 'r':
 		flags |= DBE_READ;
 		break;
@@ -558,7 +557,7 @@ static wchar_t* parseDbEvent(ARGUMENTSINFO *ai)
 		break;
 	}
 
-	MCONTACT hContact = getContactFromString(ai->targv[1], CI_ALLFLAGS);
+	MCONTACT hContact = getContactFromString(ai->argv.w[1], CI_ALLFLAGS);
 	if (hContact == INVALID_CONTACT_ID)
 		return nullptr;
 
@@ -584,7 +583,7 @@ static wchar_t* parseTranslate(ARGUMENTSINFO *ai)
 	if (ai->argc != 2)
 		return nullptr;
 
-	wchar_t *res = TranslateW(ai->targv[1]);
+	wchar_t *res = TranslateW(ai->argv.w[1]);
 	return (res == nullptr) ? nullptr : mir_wstrdup(res);
 }
 
@@ -599,7 +598,7 @@ static wchar_t* parseVersionString(ARGUMENTSINFO *ai)
 	return mir_a2u(versionString);
 }
 
-static wchar_t *parseContactNameString(ARGUMENTSINFO *ai)
+static wchar_t* parseContactNameString(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 1 || ai->fi->hContact == NULL)
 		return nullptr;
@@ -609,7 +608,7 @@ static wchar_t *parseContactNameString(ARGUMENTSINFO *ai)
 	return (ret == nullptr) ? nullptr : mir_wstrdup(ret);
 }
 
-static wchar_t *parseMirDateString(ARGUMENTSINFO *ai)
+static wchar_t* parseMirDateString(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 1)
 		return nullptr;
@@ -620,7 +619,7 @@ static wchar_t *parseMirDateString(ARGUMENTSINFO *ai)
 	return mir_wstrdup(TimeZone_ToStringT(time(0), L"d s", ret, _countof(ret)));
 }
 
-static wchar_t *parseMirandaCoreVar(ARGUMENTSINFO *ai)
+static wchar_t* parseMirandaCoreVar(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 1)
 		return nullptr;
@@ -628,16 +627,16 @@ static wchar_t *parseMirandaCoreVar(ARGUMENTSINFO *ai)
 	ai->flags |= AIF_DONTPARSE;
 
 	wchar_t corevar[MAX_PATH];
-	mir_snwprintf(corevar, L"%%%s%%", ai->targv[0]);
+	mir_snwprintf(corevar, L"%%%s%%", ai->argv.w[0]);
 	return Utils_ReplaceVarsW(corevar);
 }
 
-static wchar_t *parseMirSrvExists(ARGUMENTSINFO *ai)
+static wchar_t* parseMirSrvExists(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 2)
 		return nullptr;
 
-	if (!ServiceExists(_T2A(ai->targv[1])))
+	if (!ServiceExists(_T2A(ai->argv.w[1])))
 		ai->flags |= AIF_FALSE;
 
 	return mir_wstrdup(L"");

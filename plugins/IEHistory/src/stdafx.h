@@ -70,13 +70,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #	define sntprintf snwprintf
 #endif
 
-extern HICON hIcon; //history icon
-extern int hLangpack;
-extern char ModuleName[];
-extern HINSTANCE hInstance; //dll instance
-extern MWindowList hOpenWindowsList;
+#define MODULENAME "IEHistory"
 
-extern PLUGININFOEX pluginInfo;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+}; 
+
+extern HICON hIcon; //history icon
+extern MWindowList hOpenWindowsList;
 
 extern BOOL (WINAPI *MyEnableThemeDialogTexture)(HANDLE, DWORD);
 

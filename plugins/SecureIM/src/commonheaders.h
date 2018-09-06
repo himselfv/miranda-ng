@@ -62,11 +62,19 @@
 
 #define MODULENAME "SecureIM"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 extern char TEMP[MAX_PATH];
 extern int  TEMP_SIZE;
 
 // shared vars
-extern HINSTANCE g_hInst, g_hIconInst;
+extern HINSTANCE g_hIconInst;
 
 #define PREF_METANODB	0x2000	//!< Flag to indicate message should not be added to db by filter when sending
 #define PREF_SIMNOMETA	0x4000	//!< Flag to indicate message should not be inspected by filter on metacontact

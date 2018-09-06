@@ -48,15 +48,14 @@ int SkinOptInit(WPARAM wParam, LPARAM)
 {
 	if (!g_CluiData.fDisableSkinEngine) {
 		//Tabbed settings
-		OPTIONSDIALOGPAGE odp = { 0 };
+		OPTIONSDIALOGPAGE odp = {};
 		odp.position = -200000000;
-		odp.hInstance = g_hInst;
 		odp.pfnDlgProc = DlgSkinOpts;
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_SKIN);
 		odp.szGroup.w = LPGENW("Skins");
 		odp.szTitle.w = LPGENW("Contact list");
 		odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }
@@ -145,8 +144,8 @@ INT_PTR CALLBACK DlgSkinOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 				Sync(CLUIFrames_OnClistResize_mod, 0, 0);
 
 				RECT rc = {};
-				GetWindowRect(pcli->hwndContactList, &rc);
-				Sync(CLUIFrames_OnMoving, pcli->hwndContactList, &rc);
+				GetWindowRect(g_clistApi.hwndContactList, &rc);
+				Sync(CLUIFrames_OnMoving, g_clistApi.hwndContactList, &rc);
 
 				if (g_hCLUIOptionsWnd) {
 					SendDlgItemMessage(g_hCLUIOptionsWnd, IDC_LEFTMARGINSPIN, UDM_SETPOS, 0, db_get_b(0, "CLUI", "LeftClientMargin", SETTING_LEFTCLIENTMARIGN_DEFAULT));
@@ -226,7 +225,7 @@ INT_PTR CALLBACK DlgSkinOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 				Clist_Broadcast(INTM_RELOADOPTIONS, 0, 0);
 				NotifyEventHooks(g_CluiData.hEventBkgrChanged, 0, 0);
 				Clist_Broadcast(INTM_INVALIDATE, 0, 0);
-				RedrawWindow(GetParent(pcli->hwndContactTree), nullptr, nullptr, RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+				RedrawWindow(GetParent(g_clistApi.hwndContactTree), nullptr, nullptr, RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
 			}
 			break;
 
@@ -476,7 +475,7 @@ INT_PTR SvcApplySkin(WPARAM, LPARAM lParam)
 	ske_RedrawCompleteWindow();
 	Sync(CLUIFrames_OnClistResize_mod, 0, 0);
 
-	HWND hwnd = pcli->hwndContactList;
+	HWND hwnd = g_clistApi.hwndContactList;
 	RECT rc = { 0 };
 	GetWindowRect(hwnd, &rc);
 	Sync(CLUIFrames_OnMoving, hwnd, &rc);
@@ -484,7 +483,7 @@ INT_PTR SvcApplySkin(WPARAM, LPARAM lParam)
 	g_mutex_bChangingMode = TRUE;
 	CLUI_UpdateLayeredMode();
 	CLUI_ChangeWindowMode();
-	SendMessage(pcli->hwndContactTree, WM_SIZE, 0, 0);	//forces it to send a cln_listsizechanged
+	SendMessage(g_clistApi.hwndContactTree, WM_SIZE, 0, 0);	//forces it to send a cln_listsizechanged
 	CLUI_ReloadCLUIOptions();
 	cliShowHide(true);
 	g_mutex_bChangingMode = FALSE;

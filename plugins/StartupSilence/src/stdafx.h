@@ -26,14 +26,18 @@ static INT_PTR InitMenu();
 void InitSettings();
 void LoadSettings();
 void DefSettings();
-void IsMenu();
 void UpdateMenu();
 void UpdateTTB();
 
-INT_PTR StartupSilenceEnabled(WPARAM wParam, LPARAM lParam);
-INT_PTR SilenceConnection(WPARAM wParam, LPARAM lParam);
+#define MODULENAME "StartupSilence"
 
-#define MODULE_NAME "StartupSilence"
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 #define SS_SERVICE_NAME "StartupSilence/ToggleEnabled"
 

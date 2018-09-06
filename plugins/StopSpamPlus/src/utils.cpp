@@ -22,7 +22,7 @@ bool IsExistMyMessage(MCONTACT hContact)
 
 		if (dbei.flags & DBEF_SENT){
 			// mark contact as Answered
-			db_set_b(hContact, pluginName, answeredSetting, 1);
+			db_set_b(hContact, MODULENAME, answeredSetting, 1);
 			// ...let the event go its way
 			return true;
 		}
@@ -34,14 +34,13 @@ bool IsExistMyMessage(MCONTACT hContact)
 tstring variables_parse(const wchar_t *tstrFormat, MCONTACT hContact)
 {
 	if (ServiceExists(MS_VARS_FORMATSTRING)) {
-		FORMATINFO fi;
-		memset(&fi, 0, sizeof(fi));
+		FORMATINFO fi = {};
 		fi.cbSize = sizeof(fi);
-		fi.tszFormat = wcsdup(tstrFormat);
+		fi.szFormat.w = wcsdup(tstrFormat);
 		fi.hContact = hContact;
-		fi.flags |= FIF_TCHAR;
-		wchar_t *tszParsed = (wchar_t *)CallService(MS_VARS_FORMATSTRING, (WPARAM)&fi, 0);
-		free(fi.tszFormat);
+		fi.flags = FIF_UNICODE;
+		wchar_t *tszParsed = (wchar_t*)CallService(MS_VARS_FORMATSTRING, (WPARAM)&fi, 0);
+		free(fi.szFormat.w);
 		if (tszParsed) {
 			tstring tstrResult = tszParsed;
 			mir_free(tszParsed);

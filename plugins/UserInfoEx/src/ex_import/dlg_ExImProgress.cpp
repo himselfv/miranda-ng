@@ -42,7 +42,7 @@ INT_PTR CALLBACK DlgProcProgress(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPar
 				{ ICO_DLG_IMPORT,	STM_SETIMAGE,	ICO_DLGLOGO	},
 				{ ICO_BTN_CANCEL,	BM_SETIMAGE,	IDCANCEL	}
 			};
-			const int numIconsToSet = db_get_b(NULL, MODNAME, SET_ICONS_BUTTONS, 1) ? _countof(idIcon) : 2;
+			const int numIconsToSet = db_get_b(NULL, MODULENAME, SET_ICONS_BUTTONS, 1) ? _countof(idIcon) : 2;
 			IcoLib_SetCtrlIcons(hDlg, idIcon, numIconsToSet);
 
 			TranslateDialogDefault(hDlg);
@@ -89,7 +89,7 @@ INT_PTR CALLBACK DlgProcProgress(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPar
 CProgress::CProgress()
 {
 	_dwStartTime = GetTickCount();
-	_hDlg = CreateDialog(ghInst, MAKEINTRESOURCE(IDD_COPYPROGRESS), nullptr, DlgProcProgress);
+	_hDlg = CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(IDD_COPYPROGRESS), nullptr, DlgProcProgress);
 }
 
 /**

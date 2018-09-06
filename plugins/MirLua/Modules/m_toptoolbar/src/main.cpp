@@ -1,7 +1,5 @@
 #include "stdafx.h"
 
-int hLangpack;
-
 static TTBButton* MakeTBButton(lua_State *L)
 {
 	TTBButton *tbb = (TTBButton*)mir_calloc(sizeof(TTBButton));
@@ -66,7 +64,7 @@ static int lua_AddButton(lua_State *L)
 
 	TTBButton *tbb = MakeTBButton(L);
 
-	HANDLE res = TopToolbar_AddButton(tbb);
+	HANDLE res = (HANDLE)CallService(MS_TTB_ADDBUTTON, (WPARAM)tbb, 0);
 	if (res == (HANDLE)-1)
 	{
 		lua_pushnil(L);

@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "theme.h"
 #include "proto.h"
 
-static IconItem icons[] =
+static IconItem iconList[] =
 {
 	{ LPGEN("Twitter Icon"), "twitter", IDI_TWITTER },
 	{ LPGEN("Tweet"), "tweet", IDI_TWITTER },
@@ -31,20 +31,20 @@ static IconItem icons[] =
 
 void TwitterInitSounds(void)
 {
-	Skin_AddSound("TwitterNewContact", LPGENW("Twitter"), LPGENW("First tweet from new contact"));
-	Skin_AddSound("TwitterNew",        LPGENW("Twitter"), LPGENW("New tweet"));
+	g_plugin.addSound("TwitterNewContact", LPGENW("Twitter"), LPGENW("First tweet from new contact"));
+	g_plugin.addSound("TwitterNew",        LPGENW("Twitter"), LPGENW("New tweet"));
 }
 
 // TODO: uninit
 void InitIcons(void)
 {
-	Icon_Register(g_plugin.getInst(), "Protocols/Twitter", icons, _countof(icons), "Twitter");
-	icons[_countof(icons) - 1].hIcolib = Skin_GetIconHandle(SKINICON_EVENT_URL);
+	g_plugin.registerIcon("Protocols/Twitter", iconList, "Twitter");
+	iconList[_countof(iconList) - 1].hIcolib = Skin_GetIconHandle(SKINICON_EVENT_URL);
 }
 
 HANDLE GetIconHandle(const char *name)
 {
-	for (auto &it : icons)
+	for (auto &it : iconList)
 		if (mir_strcmp(it.szName, name) == 0)
 			return it.hIcolib;
 
@@ -75,7 +75,7 @@ void InitContactMenus()
 {
 	HookEvent(ME_CLIST_PREBUILDCONTACTMENU, PrebuildContactMenu);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.flags = CMIF_NOTOFFLINE | CMIF_UNICODE;
 
 	SET_UID(mi, 0xfc4e1245, 0xc8e0, 0x4de2, 0x92, 0x15, 0xfc, 0xcf, 0x48, 0xf9, 0x41, 0x56);

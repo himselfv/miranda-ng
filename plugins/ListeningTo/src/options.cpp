@@ -1,4 +1,4 @@
-/* 
+/*
 Copyright (C) 2006 Ricardo Pescuma Domenecci
 
 This is free software; you can redistribute it and/or
@@ -14,7 +14,7 @@ Library General Public License for more details.
 You should have received a copy of the GNU Library General Public
 License along with this file; see the file license.txt.  If
 not, write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  
+Boston, MA 02111-1307, USA.
 */
 
 #include "stdafx.h"
@@ -70,8 +70,7 @@ static OptPageControl playersControls[] = {
 
 int InitOptionsCallback(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.flags = ODPF_BOLDGROUPS;
 
 	odp.szGroup.a = LPGEN("Status");
@@ -79,18 +78,18 @@ int InitOptionsCallback(WPARAM wParam, LPARAM)
 	odp.szTab.a = LPGEN("General");
 	odp.pfnDlgProc = OptionsDlgProc;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Format");
 	odp.pfnDlgProc = FormatDlgProc;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_FORMAT);
 	odp.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Players");
 	odp.pfnDlgProc = PlayersDlgProc;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_PLAYERS);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -111,9 +110,9 @@ void InitOptions()
 
 void LoadOptions()
 {
-	LoadOpts(optionsControls, _countof(optionsControls), MODULE_NAME);
-	LoadOpts(formatControls, _countof(formatControls), MODULE_NAME);
-	LoadOpts(playersControls, _countof(playersControls), MODULE_NAME);
+	LoadOpts(optionsControls, _countof(optionsControls), MODULENAME);
+	LoadOpts(formatControls, _countof(formatControls), MODULENAME);
+	LoadOpts(playersControls, _countof(playersControls), MODULENAME);
 }
 
 BOOL IsTypeEnabled(LISTENINGTOINFO *lti)
@@ -167,7 +166,7 @@ static INT_PTR CALLBACK OptionsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 {
 	BOOL ret = FALSE;
 	if (msg != WM_INITDIALOG)
-		ret = SaveOptsDlgProc(optionsControls, _countof(optionsControls), MODULE_NAME, hwndDlg, msg, wParam, lParam);
+		ret = SaveOptsDlgProc(optionsControls, _countof(optionsControls), MODULENAME, hwndDlg, msg, wParam, lParam);
 
 	switch (msg) {
 	case WM_INITDIALOG:
@@ -187,19 +186,19 @@ static INT_PTR CALLBACK OptionsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 				SendDlgItemMessage(hwndDlg, IDC_ADV_ICON, CB_ADDSTRING, 0, (LPARAM)_itow(i - first + 3, tmp, 10));
 		}
 
-		ret = SaveOptsDlgProc(optionsControls, _countof(optionsControls), MODULE_NAME, hwndDlg, msg, wParam, lParam);
+		ret = SaveOptsDlgProc(optionsControls, _countof(optionsControls), MODULENAME, hwndDlg, msg, wParam, lParam);
 		OptionsEnableDisableCtrls(hwndDlg);
 		return TRUE;
 
 	case WM_NOTIFY:
-		{
-			LPNMHDR lpnmhdr = (LPNMHDR)lParam;
-			if (lpnmhdr->idFrom == 0 && lpnmhdr->code == PSN_APPLY) {
-				RebuildMenu();
-				StartTimer();
-			}
+	{
+		LPNMHDR lpnmhdr = (LPNMHDR)lParam;
+		if (lpnmhdr->idFrom == 0 && lpnmhdr->code == PSN_APPLY) {
+			RebuildMenu();
+			StartTimer();
 		}
-		break;
+	}
+	break;
 
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
@@ -249,7 +248,7 @@ static void PlayersEnableDisableCtrls(HWND hwndDlg)
 
 static INT_PTR CALLBACK PlayersDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	BOOL ret = SaveOptsDlgProc(playersControls, _countof(playersControls), MODULE_NAME, hwndDlg, msg, wParam, lParam);
+	BOOL ret = SaveOptsDlgProc(playersControls, _countof(playersControls), MODULENAME, hwndDlg, msg, wParam, lParam);
 
 	switch (msg) {
 	case WM_INITDIALOG:
@@ -262,14 +261,14 @@ static INT_PTR CALLBACK PlayersDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 		break;
 
 	case WM_NOTIFY:
-		{
-			LPNMHDR lpnmhdr = (LPNMHDR)lParam;
-			if (lpnmhdr->idFrom == 0 && lpnmhdr->code == PSN_APPLY) {
-				EnableDisablePlayers();
-				StartTimer();
-			}
+	{
+		LPNMHDR lpnmhdr = (LPNMHDR)lParam;
+		if (lpnmhdr->idFrom == 0 && lpnmhdr->code == PSN_APPLY) {
+			EnableDisablePlayers();
+			StartTimer();
 		}
-		break;
+	}
+	break;
 	}
 
 	return ret;
@@ -277,5 +276,5 @@ static INT_PTR CALLBACK PlayersDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 
 static INT_PTR CALLBACK FormatDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	return SaveOptsDlgProc(formatControls, _countof(formatControls), MODULE_NAME, hwndDlg, msg, wParam, lParam);
+	return SaveOptsDlgProc(formatControls, _countof(formatControls), MODULENAME, hwndDlg, msg, wParam, lParam);
 }

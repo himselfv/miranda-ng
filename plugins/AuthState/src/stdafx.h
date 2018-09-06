@@ -38,10 +38,16 @@
 
 #define MODULENAME "AuthState"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
+
 int onOptInitialise(WPARAM wParam, LPARAM lParam);
 int onExtraImageApplying(WPARAM wParam, LPARAM lParam);
 
-extern HINSTANCE g_hInst;
 extern HANDLE hExtraIcon;
 
 #include "options.h"

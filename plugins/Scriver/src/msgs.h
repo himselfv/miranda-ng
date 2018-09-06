@@ -83,7 +83,8 @@ class CScriverWindow : public CSrmmBaseDialog
 protected:
 	CScriverWindow(int iDialog, SESSION_INFO* = nullptr);
 
-	int InputAreaShortcuts(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	bool CheckSend();
+	int  InputAreaShortcuts(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 public:
 	void CloseTab() override;
@@ -162,7 +163,7 @@ public:
 public:
 	CSrmmWindow(MCONTACT hContact, bool bIncoming);
 
-	void OnInitDialog() override;
+	bool OnInitDialog() override;
 	void OnDestroy() override;
 
 	void ScrollToBottom() override;
@@ -206,7 +207,7 @@ class CChatRoomDlg : public CScriverWindow
 public:
 	CChatRoomDlg(SESSION_INFO *si);
 
-	void OnInitDialog() override;
+	bool OnInitDialog() override;
 	void OnDestroy() override;
 
 	INT_PTR DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
@@ -236,6 +237,7 @@ public:
 #define DM_REMAKELOG           (WM_USER+11)
 #define DM_CASCADENEWWINDOW    (WM_USER+13)
 #define DM_OPTIONSAPPLIED      (WM_USER+14)
+#define DM_APPENDTOLOG         (WM_USER+17)
 #define DM_ERRORDECIDED        (WM_USER+18)
 #define DM_SCROLLLOGTOBOTTOM   (WM_USER+19)
 #define DM_TYPING              (WM_USER+20)
@@ -282,7 +284,7 @@ class CErrorDlg : public CDlgBase
 	CCtrlButton m_btnOk, m_btnCancel;
 
 protected:
-	void OnInitDialog() override;
+	bool OnInitDialog() override;
 
 public:
 	CErrorDlg(const wchar_t *pwszDescr, HWND, MessageSendQueueItem*);
@@ -375,12 +377,6 @@ extern int fontOptionsListSize;
 #define SRMSGDEFSET_AUTOMIN			0
 #define SRMSGSET_AUTOCLOSE			"AutoClose"
 #define SRMSGDEFSET_AUTOCLOSE		0
-#define SRMSGSET_SENDONENTER		"SendOnEnter"
-#define SRMSGDEFSET_SENDONENTER		1
-#define SRMSGSET_SENDONDBLENTER		"SendOnDblEnter"
-#define SRMSGDEFSET_SENDONDBLENTER	0
-#define SRMSGSET_SENDONCTRLENTER		"SendOnCtrlEnter"
-#define SRMSGDEFSET_SENDONCTRLENTER	0
 #define SRMSGSET_SENDBUTTON			"UseSendButton"
 #define SRMSGDEFSET_SENDBUTTON		0
 #define SRMSGSET_CHARCOUNT			"ShowCharCount"
@@ -485,4 +481,8 @@ extern int fontOptionsListSize;
 
 #define SRMSGSET_AUTORESIZELINES	"AutoResizeLines"
 #define SRMSGDEFSET_AUTORESIZELINES	2
+
+#define SRMSGSET_SENDMODE "SendMode"
+#define SRMSGDEFSET_SENDMODE 0
+
 #endif

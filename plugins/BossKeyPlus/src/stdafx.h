@@ -48,9 +48,18 @@
 #include "version.h"
 
 #define MOD_NAME "BossKey"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 #define KEY_DOWN(key) ((GetAsyncKeyState(key) & 0x8000) ? (true) : (false))
 #define MAXPASSLEN 16
-#define	DEFAULTSETTING	(OPT_SETONLINEBACK | OPT_DISABLESNDS | OPT_ONLINEONLY | OPT_USEDEFMSG)
+#define DEFAULTSETTING (OPT_SETONLINEBACK | OPT_DISABLESNDS | OPT_ONLINEONLY | OPT_USEDEFMSG)
 
 #define OLD_SOUND			1
 #define OLD_POPUP			2
@@ -79,7 +88,6 @@
 const unsigned STATUS_ARR_TO_ID[8] = { ID_STATUS_OFFLINE, ID_STATUS_ONLINE, ID_STATUS_AWAY, ID_STATUS_NA, ID_STATUS_OCCUPIED, ID_STATUS_DND, ID_STATUS_FREECHAT, ID_STATUS_INVISIBLE };
 extern bool g_fOptionsOpen; // options dialog is open. be sure not to hide anything while we're there.
 extern WORD g_wMask, g_wMaskAdv;
-extern HINSTANCE g_hInstance;
 extern bool g_bWindowHidden;
 extern UINT minutes;
 

@@ -9,16 +9,17 @@ There is no warranty.
 
 #include "stdafx.h"
 
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
+
 LIST<XSN_Data> XSN_Users(10, NumericKeySortT);
 HGENMENU hChangeSound = nullptr;
 MWindowList hChangeSoundDlgList = nullptr;
 BYTE isIgnoreSound = 0, isOwnSound = 0, isIgnoreAccSound = 0, isAccSound = 0;
 
-CHAT_MANAGER *pci;
+/////////////////////////////////////////////////////////////////////////////////////////
 
-PLUGININFOEX pluginInfo = {
+PLUGININFOEX pluginInfoEx =
+{
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -28,23 +29,17 @@ PLUGININFOEX pluginInfo = {
 	__AUTHORWEB,
 	UNICODE_AWARE,
 	// {A01E25F7-A6EF-4B40-8CAC-755A2F2E55B5}
-	{ 0xa01e25f7, 0xa6ef, 0x4b40,{ 0x8c, 0xac, 0x75, 0x5a, 0x2f, 0x2e, 0x55, 0xb5 } }
+	{ 0xa01e25f7, 0xa6ef, 0x4b40,{ 0x8c, 0xac, 0x75, 0x5a, 0x2f, 0x2e, 0x55, 0xb5 }}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-struct {
+struct
+{
 	int iStatus;
 	const char *szName;
 }
@@ -72,7 +67,7 @@ void InitSelfSounds()
 
 			wchar_t infobuf[256];
 			mir_snwprintf(infobuf, L"%s [%s]", TranslateT("Self status"), pa->tszAccountName);
-			Skin_AddSound(namebuf, infobuf, Clist_GetStatusModeDescription(selfSounds[j].iStatus, 0));
+			g_plugin.addSound(namebuf, infobuf, Clist_GetStatusModeDescription(selfSounds[j].iStatus, 0));
 		}
 	}
 }
@@ -109,11 +104,11 @@ static int ProcessEvent(WPARAM hContact, LPARAM lParam)
 	if (!isReceiveMessage(lParam))
 		return 0;
 
-	isIgnoreSound = db_get_b(hContact, SETTINGSNAME, SETTINGSIGNOREKEY, 0);
+	isIgnoreSound = db_get_b(hContact, MODULENAME, SETTINGSIGNOREKEY, 0);
 	DBVARIANT dbv;
-	if (!isIgnoreSound && !db_get_ws(hContact, SETTINGSNAME, SETTINGSKEY, &dbv)) {
+	if (!isIgnoreSound && !db_get_ws(hContact, MODULENAME, SETTINGSKEY, &dbv)) {
 		wchar_t PlaySoundPath[MAX_PATH] = { 0 };
-		PathToAbsoluteW(dbv.ptszVal, PlaySoundPath);
+		PathToAbsoluteW(dbv.pwszVal, PlaySoundPath);
 		isOwnSound = 0;
 		Skin_PlaySoundFile(PlaySoundPath);
 		db_free(&dbv);
@@ -126,11 +121,11 @@ static int ProcessEvent(WPARAM hContact, LPARAM lParam)
 	size_t value_max_len = mir_strlen(pa->szModuleName) + 8;
 	char *value = (char *)mir_alloc(sizeof(char) * value_max_len);
 	mir_snprintf(value, value_max_len, "%s_ignore", pa->szModuleName);
-	isIgnoreAccSound = db_get_b(NULL, SETTINGSNAME, value, 0);
+	isIgnoreAccSound = db_get_b(NULL, MODULENAME, value, 0);
 	mir_free(value);
-	if (!isIgnoreAccSound && !db_get_ws(NULL, SETTINGSNAME, pa->szModuleName, &dbv)) {
+	if (!isIgnoreAccSound && !db_get_ws(NULL, MODULENAME, pa->szModuleName, &dbv)) {
 		wchar_t PlaySoundPath[MAX_PATH] = { 0 };
-		PathToAbsoluteW(dbv.ptszVal, PlaySoundPath);
+		PathToAbsoluteW(dbv.pwszVal, PlaySoundPath);
 		isAccSound = 0;
 		Skin_PlaySoundFile(PlaySoundPath);
 		db_free(&dbv);
@@ -148,17 +143,17 @@ static int ProcessChatEvent(WPARAM, LPARAM lParam)
 	if (gce->iType != GC_EVENT_MESSAGE)
 		return 0;
 
-	MCONTACT hContact = pci->FindRoom(gce->pszModule, gce->ptszID);
+	MCONTACT hContact = g_chatApi.FindRoom(gce->pszModule, gce->ptszID);
 	if (hContact != 0) {
 		ptrW nick(db_get_wsa(hContact, gce->pszModule, "MyNick"));
 		if (nick == NULL || gce->ptszText == nullptr)
 			return 0;
 		if (wcsstr(gce->ptszText, nick)) {
-			isIgnoreSound = db_get_b(hContact, SETTINGSNAME, SETTINGSIGNOREKEY, 0);
+			isIgnoreSound = db_get_b(hContact, MODULENAME, SETTINGSIGNOREKEY, 0);
 			DBVARIANT dbv;
-			if (!isIgnoreSound && !db_get_ws(hContact, SETTINGSNAME, SETTINGSKEY, &dbv)) {
+			if (!isIgnoreSound && !db_get_ws(hContact, MODULENAME, SETTINGSKEY, &dbv)) {
 				wchar_t PlaySoundPath[MAX_PATH] = { 0 };
-				PathToAbsoluteW(dbv.ptszVal, PlaySoundPath);
+				PathToAbsoluteW(dbv.pwszVal, PlaySoundPath);
 				isOwnSound = 0;
 				Skin_PlaySoundFile(PlaySoundPath);
 				db_free(&dbv);
@@ -170,11 +165,11 @@ static int ProcessChatEvent(WPARAM, LPARAM lParam)
 			size_t value_max_len = mir_strlen(pa->szModuleName) + 8;
 			char *value = (char *)mir_alloc(sizeof(char) * value_max_len);
 			mir_snprintf(value, value_max_len, "%s_ignore", pa->szModuleName);
-			isIgnoreAccSound = db_get_b(NULL, SETTINGSNAME, value, 0);
+			isIgnoreAccSound = db_get_b(NULL, MODULENAME, value, 0);
 			mir_free(value);
-			if (!isIgnoreAccSound && !db_get_ws(NULL, SETTINGSNAME, pa->szModuleName, &dbv)) {
+			if (!isIgnoreAccSound && !db_get_ws(NULL, MODULENAME, pa->szModuleName, &dbv)) {
 				wchar_t PlaySoundPath[MAX_PATH] = { 0 };
-				PathToAbsoluteW(dbv.ptszVal, PlaySoundPath);
+				PathToAbsoluteW(dbv.pwszVal, PlaySoundPath);
 				isAccSound = 0;
 				Skin_PlaySoundFile(PlaySoundPath);
 				db_free(&dbv);
@@ -190,6 +185,7 @@ static int OnPlaySound(WPARAM, LPARAM)
 {
 	if (isIgnoreSound || isIgnoreAccSound)
 		return 1;
+	
 	if (isOwnSound) {
 		isOwnSound = 0;
 		return 1;
@@ -205,7 +201,7 @@ static int OnPlaySound(WPARAM, LPARAM)
 
 static int OnLoadInit(WPARAM, LPARAM)
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x5d72ca1f, 0xc52, 0x436d, 0x81, 0x47, 0x29, 0xf6, 0xc3, 0x28, 0xb5, 0xd1);
 	mi.position = -0x7FFFFFFF;
 	mi.flags = CMIF_UNICODE;
@@ -235,11 +231,8 @@ static int OnPreShutdown(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pci = Chat_GetInterface();
-
 	CreateServiceFunction("XSoundNotify/ContactMenuCommand", ShowDialog);
 
 	hChangeSoundDlgList = WindowList_Create();
@@ -255,7 +248,9 @@ extern "C" int __declspec(dllexport) Load()
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	WindowList_Destroy(hChangeSoundDlgList);
 	return 0;

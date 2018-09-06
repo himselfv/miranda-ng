@@ -22,12 +22,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "stdafx.h"
 
-int hLangpack;
+CMPlugin g_plugin;
 
 std::string g_strUserAgent;
 DWORD g_mirandaVersion;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -40,17 +42,11 @@ PLUGININFOEX pluginInfo = {
 	{ 0x8432b009, 0xff32, 0x4727, { 0xaa, 0xe6, 0xa9, 0x3, 0x50, 0x38, 0xfd, 0x58 } }
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD mirandaVersion)
+CMPlugin::CMPlugin() :
+	ACCPROTOPLUGIN<FacebookProto>(FACEBOOK_NAME, pluginInfoEx)
 {
-	g_mirandaVersion = mirandaVersion;
-	return &pluginInfo;
+	SetUniqueId(FACEBOOK_KEY_ID);
 }
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-CMPlugin g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Interface information
@@ -60,10 +56,8 @@ extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_PROTOC
 /////////////////////////////////////////////////////////////////////////////////////////
 // Load
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	InitIcons();
 	InitContactMenus();
 
@@ -83,13 +77,5 @@ extern "C" int __declspec(dllexport) Load(void)
 	// Initialize random generator (used only as fallback in utils)
 	srand(::time(0));
 
-	return 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-// Unload
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

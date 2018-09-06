@@ -27,16 +27,14 @@ struct MsgWndData : public MZeroedObject
 {
 	HWND hwnd, hwndLog, hwndInput;
 	int  idxLastChar;
-	bool doSmileyReplace, doSmileyButton;
+	bool doSmileyReplace;
 	MCONTACT hContact;
 	char ProtocolName[52];
 
 	void CreateSmileyButton(void)
 	{
-		doSmileyButton = opt.ButtonStatus != 0;
-
 		SmileyPackType *SmileyPack = GetSmileyPack(ProtocolName, hContact);
-		doSmileyButton &= SmileyPack != nullptr && SmileyPack->VisibleSmileyCount() != 0;
+		bool doSmileyButton = SmileyPack != nullptr && SmileyPack->VisibleSmileyCount() != 0;
 
 		doSmileyReplace = true;
 
@@ -112,8 +110,8 @@ int SmileyButtonCreate(WPARAM, LPARAM)
 	desc.szSection.a = BB_HK_SECTION;
 	desc.szDescription.a = LPGEN("Smiley selector");
 	desc.DefHotKey = HOTKEYCODE(HOTKEYF_ALT, 'E');
-	desc.lParam = LPARAM(g_hInst);
-	Hotkey_Register(&desc);
+	desc.lParam = LPARAM(g_plugin.getInst());
+	g_plugin.addHotkey(&desc);
 
 	BBButton bbd = {};
 	bbd.pszModuleName = MODULENAME;
@@ -122,7 +120,7 @@ int SmileyButtonCreate(WPARAM, LPARAM)
 	bbd.hIcon = IcoLib_GetIconHandle("SmileyAdd_ButtonSmiley");
 	bbd.bbbFlags = BBBF_ISIMBUTTON | BBBF_ISCHATBUTTON;
 	bbd.pszHotkey = desc.pszName;
-	Srmm_AddButton(&bbd);
+	Srmm_AddButton(&bbd, &g_plugin);
 	return 0;
 }
 

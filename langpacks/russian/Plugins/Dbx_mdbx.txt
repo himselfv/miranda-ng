@@ -2,11 +2,12 @@
 ;============================================================
 ;  File: Dbx_mdbx.dll
 ;  Plugin: Miranda NG MDBX database driver
-;  Version: 0.95.8.7
+;  Version: 0.95.9.1
 ;  Authors: Miranda-NG project
 ;============================================================
 [Provides Miranda database support: global settings, contacts, history, settings per contact.]
 Поддержка базы Miranda NG: глобальные настройки, контакты, история, настройки контактов и т.п.
+;file \plugins\Dbx_mdbx\res\dbx_mdbx.rc
 [Select crypto provider]
 Выберите поставщика криптографии
 [Cancel]
@@ -36,13 +37,15 @@
 [Total]
 Полный
 [Only critical data are encrypted (passwords, security tokens, etc). All other settings and history remains unencrypted. Fast and effective, suitable for the most cases]
-Шифрование только критических данных (пароли, токены авторизации и т.д.). Остальные настройки, включая историю, остаются незашифрованными. Быстрый и эффективный, подходит в большинстве случаев
-[All string settings and all events in histories are encrypted. It also makes Miranda much slower and creates a risk of losing everything you've stored in a profile in case of losing password. Recommended only for paranoid users]
-Все настройки и все события истории зашифрованы. Замедляет работу программы, а также создаёт риск потери всего сохранённого в профиле в случае утери пароля. Рекомендуется только параноидальным пользователям
+Шифрование только критических данных (пароли, токены авторизации и т.п.). Остальные настройки и история, остаются незашифрованными. Быстрый и эффективный, подходит в большинстве случаев
+[All string settings and all events in histories are encrypted. It also makes Miranda much slower and creates a risk of losing everything you've stored in a database in case of losing password. Recommended only for paranoid users]
+Все настройки и все события истории зашифрованы. Замедляет работу программы, а также создаёт риск потери всего сохранённого в базе в случае утери пароля. Рекомендуется только параноидальным пользователям
 [Set password]
 Установить пароль
+;file \plugins\Dbx_mdbx\src\dbintf.h
 [Change/remove password]
 Изменить/удалить пароль
+;file \plugins\Dbx_mdbx\src\ui.cpp
 [Wrong old password entered!]
 Введён ошибочный старый пароль!
 [Password is too short!]
@@ -53,6 +56,7 @@
 База данных
 [Compact]
 Сжать
+;file \plugins\Dbx_mdbx\src\ui.h
 [Logo]
 Логотип
 [Password]

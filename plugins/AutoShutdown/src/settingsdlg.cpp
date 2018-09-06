@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 /* Services */
 static HWND hwndSettingsDlg;
-extern HINSTANCE hInst;
 
 const DWORD unitValues[] = { 1,60,60 * 60,60 * 60 * 24,60 * 60 * 24 * 7,60 * 60 * 24 * 31 };
 const wchar_t *unitNames[] = { LPGENW("Second(s)"), LPGENW("Minute(s)"), LPGENW("Hour(s)"), LPGENW("Day(s)"), LPGENW("Week(s)"), LPGENW("Month(s)") };
@@ -82,7 +81,7 @@ static INT_PTR CALLBACK SettingsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, L
 			}
 			/* read-in watcher flags */
 			{
-				WORD watcherType = db_get_w(NULL, "AutoShutdown", "WatcherFlags", SETTING_WATCHERFLAGS_DEFAULT);
+				WORD watcherType = db_get_w(NULL, MODULENAME, "WatcherFlags", SETTING_WATCHERFLAGS_DEFAULT);
 				CheckRadioButton(hwndDlg, IDC_RADIO_STTIME, IDC_RADIO_STCOUNTDOWN, (watcherType&SDWTF_ST_TIME) ? IDC_RADIO_STTIME : IDC_RADIO_STCOUNTDOWN);
 				CheckDlgButton(hwndDlg, IDC_CHECK_SPECIFICTIME, (watcherType&SDWTF_SPECIFICTIME) != 0 ? BST_CHECKED : BST_UNCHECKED);
 				CheckDlgButton(hwndDlg, IDC_CHECK_MESSAGE, (watcherType&SDWTF_MESSAGE) != 0 ? BST_CHECKED : BST_UNCHECKED);
@@ -94,14 +93,14 @@ static INT_PTR CALLBACK SettingsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, L
 			/* read-in countdown val */
 			{
 				SYSTEMTIME st;
-				if (!TimeStampToSystemTime((time_t)db_get_dw(NULL, "AutoShutdown", "TimeStamp", SETTING_TIMESTAMP_DEFAULT), &st))
+				if (!TimeStampToSystemTime((time_t)db_get_dw(NULL, MODULENAME, "TimeStamp", SETTING_TIMESTAMP_DEFAULT), &st))
 					GetLocalTime(&st);
 				DateTime_SetSystemtime(GetDlgItem(hwndDlg, IDC_TIME_TIMESTAMP), GDT_VALID, &st);
 				DateTime_SetSystemtime(GetDlgItem(hwndDlg, IDC_DATE_TIMESTAMP), GDT_VALID, &st);
 				SendMessage(hwndDlg, M_CHECK_DATETIME, 0, 0);
 			}
 			{
-				DWORD setting = db_get_dw(NULL, "AutoShutdown", "Countdown", SETTING_COUNTDOWN_DEFAULT);
+				DWORD setting = db_get_dw(NULL, MODULENAME, "Countdown", SETTING_COUNTDOWN_DEFAULT);
 				if (setting < 1) setting = SETTING_COUNTDOWN_DEFAULT;
 				SendDlgItemMessage(hwndDlg, IDC_SPIN_COUNTDOWN, UDM_SETRANGE, 0, MAKELPARAM(UD_MAXVAL, 1));
 				SendDlgItemMessage(hwndDlg, IDC_EDIT_COUNTDOWN, EM_SETLIMITTEXT, (WPARAM)10, 0);
@@ -110,7 +109,7 @@ static INT_PTR CALLBACK SettingsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, L
 			}
 			{
 				HWND hwndCombo = GetDlgItem(hwndDlg, IDC_COMBO_COUNTDOWNUNIT);
-				DWORD lastUnit = db_get_dw(NULL, "AutoShutdown", "CountdownUnit", SETTING_COUNTDOWNUNIT_DEFAULT);
+				DWORD lastUnit = db_get_dw(NULL, MODULENAME, "CountdownUnit", SETTING_COUNTDOWNUNIT_DEFAULT);
 				SendMessage(hwndCombo, CB_SETLOCALE, (WPARAM)locale, 0); /* sort order */
 				SendMessage(hwndCombo, CB_INITSTORAGE, _countof(unitNames), _countof(unitNames) * 16); /* approx. */
 				for (int i = 0; i < _countof(unitNames); ++i) {
@@ -123,14 +122,14 @@ static INT_PTR CALLBACK SettingsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, L
 			}
 			{
 				DBVARIANT dbv;
-				if (!db_get_ws(NULL, "AutoShutdown", "Message", &dbv)) {
-					SetDlgItemText(hwndDlg, IDC_EDIT_MESSAGE, dbv.ptszVal);
-					mir_free(dbv.ptszVal);
+				if (!db_get_ws(NULL, MODULENAME, "Message", &dbv)) {
+					SetDlgItemText(hwndDlg, IDC_EDIT_MESSAGE, dbv.pwszVal);
+					mir_free(dbv.pwszVal);
 				}
 			}
 			/* cpuusage threshold */
 			{
-				BYTE setting = DBGetContactSettingRangedByte(NULL, "AutoShutdown", "CpuUsageThreshold", SETTING_CPUUSAGETHRESHOLD_DEFAULT, 1, 100);
+				BYTE setting = DBGetContactSettingRangedByte(NULL, MODULENAME, "CpuUsageThreshold", SETTING_CPUUSAGETHRESHOLD_DEFAULT, 1, 100);
 				SendDlgItemMessage(hwndDlg, IDC_SPIN_CPUUSAGE, UDM_SETRANGE, 0, MAKELPARAM(100, 1));
 				SendDlgItemMessage(hwndDlg, IDC_EDIT_CPUUSAGE, EM_SETLIMITTEXT, (WPARAM)3, 0);
 				SendDlgItemMessage(hwndDlg, IDC_SPIN_CPUUSAGE, UDM_SETPOS, 0, MAKELPARAM(setting, 0));
@@ -139,7 +138,7 @@ static INT_PTR CALLBACK SettingsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, L
 			/* shutdown types */
 			{
 				HWND hwndCombo = GetDlgItem(hwndDlg, IDC_COMBO_SHUTDOWNTYPE);
-				BYTE lastShutdownType = db_get_b(NULL, "AutoShutdown", "ShutdownType", SETTING_SHUTDOWNTYPE_DEFAULT);
+				BYTE lastShutdownType = db_get_b(NULL, MODULENAME, "ShutdownType", SETTING_SHUTDOWNTYPE_DEFAULT);
 				SendMessage(hwndCombo, CB_SETLOCALE, (WPARAM)locale, 0); /* sort order */
 				SendMessage(hwndCombo, CB_SETEXTENDEDUI, TRUE, 0);
 				SendMessage(hwndCombo, CB_INITSTORAGE, SDSDT_MAX, SDSDT_MAX * 32);
@@ -172,11 +171,11 @@ static INT_PTR CALLBACK SettingsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, L
 			}
 		}
 		SendMessage(hwndDlg, M_ENABLE_SUBCTLS, 0, 0);
-		Utils_RestoreWindowPositionNoSize(hwndDlg, NULL, "AutoShutdown", "SettingsDlg_");
+		Utils_RestoreWindowPositionNoSize(hwndDlg, NULL, MODULENAME, "SettingsDlg_");
 		return TRUE; /* default focus */
 
 	case WM_DESTROY:
-		Utils_SaveWindowPosition(hwndDlg, NULL, "AutoShutdown", "SettingsDlg_");
+		Utils_SaveWindowPosition(hwndDlg, NULL, MODULENAME, "SettingsDlg_");
 		{
 			HFONT hFont = (HFONT)SendDlgItemMessage(hwndDlg, IDC_TEXT_HEADER, WM_GETFONT, 0, 0);
 			SendDlgItemMessage(hwndDlg, IDC_TEXT_HEADER, WM_SETFONT, 0, FALSE); /* no return value */
@@ -324,7 +323,7 @@ static INT_PTR CALLBACK SettingsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, L
 			break;
 
 		case IDC_URL_IDLE:
-			Options_Open(L"Status", L"Idle");
+			g_plugin.openOptions(L"Status", L"Idle");
 			return TRUE;
 
 		case IDC_COMBO_SHUTDOWNTYPE:
@@ -341,7 +340,7 @@ static INT_PTR CALLBACK SettingsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, L
 				wchar_t *pszText = (wchar_t*)mir_alloc(len*sizeof(wchar_t));
 				if (pszText != nullptr && GetWindowText(hwndEdit, pszText, len + 1)) {
 					TrimString(pszText);
-					db_set_ws(NULL, "AutoShutdown", "Message", pszText);
+					db_set_ws(NULL, MODULENAME, "Message", pszText);
 				}
 				mir_free(pszText); /* does NULL check */
 			}
@@ -352,18 +351,18 @@ static INT_PTR CALLBACK SettingsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, L
 				DateTime_GetSystemtime(GetDlgItem(hwndDlg, IDC_TIME_TIMESTAMP), &st); /* time gets synchronized */
 				if (!SystemTimeToTimeStamp(&st, &timestamp))
 					timestamp = time(0);
-				db_set_dw(NULL, "AutoShutdown", "TimeStamp", (DWORD)timestamp);
+				db_set_dw(NULL, MODULENAME, "TimeStamp", (DWORD)timestamp);
 			}
 			/* shutdown type */
 			{
 				int index = SendDlgItemMessage(hwndDlg, IDC_COMBO_SHUTDOWNTYPE, CB_GETCURSEL, 0, 0);
 				if (index != LB_ERR)
-					db_set_b(NULL, "AutoShutdown", "ShutdownType", (BYTE)SendDlgItemMessage(hwndDlg, IDC_COMBO_SHUTDOWNTYPE, CB_GETITEMDATA, (WPARAM)index, 0));
+					db_set_b(NULL, MODULENAME, "ShutdownType", (BYTE)SendDlgItemMessage(hwndDlg, IDC_COMBO_SHUTDOWNTYPE, CB_GETITEMDATA, (WPARAM)index, 0));
 				index = SendDlgItemMessage(hwndDlg, IDC_COMBO_COUNTDOWNUNIT, CB_GETCURSEL, 0, 0);
 				if (index != LB_ERR)
-					db_set_dw(NULL, "AutoShutdown", "CountdownUnit", (DWORD)SendDlgItemMessage(hwndDlg, IDC_COMBO_COUNTDOWNUNIT, CB_GETITEMDATA, (WPARAM)index, 0));
-				db_set_dw(NULL, "AutoShutdown", "Countdown", (DWORD)GetDlgItemInt(hwndDlg, IDC_EDIT_COUNTDOWN, nullptr, FALSE));
-				db_set_b(NULL, "AutoShutdown", "CpuUsageThreshold", (BYTE)GetDlgItemInt(hwndDlg, IDC_EDIT_CPUUSAGE, nullptr, FALSE));
+					db_set_dw(NULL, MODULENAME, "CountdownUnit", (DWORD)SendDlgItemMessage(hwndDlg, IDC_COMBO_COUNTDOWNUNIT, CB_GETITEMDATA, (WPARAM)index, 0));
+				db_set_dw(NULL, MODULENAME, "Countdown", (DWORD)GetDlgItemInt(hwndDlg, IDC_EDIT_COUNTDOWN, nullptr, FALSE));
+				db_set_b(NULL, MODULENAME, "CpuUsageThreshold", (BYTE)GetDlgItemInt(hwndDlg, IDC_EDIT_CPUUSAGE, nullptr, FALSE));
 			}
 			/* watcher type */
 			{
@@ -374,7 +373,7 @@ static INT_PTR CALLBACK SettingsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, L
 				if (IsDlgButtonChecked(hwndDlg, IDC_CHECK_IDLE)) watcherType |= SDWTF_IDLE;
 				if (IsDlgButtonChecked(hwndDlg, IDC_CHECK_STATUS)) watcherType |= SDWTF_STATUS;
 				if (IsDlgButtonChecked(hwndDlg, IDC_CHECK_CPUUSAGE)) watcherType |= SDWTF_CPUUSAGE;
-				db_set_w(NULL, "AutoShutdown", "WatcherFlags", watcherType);
+				db_set_w(NULL, MODULENAME, "WatcherFlags", watcherType);
 				ServiceStartWatcher(0, watcherType);
 			}
 			DestroyWindow(hwndDlg);
@@ -400,7 +399,7 @@ static INT_PTR ServiceShowSettingsDialog(WPARAM, LPARAM)
 		SetForegroundWindow(hwndSettingsDlg);
 		return 0;
 	}
-	return CreateDialog(hInst, MAKEINTRESOURCE(IDD_SETTINGS), nullptr, SettingsDlgProc) == nullptr;
+	return CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(IDD_SETTINGS), nullptr, SettingsDlgProc) == nullptr;
 }
 
 /************************* Toolbar ************************************/
@@ -417,7 +416,7 @@ int ToolbarLoaded(WPARAM, LPARAM)
 	ttb.name = LPGEN("Start/Stop automatic shutdown");
 	ttb.pszTooltipUp = LPGEN("Start automatic shutdown");
 	ttb.pszTooltipDn = LPGEN("Stop automatic shutdown");
-	hToolbarButton = TopToolbar_AddButton(&ttb);
+	hToolbarButton = g_plugin.addTTB(&ttb);
 	return 0;
 }
 
@@ -434,7 +433,7 @@ static HGENMENU hMainMenuItem, hTrayMenuItem;
 void SetShutdownMenuItem(bool fActive)
 {
 	/* main menu */
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x61e2a38f, 0xcd94, 0x4f72, 0x84, 0x8c, 0x72, 0x92, 0xde, 0x1d, 0x6d, 0x5);
 	mi.position = 2001090000;
 	if (fActive) {

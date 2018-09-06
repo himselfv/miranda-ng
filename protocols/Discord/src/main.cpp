@@ -17,11 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "stdafx.h"
 
-CHAT_MANAGER *pci;
-int hLangpack = 0;
+CMPlugin g_plugin;
+
 HWND g_hwndHeartbeat;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -34,16 +36,11 @@ PLUGININFOEX pluginInfo = {
 	{ 0x88928401, 0x2ce8, 0x4568, { 0xaa, 0xa7, 0x22, 0x61, 0x41, 0x87, 0x0c, 0xbf } }
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	ACCPROTOPLUGIN<CDiscordProto>("Discord", pluginInfoEx)
 {
-	return &pluginInfo;
+	SetUniqueId(DB_KEY_ID);
 }
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-CMPlugin g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Interface information
@@ -59,21 +56,18 @@ IconItem g_iconList[] =
 	{ LPGEN("Group chats"), "groupchat", IDI_GROUPCHAT }
 };
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pci = Chat_GetInterface();
-
 	g_hwndHeartbeat = CreateWindowEx(0, L"STATIC", nullptr, 0, 0, 0, 0, 0, nullptr, nullptr, nullptr, nullptr);
 
-	Icon_Register(g_plugin.getInst(), "Discord", g_iconList, _countof(g_iconList));
+	g_plugin.registerIcon("Protocols/Discord", g_iconList);
 	return 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Unload
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	DestroyWindow(g_hwndHeartbeat);
 	return 0;

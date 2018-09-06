@@ -11,7 +11,6 @@ POINT lastpnt;
 #define TM_STATUSBARHIDE 23435235
 
 HWND hModernStatusBar = nullptr;
-HANDLE hFramehModernStatusBar = nullptr;
 
 #define DBFONTF_BOLD       1
 #define DBFONTF_ITALIC     2
@@ -114,7 +113,7 @@ int LoadStatusBarData()
 		g_StatusBarData.backgroundBmpUse = db_get_w(0, "StatusBar", "BkBmpUse", CLCDEFAULT_BKBMPUSE);
 	}
 
-	SendMessage(pcli->hwndContactList, WM_SIZE, 0, 0);
+	SendMessage(g_clistApi.hwndContactList, WM_SIZE, 0, 0);
 	return 1;
 }
 
@@ -135,7 +134,7 @@ int NewStatusPaintCallbackProc(HWND hWnd, HDC hDC, RECT *, HRGN, DWORD, void *)
 int ModernDrawStatusBar(HWND hwnd, HDC hDC)
 {
 	if (hwnd == (HWND)-1) return 0;
-	if (GetParent(hwnd) == pcli->hwndContactList)
+	if (GetParent(hwnd) == g_clistApi.hwndContactList)
 		return ModernDrawStatusBarWorker(hwnd, hDC);
 
 	cliInvalidateRect(hwnd, nullptr, FALSE);
@@ -347,7 +346,7 @@ int ModernDrawStatusBarWorker(HWND hWnd, HDC hDC)
 						p.tszProtoXStatus = mir_wstrdup(str);
 				}
 
-				if ((p.xStatusMode & 3)) {
+				if (p.xStatusMode & 3) {
 					if (p.iProtoStatus > ID_STATUS_OFFLINE) {
 						if (ProtoServiceExists(p.szAccountName, PS_GETCUSTOMSTATUSICON))
 							p.extraIcon = (HICON)CallProtoService(p.szAccountName, PS_GETCUSTOMSTATUSICON, 0, 0);
@@ -495,7 +494,7 @@ int ModernDrawStatusBarWorker(HWND hWnd, HDC hDC)
 				}
 
 				if (hxIcon || hIcon) { // TODO g_StatusBarData.bDrawLockOverlay  options to draw locked proto
-					if (db_get_b(0, p.szAccountName, "LockMainStatus", 0)) {
+					if (Proto_GetAccount(p.szAccountName)->IsLocked()) {
 						HICON hLockOverlay = Skin_LoadIcon(SKINICON_OTHER_STATUS_LOCKED);
 						if (hLockOverlay != nullptr) {
 							ske_DrawIconEx(hDC, x, iconY, hLockOverlay, iconWidth, iconHeight, 0, nullptr, DI_NORMAL | dim);
@@ -586,7 +585,7 @@ LRESULT CALLBACK ModernStatusProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_SIZE:
-		if (!g_CluiData.fLayered || GetParent(hwnd) != pcli->hwndContactList)
+		if (!g_CluiData.fLayered || GetParent(hwnd) != g_clistApi.hwndContactList)
 			InvalidateRect(hwnd, nullptr, FALSE);
 		return DefWindowProc(hwnd, msg, wParam, lParam);
 
@@ -594,9 +593,9 @@ LRESULT CALLBACK ModernStatusProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
 		return 1;
 
 	case WM_PAINT:
-		if (GetParent(hwnd) == pcli->hwndContactList && g_CluiData.fLayered)
+		if (GetParent(hwnd) == g_clistApi.hwndContactList && g_CluiData.fLayered)
 			CallService(MS_SKINENG_INVALIDATEFRAMEIMAGE, (WPARAM)hwnd, 0);
-		else if (GetParent(hwnd) == pcli->hwndContactList && !g_CluiData.fLayered) {
+		else if (GetParent(hwnd) == g_clistApi.hwndContactList && !g_CluiData.fLayered) {
 			RECT rc = { 0 };
 			GetClientRect(hwnd, &rc);
 			rc.right++;
@@ -759,15 +758,24 @@ LRESULT CALLBACK ModernStatusProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
 				BOOL bCtrl = (GetKeyState(VK_CONTROL) & 0x8000);
 
 				if (msg == WM_LBUTTONDOWN && bCtrl) {
+					char protoF[_countof(g_CluiData.protoFilter)];
+					mir_snprintf(protoF, "%s|", p->szAccountName);
+
 					if (g_CluiData.bFilterEffective != CLVM_FILTER_PROTOS || !bShift) {
 						ApplyViewMode("");
-						mir_snprintf(g_CluiData.protoFilter, "%s|", p->szAccountName);
-						g_CluiData.bFilterEffective = CLVM_FILTER_PROTOS;
+
+						// if a user clicks on the same proto again, disable filter
+						if (!mir_strcmp(protoF, g_CluiData.protoFilter)) {
+							g_CluiData.protoFilter[0] = 0;
+							g_CluiData.bFilterEffective = 0;
+						}
+						else {
+							mir_snprintf(g_CluiData.protoFilter, "%s|", p->szAccountName);
+							g_CluiData.bFilterEffective = CLVM_FILTER_PROTOS;
+						}
 					}
 					else {
-						char protoF[sizeof(g_CluiData.protoFilter)];
-						mir_snprintf(protoF, "%s|", p->szAccountName);
-						char *pos = strstri(g_CluiData.protoFilter, p->szAccountName);
+						char *pos = strstri(g_CluiData.protoFilter, protoF);
 						if (pos) {
 							// remove filter
 							size_t len = mir_strlen(protoF);
@@ -779,15 +787,15 @@ LRESULT CALLBACK ModernStatusProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
 								g_CluiData.bFilterEffective = CLVM_FILTER_PROTOS;
 						}
 						else {
-							//add filter
-							mir_snprintf(g_CluiData.protoFilter, "%s%s", g_CluiData.protoFilter, protoF);
+							// add filter
+							strncat_s(g_CluiData.protoFilter, protoF, _TRUNCATE);
 							g_CluiData.bFilterEffective = CLVM_FILTER_PROTOS;
 						}
 					}
 
 					if (g_CluiData.bFilterEffective == CLVM_FILTER_PROTOS) {
-						char filterName[sizeof(g_CluiData.protoFilter)] = { 0 };
-						filterName[0] = (char)13;
+						CMStringA szFilterName;
+						szFilterName.AppendChar(13);
 
 						int protoCount;
 						PROTOACCOUNT **accs;
@@ -803,15 +811,14 @@ LRESULT CALLBACK ModernStatusProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
 							mir_snprintf(protoF, "%s|", accs[k]->szModuleName);
 							if (strstri(g_CluiData.protoFilter, protoF)) {
 								if (!first)
-									mir_strncat(filterName, "; ", _countof(filterName) - mir_strlen(filterName));
-								mir_strncat(filterName, T2Utf(accs[k]->tszAccountName), _countof(filterName) - mir_strlen(filterName));
+									szFilterName.Append("; ");
+								szFilterName.Append(T2Utf(accs[k]->tszAccountName));
 								first = false;
 							}
 						}
 
-						SaveViewMode(filterName, L"", g_CluiData.protoFilter, 0, -1, 0, 0, 0, 0);
-
-						ApplyViewMode(filterName);
+						SaveViewMode(szFilterName, L"", g_CluiData.protoFilter, 0, -1, 0, 0, 0, 0);
+						ApplyViewMode(szFilterName);
 					}
 					Clist_Broadcast(CLM_AUTOREBUILD, 0, 0);
 					cliInvalidateRect(hwnd, nullptr, FALSE);
@@ -837,7 +844,7 @@ LRESULT CALLBACK ModernStatusProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
 				ClientToScreen(hwnd, &pt);
 
 				HWND parent = GetParent(hwnd);
-				if (parent != pcli->hwndContactList) parent = GetParent(parent);
+				if (parent != g_clistApi.hwndContactList) parent = GetParent(parent);
 				TrackPopupMenu(hMenu, TPM_TOPALIGN | TPM_LEFTALIGN | TPM_LEFTBUTTON, pt.x, pt.y, 0, parent, nullptr);
 				return 0;
 			}
@@ -861,29 +868,30 @@ HWND StatusBar_Create(HWND parent)
 {
 	WNDCLASS wndclass = { 0 };
 	int h = GetSystemMetrics(SM_CYSMICON) + 2;
-	if (GetClassInfo(g_hInst, pluginname, &wndclass) == 0) {
+	if (GetClassInfo(g_plugin.getInst(), pluginname, &wndclass) == 0) {
 		wndclass.lpfnWndProc = ModernStatusProc;
-		wndclass.hInstance = g_hInst;
+		wndclass.hInstance = g_plugin.getInst();
 		wndclass.hCursor = LoadCursor(nullptr, IDC_ARROW);
 		wndclass.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
 		wndclass.lpszClassName = pluginname;
 		RegisterClass(&wndclass);
 	}
 
-	hModernStatusBar = CreateWindow(pluginname, pluginname, WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN, 0, 0, 0, h, parent, nullptr, g_hInst, nullptr);
+	hModernStatusBar = CreateWindow(pluginname, pluginname, WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN, 0, 0, 0, h, parent, nullptr, g_plugin.getInst(), nullptr);
 
 	// register frame
 	CLISTFrame Frame = { sizeof(Frame) };
 	Frame.hWnd = hModernStatusBar;
 	Frame.align = alBottom;
 	Frame.hIcon = Skin_LoadIcon(SKINICON_OTHER_FRAME);
-	Frame.Flags = F_LOCKED | F_NOBORDER | F_NO_SUBCONTAINER | F_UNICODE;
+	Frame.Flags = F_LOCKED | F_NOBORDER | F_NO_SUBCONTAINER;
 	if (db_get_b(0, "CLUI", "ShowSBar", SETTING_SHOWSBAR_DEFAULT))
 		Frame.Flags |= F_VISIBLE;
 	Frame.height = h;
-	Frame.tname = L"Status bar";
-	Frame.TBtname = TranslateT("Status bar");
-	hFramehModernStatusBar = (HANDLE)CallService(MS_CLIST_FRAMES_ADDFRAME, (WPARAM)&Frame, 0);
+	Frame.szName.a = "Status bar";
+	Frame.szTBname.a = LPGEN("Status bar");
+	g_plugin.addFrame(&Frame);
+	
 	CallService(MS_SKINENG_REGISTERPAINTSUB, (WPARAM)Frame.hWnd, (LPARAM)NewStatusPaintCallbackProc); //$$$$$ register sub for frame
 
 	LoadStatusBarData();

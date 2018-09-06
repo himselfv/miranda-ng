@@ -253,14 +253,14 @@ void CMsnProto::OnContactDeleted(MCONTACT hContact)
 	if (isChatRoom(hContact)) {
 		DBVARIANT dbv;
 		if (!getWString(hContact, "ChatRoomID", &dbv)) {
-			MSN_KillChatSession(dbv.ptszVal);
+			MSN_KillChatSession(dbv.pwszVal);
 			db_free(&dbv);
 		}
 	}
 	else {
 		char szEmail[MSN_MAX_EMAIL_LEN];
 		if (MSN_IsMeByContact(hContact, szEmail))
-			pcli->pfnRemoveEvent(hContact, 1);
+			g_clistApi.pfnRemoveEvent(hContact, 1);
 
 		if (szEmail[0]) {
 			debugLogA("Deleted Handler Email");
@@ -429,7 +429,7 @@ INT_PTR CMsnProto::OnLeaveChat(WPARAM hContact, LPARAM)
 	if (isChatRoom(hContact) != 0) {
 		DBVARIANT dbv;
 		if (getWString(hContact, "ChatRoomID", &dbv) == 0) {
-			MSN_KillChatSession(dbv.ptszVal);
+			MSN_KillChatSession(dbv.pwszVal);
 			db_free(&dbv);
 		}
 	}

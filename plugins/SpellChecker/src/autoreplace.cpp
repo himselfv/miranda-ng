@@ -64,8 +64,8 @@ void AutoReplaceMap::loadAutoReplaceMap()
 				}
 
 				if (p != nullptr) {
-					Utf8ToTchar find(tmp);
-					Utf8ToTchar replace(p);
+					ptrW find(mir_utf8decodeW(tmp));
+					ptrW replace(mir_utf8decodeW(p));
 
 					lstrtrim(find);
 					lstrtrim(replace);
@@ -102,8 +102,8 @@ void AutoReplaceMap::writeAutoReplaceMap()
 		for (; it != m_replacements.end(); it++) {
 			AutoReplacement &ar = it->second;
 
-			TcharToUtf8 find(it->first.c_str());
-			TcharToUtf8 replace(ar.replace.c_str());
+			ptrA find(mir_utf8encodeW(it->first.c_str()));
+			ptrA replace(mir_utf8encodeW(ar.replace.c_str()));
 
 			if (ar.useVariables)
 				fprintf(file, "%s-V>%s\n", (const char *)find, (const char *)replace);
@@ -169,9 +169,9 @@ CMStringW AutoReplaceMap::autoReplace(const wchar_t * word)
 wchar_t* AutoReplaceMap::filterText(const wchar_t *find)
 {
 	wchar_t *ret = mir_wstrdup(find);
-	int len = mir_wstrlen(ret);
+	size_t len = mir_wstrlen(ret);
 	int pos = 0;
-	for (int i = 0; i < len; i++)
+	for (size_t i = 0; i < len; i++)
 		if (isWordChar(find[i]))
 			ret[pos++] = ret[i];
 	ret[pos] = 0;

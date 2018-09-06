@@ -101,7 +101,7 @@ INT_PTR CALLBACK DlgProcGenOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lP
 		}
 		if (CB_ERR == (int)SendDlgItemMessage(hwndDlg, IDC_PRIMARYSTATUS, CB_GETCURSEL, 0, 0))
 			SendDlgItemMessage(hwndDlg, IDC_PRIMARYSTATUS, CB_SETCURSEL, 0, 0);
-		SendDlgItemMessage(hwndDlg, IDC_BLINKSPIN, UDM_SETBUDDY, (WPARAM)GetDlgItem(hwndDlg, IDC_BLINKTIME), 0);
+
 		SendDlgItemMessage(hwndDlg, IDC_BLINKSPIN, UDM_SETRANGE, 0, MAKELONG(0x3FFF, 250));
 		SendDlgItemMessage(hwndDlg, IDC_BLINKSPIN, UDM_SETPOS, 0, MAKELONG(db_get_w(NULL, "CList", "IconFlashTime", 550), 0));
 		CheckDlgButton(hwndDlg, IDC_NOTRAYINFOTIPS, cfg::dat.bNoTrayTips ? 1 : 0);
@@ -171,11 +171,11 @@ INT_PTR CALLBACK DlgProcGenOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lP
 				ConfigureCLUIGeometry(1);
 				ConfigureEventArea();
 				HideShowNotifyFrame();
-				SendMessage(pcli->hwndContactTree, WM_SIZE, 0, 0);
-				SendMessage(pcli->hwndContactList, WM_SIZE, 0, 0);
+				SendMessage(g_clistApi.hwndContactTree, WM_SIZE, 0, 0);
+				SendMessage(g_clistApi.hwndContactList, WM_SIZE, 0, 0);
 				Clist_LoadContactTree(); /* this won't do job properly since it only really works when changes happen */
 				Clist_Broadcast(CLM_AUTOREBUILD, 0, 0);
-				PostMessage(pcli->hwndContactList, CLUIINTM_REDRAW, 0, 0);
+				PostMessage(g_clistApi.hwndContactList, CLUIINTM_REDRAW, 0, 0);
 
 				opt_gen_opts_changed = 0;
 				return TRUE;

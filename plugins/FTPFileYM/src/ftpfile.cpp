@@ -18,8 +18,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "stdafx.h"
 
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
 HGENMENU hMenu, hMainMenu, hSubMenu[ServerList::FTP_COUNT], hMainSubMenu[ServerList::FTP_COUNT];
 
@@ -35,6 +34,8 @@ void PrebuildMainMenu();
 int TabsrmmButtonPressed(WPARAM wParam, LPARAM lParam);
 int UploadFile(MCONTACT hContact, int m_iFtpNum, UploadJob::EMode mode);
 
+/////////////////////////////////////////////////////////////////////////////////////////
+
 static PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
@@ -49,20 +50,11 @@ static PLUGININFOEX pluginInfoEx =
 	{0x9502e511, 0x7e5d, 0x49a1, {0x8b, 0xa5, 0xb1, 0xae, 0xe7, 0xf, 0xa5, 0xbf}}
 };
 
-//------------ BASIC STAFF ------------//
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
-
-//------------ INIT FUNCTIONS ------------//
+/////////////////////////////////////////////////////////////////////////////////////////
 
 static IconItem iconList[] =
 {
@@ -81,14 +73,14 @@ static IconItem iconList[] =
 
 static void InitIcolib()
 {
-	Icon_Register(hInst, LPGEN("FTP File"), iconList, _countof(iconList), MODULE);
+	g_plugin.registerIcon(LPGEN("FTP File"), iconList, MODULENAME);
 }
 
 void InitMenuItems()
 {
 	wchar_t stzName[256];
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0xB7132F5A, 0x65FC, 0x42C5, 0xB4, 0xCB, 0x54, 0xBC, 0xAC, 0x58, 0x34, 0xE9);
 	mi.flags = CMIF_UNICODE;
 	mi.hIcolibItem = iconList[ServerList::FTP_COUNT].hIcolib;
@@ -103,13 +95,13 @@ void InitMenuItems()
 	mi.name.w = stzName;
 	mi.flags = CMIF_UNICODE | CMIF_SYSTEM;
 
-	CMenuItem mi2;
+	CMenuItem mi2(&g_plugin);
 	mi2.flags = CMIF_UNICODE | CMIF_SYSTEM;
 	mi2.pszService = MS_FTPFILE_CONTACTMENU;
 
 	CMStringA frmt;
 	for (int i = 0; i < ServerList::FTP_COUNT; i++) {
-		ptrA Name(db_get_sa(NULL, MODULE, frmt.Format("Name%d", i)));
+		ptrA Name(db_get_sa(NULL, MODULENAME, frmt.Format("Name%d", i)));
 		if (Name)
 			mir_snwprintf(stzName, TranslateT("FTP Server %d"), i + 1);
 
@@ -170,23 +162,23 @@ void InitMenuItems()
 void InitHotkeys()
 {
 	HOTKEYDESC hk = {};
-	hk.szSection.a = MODULE;
+	hk.szSection.a = MODULENAME;
 	hk.szDescription.a = LPGEN("Show FTPFile manager");
 	hk.pszName = "FTP_ShowManager";
 	hk.pszService = MS_FTPFILE_SHOWMANAGER;
-	Hotkey_Register(&hk);
+	g_plugin.addHotkey(&hk);
 }
 
 void InitTabsrmmButton()
 {
 	BBButton btn = {};
 	btn.dwButtonID = 1;
-	btn.pszModuleName = MODULE;
+	btn.pszModuleName = MODULENAME;
 	btn.dwDefPos = 105;
 	btn.hIcon = iconList[ServerList::FTP_COUNT].hIcolib;
 	btn.bbbFlags = BBBF_ISARROWBUTTON | BBBF_ISIMBUTTON | BBBF_CANBEHIDDEN;
 	btn.pwszTooltip = TranslateT("FTP File");
-	Srmm_AddButton(&btn);
+	Srmm_AddButton(&btn, &g_plugin);
 	HookEvent(ME_MSG_BUTTONPRESSED, TabsrmmButtonPressed);
 }
 
@@ -223,7 +215,7 @@ int TabsrmmButtonPressed(WPARAM hContact, LPARAM lParam)
 {
 	CustomButtonClickData *cbc = (CustomButtonClickData *)lParam;
 
-	if (!strcmp(cbc->pszModule, MODULE) && cbc->dwButtonId == 1 && hContact) {
+	if (!strcmp(cbc->pszModule, MODULENAME) && cbc->dwButtonId == 1 && hContact) {
 		if (cbc->flags == BBCF_ARROWCLICKED) {
 			HMENU hPopupMenu = CreatePopupMenu();
 			if (hPopupMenu) {
@@ -347,20 +339,20 @@ INT_PTR MainMenuService(WPARAM wParam, LPARAM)
 
 //------------ START & EXIT STUFF ------------//
 
-int ModulesLoaded(WPARAM, LPARAM)
+static int ModulesLoaded(WPARAM, LPARAM)
 {
 	InitMenuItems();
 	InitTabsrmmButton();
 
-	Skin_AddSound(SOUND_UPCOMPLETE, LPGENW("FTP File"), LPGENW("File upload complete"));
-	Skin_AddSound(SOUND_CANCEL, LPGENW("FTP File"), LPGENW("Upload canceled"));
+	g_plugin.addSound(SOUND_UPCOMPLETE, LPGENW("FTP File"), LPGENW("File upload complete"));
+	g_plugin.addSound(SOUND_CANCEL, LPGENW("FTP File"), LPGENW("Upload canceled"));
 
 	curl_global_init(CURL_GLOBAL_ALL);
 
 	return 0;
 }
 
-int Shutdown(WPARAM, LPARAM)
+static int Shutdown(WPARAM, LPARAM)
 {
 	deleteTimer.deinit();
 
@@ -380,10 +372,8 @@ int Shutdown(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-
 #ifdef _DEBUG
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
@@ -405,10 +395,5 @@ extern "C" int __declspec(dllexport) Load(void)
 	opt.loadOptions();
 	deleteTimer.init();
 	ftpList.init();
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

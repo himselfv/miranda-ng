@@ -117,7 +117,7 @@ static LRESULT CALLBACK sttKeyboardProc(int code, WPARAM wParam, LPARAM lParam)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-MIR_APP_DLL(int) Hotkey_Register(const HOTKEYDESC *desc, int _hLangpack)
+MIR_APP_DLL(int) Hotkey_Register(const HOTKEYDESC *desc, HPLUGIN pPlugin)
 {
 	THotkeyItem *p = (THotkeyItem*)mir_alloc(sizeof(THotkeyItem));
 	if (desc->dwFlags & HKD_UNICODE) {
@@ -129,7 +129,7 @@ MIR_APP_DLL(int) Hotkey_Register(const HOTKEYDESC *desc, int _hLangpack)
 		p->pwszDescription = mir_a2u(desc->szDescription.a);
 	}
 
-	p->hLangpack = _hLangpack;
+	p->pPlugin = pPlugin;
 	p->allowSubHotkeys = TRUE;
 	p->rootHotkey = nullptr;
 	p->nSubHotkeys = 0;
@@ -186,7 +186,7 @@ MIR_APP_DLL(int) Hotkey_Register(const HOTKEYDESC *desc, int _hLangpack)
 			if (!db_get_w(0, DBMODULENAME, buf, 0))
 				continue;
 
-			Hotkey_Register(desc, _hLangpack);
+			Hotkey_Register(desc, pPlugin);
 		}
 		p->allowSubHotkeys = count < 0;
 	}
@@ -286,11 +286,11 @@ void RegisterHotkeys()
 	}
 }
 
-MIR_APP_DLL(void) KillModuleHotkeys(int _hLang)
+MIR_APP_DLL(void) KillModuleHotkeys(HPLUGIN pPlugin)
 {
 	auto T = hotkeys.rev_iter();
 	for (auto &it : T)
-		if (it->hLangpack == _hLang) {
+		if (it->pPlugin == pPlugin) {
 			FreeHotkey(it);
 			hotkeys.remove(T.indexOf(&it));
 		}
@@ -325,7 +325,7 @@ int LoadSkinHotkeys(void)
 	wcl.style = 0;
 	wcl.cbClsExtra = 0;
 	wcl.cbWndExtra = 0;
-	wcl.hInstance = g_hInst;
+	wcl.hInstance = g_plugin.getInst();
 	wcl.hIcon = nullptr;
 	wcl.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wcl.hbrBackground = (HBRUSH)GetStockObject(LTGRAY_BRUSH);
@@ -336,7 +336,7 @@ int LoadSkinHotkeys(void)
 
 	g_pid = GetCurrentProcessId();
 
-	g_hwndHotkeyHost = CreateWindow(L"MirandaHotkeyHostWnd", nullptr, 0, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, HWND_DESKTOP, nullptr, g_hInst, nullptr);
+	g_hwndHotkeyHost = CreateWindow(L"MirandaHotkeyHostWnd", nullptr, 0, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, HWND_DESKTOP, nullptr, g_plugin.getInst(), nullptr);
 	SetWindowPos(g_hwndHotkeyHost, nullptr, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_HIDEWINDOW);
 
 	hhkKeyboard = SetWindowsHookEx(WH_KEYBOARD, sttKeyboardProc, nullptr, hMainThreadId);

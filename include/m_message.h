@@ -163,7 +163,7 @@ struct StatusIconData
 #define MBCF_RIGHTBUTTON   0x01     // if this flag is specified, the click was a right button - otherwize it was a left click
 
 // adds an icon
-EXTERN_C MIR_APP_DLL(int) Srmm_AddIcon(StatusIconData *sid, int _hLang = hLangpack);
+EXTERN_C MIR_APP_DLL(int) Srmm_AddIcon(StatusIconData *sid, HPLUGIN pPlugin);
 
 // removes an icon
 EXTERN_C MIR_APP_DLL(void) Srmm_RemoveIcon(const char *szProto, DWORD iconId);
@@ -199,6 +199,9 @@ struct StatusIconClickData
 // lParam = (StatusIconkData*)pIcon
 // catch to be notified about the icon list's change.
 #define ME_MSG_ICONSCHANGED   "MessageAPI/IconsChanged"
+
+// emulates click on a status bar icon
+EXTERN_C MIR_APP_DLL(void) Srmm_ClickStatusIcon(MCONTACT hContact, const StatusIconClickData *sid);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // srmm toolbar icons' support
@@ -241,7 +244,7 @@ struct BBButton
 
 // adds a new toolbar button
 // returns button's handle on success or NULL otherwise
-EXTERN_C MIR_APP_DLL(HANDLE) Srmm_AddButton(const BBButton *bbdi, int = hLangpack);
+EXTERN_C MIR_APP_DLL(HANDLE) Srmm_AddButton(const BBButton *bbdi, HPLUGIN);
 
 // modifies the existing toolbar button
 // returns 0 on success and nonzero value otherwise

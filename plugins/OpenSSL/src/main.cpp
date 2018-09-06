@@ -23,10 +23,19 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 int LoadSslModule(void);
 void UnloadSslModule(void);
 
-HINSTANCE hInst;
-int hLangpack;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
 
-PLUGININFOEX pluginInfo = {
+	int Load() override;
+	int Unload() override;
+}
+g_plugin;
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	__VERSION_DWORD,
@@ -34,32 +43,29 @@ PLUGININFOEX pluginInfo = {
 	__AUTHOR,
 	__COPYRIGHT,
 	__AUTHORWEB,
-	UNICODE_AWARE | STATIC_PLUGIN,
+	UNICODE_AWARE,
 	// {B649702C-13DE-408A-B6C2-FB8FED2A2C90}
 	{ 0xb649702c, 0x13de, 0x408a, { 0xb6, 0xc2, 0xfb, 0x8f, 0xed, 0x2a, 0x2c, 0x90 } }
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_SSL, MIID_LAST };
 
-extern "C" int __declspec(dllexport) Load(void)
-{
-	mir_getLP(&pluginInfo);
+/////////////////////////////////////////////////////////////////////////////////////////
 
+int CMPlugin::Load()
+{
 	return LoadSslModule();
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	UnloadSslModule();
 	return 0;

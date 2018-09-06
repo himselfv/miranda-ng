@@ -18,13 +18,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "stdafx.h"
 
-HINSTANCE hInst;
-
 #define MS_HISTORY_DELETEALLCONTACTHISTORY       "BasicHistory/DeleteAllContactHistory"
 #define MS_HISTORY_EXECUTE_TASK       "BasicHistory/ExecuteTask"
 
-HCURSOR     hCurSplitNS, hCurSplitWE;
-HANDLE  g_hMainThread = nullptr;
+HCURSOR hCurSplitNS, hCurSplitWE;
 
 HANDLE *hEventIcons = nullptr;
 int iconsNum = 3;
@@ -36,9 +33,11 @@ bool g_SmileyAddAvail = false;
 char* metaContactProto = nullptr;
 const IID IID_ITextDocument = { 0x8CC497C0, 0xA1DF, 0x11ce, {0x80, 0x98, 0x00, 0xAA, 0x00, 0x47, 0xBE, 0x5D} };
 
-#define MODULE "BasicHistory"
+CMPlugin g_plugin;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -51,20 +50,15 @@ PLUGININFOEX pluginInfo = {
 	{0xe25367a2, 0x51ae, 0x4044, {0xbe, 0x28, 0x13, 0x1b, 0xc1, 0x8b, 0x71, 0xa4}}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-int hLangpack = 0;
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_UIHISTORY, MIID_LAST };
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 void InitScheduler();
 void DeinitScheduler();
@@ -88,13 +82,13 @@ int ToolbarModuleLoaded(WPARAM, LPARAM)
 	ttb.name = ttb.pszTooltipUp = LPGEN("Open History");
 	ttb.dwFlags = TTBBF_SHOWTOOLTIP;
 	ttb.hIconHandleUp = Skin_GetIconHandle(SKINICON_OTHER_HISTORY);
-	hToolbarButton = TopToolbar_AddButton(&ttb);
+	hToolbarButton = g_plugin.addTTB(&ttb);
 	return 0;
 }
 
 void InitMenuItems()
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 
 	SET_UID(mi, 0x28848d7a, 0x6995, 0x4799, 0x82, 0xd7, 0x18, 0x40, 0x3d, 0xe3, 0x71, 0xc4);
 	mi.position = 1000090000;
@@ -121,7 +115,7 @@ void InitTaskMenuItems()
 {
 	if (Options::instance->taskOptions.size() > 0) {
 		if (hTaskMainMenu == nullptr) {
-			CMenuItem mi;
+			CMenuItem mi(&g_plugin);
 			SET_UID(mi, 0xbf66499, 0x1b39, 0x47a2, 0x9b, 0x74, 0xa6, 0xae, 0x89, 0x95, 0x59, 0x59);
 			mi.position = 500060005;
 			mi.hIcolibItem = Skin_GetIconHandle(SKINICON_OTHER_HISTORY);
@@ -139,7 +133,7 @@ void InitTaskMenuItems()
 
 		int pos = (int)taskMenus.size();
 		for (; taskIt != Options::instance->taskOptions.end(); ++taskIt) {
-			CMenuItem mi;
+			CMenuItem mi(&g_plugin);
 			mi.flags = CMIF_UNICODE | CMIF_KEEPUNTRANSLATED;
 			mi.pszService = MS_HISTORY_EXECUTE_TASK;
 			mi.root = hTaskMainMenu;
@@ -239,12 +233,9 @@ int ModulesLoaded(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	hTaskMainMenu = nullptr;
-	DuplicateHandle(GetCurrentProcess(), GetCurrentThread(), GetCurrentProcess(), &g_hMainThread, 0, FALSE, DUPLICATE_SAME_ACCESS);
 
 	hCurSplitNS = LoadCursor(nullptr, IDC_SIZENS);
 	hCurSplitWE = LoadCursor(nullptr, IDC_SIZEWE);
@@ -260,16 +251,14 @@ extern "C" int __declspec(dllexport) Load(void)
 
 	HistoryEventList::Init();
 
-	Icon_Register(hInst, LPGEN("History"), iconList, _countof(iconList));
+	g_plugin.registerIcon(LPGEN("History"), iconList);
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
-{
-	if (g_hMainThread)
-		CloseHandle(g_hMainThread);
-	g_hMainThread = nullptr;
+/////////////////////////////////////////////////////////////////////////////////////////
 
+int CMPlugin::Unload()
+{
 	HistoryWindow::Deinit();
 
 	DestroyCursor(hCurSplitNS);

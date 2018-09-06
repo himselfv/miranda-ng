@@ -45,3 +45,11 @@
 #include "Subject.h"
 #include "SpeechInterface.h"
 #include "SpeakConfig.h"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};

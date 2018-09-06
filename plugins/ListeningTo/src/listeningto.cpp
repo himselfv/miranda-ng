@@ -94,7 +94,7 @@ void RebuildMenu()
 		wchar_t text[512];
 		mir_snwprintf(text, TranslateT("Send to %s"), info->account);
 
-		CMenuItem mi;
+		CMenuItem mi(&g_plugin);
 		mi.position = 100000 + i;
 		mi.root = hMainMenuGroup;
 		mi.position = 500080000 + i;
@@ -174,7 +174,7 @@ int AccListChanged(WPARAM wParam, LPARAM lParam)
 int ModulesLoaded(WPARAM, LPARAM)
 {
 	// Extra icon support
-	hExtraIcon = ExtraIcon_RegisterIcolib(MODULE_NAME "_icon", LPGEN("Listening to music"), "listening_to_icon");
+	hExtraIcon = ExtraIcon_RegisterIcolib(MODULENAME "_icon", LPGEN("Listening to music"), "listening_to_icon");
 
 	EnableDisablePlayers();
 
@@ -183,7 +183,7 @@ int ModulesLoaded(WPARAM, LPARAM)
 		if (proto != nullptr) {
 			DBVARIANT dbv;
 			if (!db_get_ws(hContact, proto, "ListeningTo", &dbv)) {
-				if (dbv.ptszVal != nullptr && dbv.ptszVal[0] != 0)
+				if (dbv.pwszVal != nullptr && dbv.pwszVal[0] != 0)
 					SetExtraIcon(hContact, TRUE);
 
 				db_free(&dbv);
@@ -192,7 +192,7 @@ int ModulesLoaded(WPARAM, LPARAM)
 	}
 
 	// Add main menu item
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0xe8e4e594, 0x255e, 0x434d, 0x83, 0x74, 0x79, 0x44, 0x1b, 0x4e, 0xe7, 0x16);
 	mi.position = 500080000;
 	mi.name.w = LPGENW("Listening to");
@@ -237,53 +237,53 @@ int ModulesLoaded(WPARAM, LPARAM)
 		tr.memType = TR_MEM_MIRANDA;
 		tr.flags = TRF_FREEMEM | TRF_PARSEFUNC | TRF_FIELD | TRF_TCHAR;
 
-		tr.tszTokenString = L"listening_info";
-		tr.parseFunctionT = VariablesParseInfo;
+		tr.szTokenString.w = L"listening_info";
+		tr.parseFunctionW = VariablesParseInfo;
 		tr.szHelpText = LPGEN("Listening info") "\t" LPGEN("Listening info as set in the options");
 		CallService(MS_VARS_REGISTERTOKEN, 0, (LPARAM)&tr);
 
-		tr.tszTokenString = L"listening_type";
-		tr.parseFunctionT = VariablesParseType;
+		tr.szTokenString.w = L"listening_type";
+		tr.parseFunctionW = VariablesParseType;
 		tr.szHelpText = LPGEN("Listening info") "\t" LPGEN("Media type: Music, Video, etc.");
 		CallService(MS_VARS_REGISTERTOKEN, 0, (LPARAM)&tr);
 
-		tr.tszTokenString = L"listening_artist";
-		tr.parseFunctionT = VariablesParseArtist;
+		tr.szTokenString.w = L"listening_artist";
+		tr.parseFunctionW = VariablesParseArtist;
 		tr.szHelpText = LPGEN("Listening info") "\t" LPGEN("Artist name");
 		CallService(MS_VARS_REGISTERTOKEN, 0, (LPARAM)&tr);
 
-		tr.tszTokenString = L"listening_album";
-		tr.parseFunctionT = VariablesParseAlbum;
+		tr.szTokenString.w = L"listening_album";
+		tr.parseFunctionW = VariablesParseAlbum;
 		tr.szHelpText = LPGEN("Listening info") "\t" LPGEN("Album name");
 		CallService(MS_VARS_REGISTERTOKEN, 0, (LPARAM)&tr);
 
-		tr.tszTokenString = L"listening_title";
-		tr.parseFunctionT = VariablesParseTitle;
+		tr.szTokenString.w = L"listening_title";
+		tr.parseFunctionW = VariablesParseTitle;
 		tr.szHelpText = LPGEN("Listening info") "\t" LPGEN("Song name");
 		CallService(MS_VARS_REGISTERTOKEN, 0, (LPARAM)&tr);
 
-		tr.tszTokenString = L"listening_track";
-		tr.parseFunctionT = VariablesParseTrack;
+		tr.szTokenString.w = L"listening_track";
+		tr.parseFunctionW = VariablesParseTrack;
 		tr.szHelpText = LPGEN("Listening info") "\t" LPGEN("Track number");
 		CallService(MS_VARS_REGISTERTOKEN, 0, (LPARAM)&tr);
 
-		tr.tszTokenString = L"listening_year";
-		tr.parseFunctionT = VariablesParseYear;
+		tr.szTokenString.w = L"listening_year";
+		tr.parseFunctionW = VariablesParseYear;
 		tr.szHelpText = LPGEN("Listening info") "\t" LPGEN("Song year");
 		CallService(MS_VARS_REGISTERTOKEN, 0, (LPARAM)&tr);
 
-		tr.tszTokenString = L"listening_genre";
-		tr.parseFunctionT = VariablesParseGenre;
+		tr.szTokenString.w = L"listening_genre";
+		tr.parseFunctionW = VariablesParseGenre;
 		tr.szHelpText = LPGEN("Listening info") "\t" LPGEN("Song genre");
 		CallService(MS_VARS_REGISTERTOKEN, 0, (LPARAM)&tr);
 
-		tr.tszTokenString = L"listening_length";
-		tr.parseFunctionT = VariablesParseLength;
+		tr.szTokenString.w = L"listening_length";
+		tr.parseFunctionW = VariablesParseLength;
 		tr.szHelpText = LPGEN("Listening info") "\t" LPGEN("Song length");
 		CallService(MS_VARS_REGISTERTOKEN, 0, (LPARAM)&tr);
 
-		tr.tszTokenString = L"listening_player";
-		tr.parseFunctionT = VariablesParsePlayer;
+		tr.szTokenString.w = L"listening_player";
+		tr.parseFunctionW = VariablesParsePlayer;
 		tr.szHelpText = LPGEN("Listening info") "\t" LPGEN("Player name");
 		CallService(MS_VARS_REGISTERTOKEN, 0, (LPARAM)&tr);
 	}
@@ -295,17 +295,17 @@ int ModulesLoaded(WPARAM, LPARAM)
 	hkd.pszService = MS_LISTENINGTO_HOTKEYS_ENABLE;
 	hkd.pszName = "ListeningTo/EnableAll";
 	hkd.szDescription.a = LPGEN("Send to all protocols");
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	hkd.pszService = MS_LISTENINGTO_HOTKEYS_DISABLE;
 	hkd.pszName = "ListeningTo/DisableAll";
 	hkd.szDescription.a = LPGEN("Don't send to any protocols");
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	hkd.pszService = MS_LISTENINGTO_HOTKEYS_TOGGLE;
 	hkd.pszName = "ListeningTo/ToggleAll";
 	hkd.szDescription.a = LPGEN("Toggle send to all protocols");
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	//
 	SetListeningInfos();
@@ -353,7 +353,7 @@ int TopToolBarLoaded(WPARAM, LPARAM)
 	ttb.name = LPGEN("Enable/Disable sending Listening To info (to all protocols)");
 	ttb.pszTooltipDn = LPGEN("Disable ListeningTo (to all protocols)");
 	ttb.pszTooltipUp = LPGEN("Enable ListeningTo (to all protocols)");
-	hTTB = TopToolbar_AddButton(&ttb);
+	hTTB = g_plugin.addTTB(&ttb);
 	return 0;
 }
 
@@ -385,7 +385,7 @@ bool ListeningToEnabled(char *proto, bool ignoreGlobal)
 
 	char setting[256];
 	mir_snprintf(setting, "%sEnabled", proto);
-	return db_get_b(NULL, MODULE_NAME, setting, false) != 0;
+	return db_get_b(NULL, MODULENAME, setting, false) != 0;
 }
 
 INT_PTR ListeningToEnabled(WPARAM wParam, LPARAM)
@@ -405,71 +405,36 @@ ProtocolInfo* GetProtoInfo(char *proto)
 	return nullptr;
 }
 
-static void ReplaceVars(Buffer<wchar_t> *buffer, MCONTACT hContact, wchar_t **variables, int numVariables)
+static void ReplaceVars(CMStringW &buffer, MCONTACT hContact, wchar_t **variables, int numVariables)
 {
-	if (buffer->len < 3)
-		return;
+	buffer.Replace(L"\\n", L"");
+	buffer.Replace(L"%contact%", Clist_GetContactDisplayName(hContact));
+	
+	wchar_t tmp[128];
+	TimeZone_ToStringT(time(0), L"d s", tmp, _countof(tmp));
+	buffer.Replace(L"%date%", tmp);
 
-	if (numVariables < 0)
-		return;
-
-	for (size_t i = buffer->len - 1; i > 0; i--) {
-		if (buffer->str[i] == '%') {
-			// Find previous
-			size_t j;
-			for (j = i - 1; j > 0 && ((buffer->str[j] >= 'a' && buffer->str[j] <= 'z')
-				|| (buffer->str[j] >= 'A' && buffer->str[j] <= 'Z')
-				|| buffer->str[j] == '-'
-				|| buffer->str[j] == '_'); j--);
-
-			if (buffer->str[j] == '%') {
-				size_t foundLen = i - j + 1;
-				if (foundLen == 9 && wcsncmp(&buffer->str[j], L"%contact%", 9) == 0) {
-					buffer->replace(j, i + 1, Clist_GetContactDisplayName(hContact));
-				}
-				else if (foundLen == 6 && wcsncmp(&buffer->str[j], L"%date%", 6) == 0) {
-					wchar_t tmp[128];
-					TimeZone_ToStringT(time(0), L"d s", tmp, _countof(tmp));
-					buffer->replace(j, i + 1, tmp);
-				}
-				else {
-					for (int k = 0; k < numVariables; k += 2) {
-						size_t len = mir_wstrlen(variables[k]);
-						if (foundLen == len + 2 && wcsncmp(&buffer->str[j] + 1, variables[k], len) == 0) {
-							buffer->replace(j, i + 1, variables[k + 1]);
-							break;
-						}
-					}
-				}
-			}
-
-			i = j;
-			if (i == 0)
-				break;
-		}
-		else if (buffer->str[i] == '\\' && i + 1 <= buffer->len - 1 && buffer->str[i + 1] == 'n') {
-			buffer->str[i] = '\r';
-			buffer->str[i + 1] = '\n';
-		}
+	for (int k = 0; k < numVariables; k += 2) {
+		CMStringW find('%');
+		find.Append(variables[k]);
+		find.AppendChar('%');
+		buffer.Replace(find, variables[k+1]);
 	}
 }
 
-void ReplaceTemplate(Buffer<wchar_t> *out, MCONTACT hContact, wchar_t *templ, wchar_t **vars, int numVars)
+void ReplaceTemplate(CMStringW &out, MCONTACT hContact, wchar_t *templ, wchar_t **vars, int numVars)
 {
-
 	if (ServiceExists(MS_VARS_FORMATSTRING)) {
 		wchar_t *tmp = variables_parse_ex(templ, nullptr, hContact, vars, numVars);
 		if (tmp != nullptr) {
-			out->append(tmp);
+			out.Append(tmp);
 			mir_free(tmp);
-			out->pack();
 			return;
 		}
 	}
 
-	out->append(templ);
+	out.Append(templ);
 	ReplaceVars(out, hContact, vars, numVars);
-	out->pack();
 }
 
 void SetListeningInfo(char *proto, LISTENINGTOINFO *lti = nullptr)
@@ -511,14 +476,14 @@ void SetListeningInfo(char *proto, LISTENINGTOINFO *lti = nullptr)
 					L"listening", opts.nothing
 				};
 
-				Buffer<wchar_t> name;
-				ReplaceTemplate(&name, NULL, opts.xstatus_name, fr, _countof(fr));
-				Buffer<wchar_t> msg;
-				ReplaceTemplate(&msg, NULL, opts.xstatus_message, fr, _countof(fr));
+				CMStringW name;
+				ReplaceTemplate(name, NULL, opts.xstatus_name, fr, _countof(fr));
+				CMStringW msg;
+				ReplaceTemplate(msg, NULL, opts.xstatus_message, fr, _countof(fr));
 
 				ics.flags = CSSF_UNICODE | CSSF_MASK_STATUS | CSSF_MASK_NAME | CSSF_MASK_MESSAGE;
-				ics.ptszName = name.str;
-				ics.ptszMessage = msg.str;
+				ics.ptszName = name.GetBuffer();
+				ics.ptszMessage = msg.GetBuffer();
 
 				CallProtoService(proto, PS_SETCUSTOMSTATUSEX, 0, (LPARAM)&ics);
 			}
@@ -592,23 +557,22 @@ void SetListeningInfo(char *proto, LISTENINGTOINFO *lti = nullptr)
 				L"type", UNKNOWN(lti->ptszType)
 			};
 
-			Buffer<wchar_t> name;
-			ReplaceTemplate(&name, NULL, opts.xstatus_name, fr, _countof(fr));
-			Buffer<wchar_t> msg;
-			ReplaceTemplate(&msg, NULL, opts.xstatus_message, fr, _countof(fr));
+			CMStringW name;
+			ReplaceTemplate(name, NULL, opts.xstatus_name, fr, _countof(fr));
+			CMStringW msg;
+			ReplaceTemplate(msg, NULL, opts.xstatus_message, fr, _countof(fr));
 
 			status = XSTATUS_MUSIC;
 			ics.flags = CSSF_UNICODE | CSSF_MASK_STATUS | CSSF_MASK_NAME | CSSF_MASK_MESSAGE;
 			ics.status = &status;
-			ics.ptszName = name.str;
-			ics.ptszMessage = msg.str;
-
+			ics.ptszName = name.GetBuffer();
+			ics.ptszMessage = msg.GetBuffer();
 			CallProtoService(proto, PS_SETCUSTOMSTATUSEX, 0, (LPARAM)&ics);
 
 			mir_free(fr[1]);
 		}
 	}
-	else if (db_get_b(0, MODULE_NAME, "UseStatusMessage", 1) && ProtoServiceExists(proto, PS_SETAWAYMSG)) {
+	else if (db_get_b(0, MODULENAME, "UseStatusMessage", 1) && ProtoServiceExists(proto, PS_SETAWAYMSG)) {
 		int status = Proto_GetStatus(proto);
 		if (lti == nullptr)
 			CallProtoService(proto, PS_SETAWAYMSG, status, 0);
@@ -635,7 +599,7 @@ INT_PTR EnableListeningTo(char *proto, bool enabled)
 
 		char setting[256];
 		mir_snprintf(setting, "%sEnabled", proto);
-		db_set_b(NULL, MODULE_NAME, setting, enabled);
+		db_set_b(NULL, MODULENAME, setting, enabled);
 
 		// Modify menu info
 		ProtocolInfo *info = GetProtoInfo(proto);
@@ -685,7 +649,7 @@ INT_PTR GetTextFormat(WPARAM, LPARAM)
 	return (INT_PTR)mir_wstrdup(opts.templ);
 }
 
-wchar_t *GetParsedFormat(LISTENINGTOINFO *lti)
+wchar_t* GetParsedFormat(LISTENINGTOINFO *lti)
 {
 	if (lti == nullptr)
 		return nullptr;
@@ -702,9 +666,9 @@ wchar_t *GetParsedFormat(LISTENINGTOINFO *lti)
 		L"type", UNKNOWN(lti->ptszType)
 	};
 
-	Buffer<wchar_t> ret;
-	ReplaceTemplate(&ret, NULL, opts.templ, fr, _countof(fr));
-	return ret.detach();
+	CMStringW ret;
+	ReplaceTemplate(ret, NULL, opts.templ, fr, _countof(fr));
+	return ret.Detach();
 }
 
 INT_PTR GetParsedFormat(WPARAM, LPARAM lParam)
@@ -846,7 +810,7 @@ int SettingChanged(WPARAM hContact, LPARAM lParam)
 	if (proto == nullptr || strcmp(cws->szModule, proto) != 0)
 		return 0;
 
-	if (cws->value.type == DBVT_DELETED || cws->value.ptszVal == nullptr || cws->value.ptszVal[0] == 0)
+	if (cws->value.type == DBVT_DELETED || cws->value.pwszVal == nullptr || cws->value.pwszVal[0] == 0)
 		SetExtraIcon(hContact, FALSE);
 	else
 		SetExtraIcon(hContact, TRUE);
@@ -860,7 +824,7 @@ INT_PTR SetNewSong(WPARAM wParam, LPARAM lParam)
 		return -1;
 
 	if (lParam == LISTENINGTO_ANSI) {
-		CharToWchar data((char *)wParam);
+		ptrW data(mir_a2u((char *)wParam));
 		((GenericPlayer *)players[GENERIC])->NewData(data, mir_wstrlen(data));
 	}
 	else {
@@ -894,5 +858,5 @@ void InitServices()
 	HookEvent(ME_DB_CONTACT_SETTINGCHANGED, SettingChanged);
 
 	// icons
-	Icon_Register(hInst, LPGEN("ListeningTo"), iconList, _countof(iconList));
+	g_plugin.registerIcon(LPGEN("ListeningTo"), iconList);
 }

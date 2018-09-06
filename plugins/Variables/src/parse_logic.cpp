@@ -1,25 +1,25 @@
 /*
-    Variables Plugin for Miranda-IM (www.miranda-im.org)
-    Copyright 2003-2006 P. Boon
+	Variables Plugin for Miranda-IM (www.miranda-im.org)
+	Copyright 2003-2006 P. Boon
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "stdafx.h"
 
-static wchar_t *parseAnd(ARGUMENTSINFO *ai)
+static wchar_t* parseAnd(ARGUMENTSINFO *ai)
 {
 	if (ai->argc < 3)
 		return nullptr;
@@ -27,7 +27,7 @@ static wchar_t *parseAnd(ARGUMENTSINFO *ai)
 	FORMATINFO fi;
 	memcpy(&fi, ai->fi, sizeof(fi));
 	for (unsigned i = 1; i < ai->argc; i++) {
-		fi.tszFormat = ai->targv[i];
+		fi.szFormat.w = ai->argv.w[i];
 		mir_free(formatString(&fi));
 
 		if (fi.eCount > 0) {
@@ -39,7 +39,7 @@ static wchar_t *parseAnd(ARGUMENTSINFO *ai)
 	return mir_wstrdup(L"");
 }
 
-static wchar_t *parseFalse(ARGUMENTSINFO *ai)
+static wchar_t* parseFalse(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 1)
 		return nullptr;
@@ -48,7 +48,7 @@ static wchar_t *parseFalse(ARGUMENTSINFO *ai)
 	return mir_wstrdup(L"");
 }
 
-static wchar_t *parseIf(ARGUMENTSINFO *ai)
+static wchar_t* parseIf(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 4)
 		return nullptr;
@@ -56,13 +56,13 @@ static wchar_t *parseIf(ARGUMENTSINFO *ai)
 	FORMATINFO fi;
 	memcpy(&fi, ai->fi, sizeof(fi));
 	fi.eCount = fi.pCount = 0;
-	fi.tszFormat = ai->targv[1];
+	fi.szFormat.w = ai->argv.w[1];
 	mir_free(formatString(&fi));
 
-	return mir_wstrdup((fi.eCount == 0) ? ai->targv[2] : ai->targv[3]);
+	return mir_wstrdup((fi.eCount == 0) ? ai->argv.w[2] : ai->argv.w[3]);
 }
 
-static wchar_t *parseIf2(ARGUMENTSINFO *ai)
+static wchar_t* parseIf2(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 3)
 		return nullptr;
@@ -70,22 +70,22 @@ static wchar_t *parseIf2(ARGUMENTSINFO *ai)
 	FORMATINFO fi;
 	memcpy(&fi, ai->fi, sizeof(fi));
 	fi.eCount = fi.pCount = 0;
-	fi.tszFormat = ai->targv[1];
+	fi.szFormat.w = ai->argv.w[1];
 	wchar_t *szCondition = formatString(&fi);
 	if (fi.eCount == 0)
 		return szCondition;
 
 	mir_free(szCondition);
-	return mir_wstrdup(ai->targv[2]);
+	return mir_wstrdup(ai->argv.w[2]);
 }
 
-static wchar_t *parseIf3(ARGUMENTSINFO *ai)
+static wchar_t* parseIf3(ARGUMENTSINFO *ai)
 {
 	FORMATINFO fi;
 	memcpy(&fi, ai->fi, sizeof(fi));
 	for (unsigned i = 1; i < ai->argc; i++) {
 		fi.eCount = fi.pCount = 0;
-		fi.tszFormat = ai->targv[i];
+		fi.szFormat.w = ai->argv.w[i];
 		wchar_t *szCondition = formatString(&fi);
 		if (fi.eCount == 0)
 			return szCondition;
@@ -96,64 +96,64 @@ static wchar_t *parseIf3(ARGUMENTSINFO *ai)
 	return nullptr;
 }
 
-static wchar_t *parseIfequal(ARGUMENTSINFO *ai)
+static wchar_t* parseIfequal(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 5)
 		return nullptr;
 
 	FORMATINFO fi;
 	memcpy(&fi, ai->fi, sizeof(fi));
-	fi.szFormat = ai->argv[1];
+	fi.szFormat.w = ai->argv.w[1];
 	ptrW tszFirst(formatString(&fi));
-	fi.szFormat = ai->argv[2];
+	fi.szFormat.w = ai->argv.w[2];
 	ptrW tszSecond(formatString(&fi));
 	if (tszFirst == NULL || tszSecond == NULL)
 		return nullptr;
 
 	if (ttoi(tszFirst) == ttoi(tszSecond))
-		return mir_wstrdup(ai->targv[3]);
+		return mir_wstrdup(ai->argv.w[3]);
 
-	return mir_wstrdup(ai->targv[4]);
+	return mir_wstrdup(ai->argv.w[4]);
 }
 
-static wchar_t *parseIfgreater(ARGUMENTSINFO *ai)
+static wchar_t* parseIfgreater(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 5)
 		return nullptr;
 
 	FORMATINFO fi;
 	memcpy(&fi, ai->fi, sizeof(fi));
-	fi.szFormat = ai->argv[1];
+	fi.szFormat.w = ai->argv.w[1];
 	ptrW tszFirst(formatString(&fi));
-	fi.szFormat = ai->argv[2];
+	fi.szFormat.w = ai->argv.w[2];
 	ptrW tszSecond(formatString(&fi));
 	if (tszFirst == NULL || tszSecond == NULL)
 		return nullptr;
 
 	if (ttoi(tszFirst) > ttoi(tszSecond))
-		return mir_wstrdup(ai->targv[3]);
+		return mir_wstrdup(ai->argv.w[3]);
 
-	return mir_wstrdup(ai->targv[4]);
+	return mir_wstrdup(ai->argv.w[4]);
 }
 
-static wchar_t *parseIflonger(ARGUMENTSINFO *ai)
+static wchar_t* parseIflonger(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 5)
 		return nullptr;
 
 	FORMATINFO fi;
 	memcpy(&fi, ai->fi, sizeof(fi));
-	fi.szFormat = ai->argv[1];
+	fi.szFormat.w = ai->argv.w[1];
 	ptrW tszFirst(formatString(&fi));
-	fi.szFormat = ai->argv[2];
+	fi.szFormat.w = ai->argv.w[2];
 	ptrW tszSecond(formatString(&fi));
 	if (tszFirst == NULL || tszSecond == NULL)
 		return nullptr;
 
 	if (mir_wstrlen(tszFirst) > mir_wstrlen(tszSecond))
-		return mir_wstrdup(ai->targv[3]);
+		return mir_wstrdup(ai->argv.w[3]);
 
-	return mir_wstrdup(ai->targv[4]);
+	return mir_wstrdup(ai->argv.w[4]);
 }
 
 /*
@@ -161,7 +161,7 @@ static wchar_t *parseIflonger(ARGUMENTSINFO *ai)
   ?for(init, cond, incr, show)
 
   */
-static wchar_t *parseFor(ARGUMENTSINFO *ai)
+static wchar_t* parseFor(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 5)
 		return nullptr;
@@ -171,12 +171,12 @@ static wchar_t *parseFor(ARGUMENTSINFO *ai)
 	FORMATINFO fi;
 	memcpy(&fi, ai->fi, sizeof(fi));
 	fi.eCount = fi.pCount = 0;
-	fi.tszFormat = ai->targv[1];
+	fi.szFormat.w = ai->argv.w[1];
 	mir_free(formatString(&fi));
-	fi.tszFormat = ai->targv[2];
+	fi.szFormat.w = ai->argv.w[2];
 	mir_free(formatString(&fi));
 	while (fi.eCount == 0) {
-		fi.tszFormat = ai->targv[4];
+		fi.szFormat.w = ai->argv.w[4];
 		wchar_t *parsed = formatString(&fi);
 		if (parsed != nullptr) {
 			if (res == nullptr) {
@@ -186,55 +186,55 @@ static wchar_t *parseFor(ARGUMENTSINFO *ai)
 					return nullptr;
 				}
 			}
-			else res = (wchar_t*)mir_realloc(res, (mir_wstrlen(res) + mir_wstrlen(parsed) + 1)*sizeof(wchar_t));
+			else res = (wchar_t*)mir_realloc(res, (mir_wstrlen(res) + mir_wstrlen(parsed) + 1) * sizeof(wchar_t));
 
 			mir_wstrcat(res, parsed);
 			mir_free(parsed);
 		}
-		fi.tszFormat = ai->targv[3];
+		fi.szFormat.w = ai->argv.w[3];
 		mir_free(formatString(&fi));
 		fi.eCount = 0;
-		fi.tszFormat = ai->targv[2];
+		fi.szFormat.w = ai->argv.w[2];
 		mir_free(formatString(&fi));
 	}
 
 	return res;
 }
 
-static wchar_t *parseEqual(ARGUMENTSINFO *ai)
+static wchar_t* parseEqual(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 3)
 		return nullptr;
 
-	if (ttoi(ai->targv[1]) != ttoi(ai->targv[2]))
+	if (ttoi(ai->argv.w[1]) != ttoi(ai->argv.w[2]))
 		ai->flags |= AIF_FALSE;
 
 	return mir_wstrdup(L"");
 }
 
-static wchar_t *parseGreater(ARGUMENTSINFO *ai)
+static wchar_t* parseGreater(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 3)
 		return nullptr;
 
-	if (ttoi(ai->targv[1]) <= ttoi(ai->targv[2]))
+	if (ttoi(ai->argv.w[1]) <= ttoi(ai->argv.w[2]))
 		ai->flags |= AIF_FALSE;
 
 	return mir_wstrdup(L"");
 }
 
-static wchar_t *parseLonger(ARGUMENTSINFO *ai)
+static wchar_t* parseLonger(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 3)
 		return nullptr;
 
-	if (mir_wstrlen(ai->targv[1]) <= mir_wstrlen(ai->targv[2]))
+	if (mir_wstrlen(ai->argv.w[1]) <= mir_wstrlen(ai->argv.w[2]))
 		ai->flags |= AIF_FALSE;
 
 	return mir_wstrdup(L"");
 }
 
-static wchar_t *parseNot(ARGUMENTSINFO *ai)
+static wchar_t* parseNot(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 2) {
 		return nullptr;
@@ -242,7 +242,7 @@ static wchar_t *parseNot(ARGUMENTSINFO *ai)
 
 	FORMATINFO fi;
 	memcpy(&fi, ai->fi, sizeof(fi));
-	fi.tszFormat = ai->targv[1];
+	fi.szFormat.w = ai->argv.w[1];
 	mir_free(formatString(&fi));
 
 	if (fi.eCount == 0)
@@ -251,7 +251,7 @@ static wchar_t *parseNot(ARGUMENTSINFO *ai)
 	return mir_wstrdup(L"");
 }
 
-static wchar_t *parseOr(ARGUMENTSINFO *ai)
+static wchar_t* parseOr(ARGUMENTSINFO *ai)
 {
 	if (ai->argc < 2)
 		return nullptr;
@@ -260,7 +260,7 @@ static wchar_t *parseOr(ARGUMENTSINFO *ai)
 	memcpy(&fi, ai->fi, sizeof(fi));
 	ai->flags |= AIF_FALSE;
 	for (unsigned i = 1; (i < ai->argc) && (ai->flags&AIF_FALSE); i++) {
-		fi.tszFormat = ai->targv[i];
+		fi.szFormat.w = ai->argv.w[i];
 		fi.eCount = 0;
 		mir_free(formatString(&fi));
 
@@ -271,12 +271,12 @@ static wchar_t *parseOr(ARGUMENTSINFO *ai)
 	return mir_wstrdup(L"");
 }
 
-static wchar_t *parseTrue(ARGUMENTSINFO *ai)
+static wchar_t* parseTrue(ARGUMENTSINFO *ai)
 {
 	return (ai->argc != 1) ? nullptr : mir_wstrdup(L"");
 }
 
-static wchar_t *parseXor(ARGUMENTSINFO *ai)
+static wchar_t* parseXor(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 3)
 		return nullptr;
@@ -284,11 +284,11 @@ static wchar_t *parseXor(ARGUMENTSINFO *ai)
 	FORMATINFO fi;
 	memcpy(&fi, ai->fi, sizeof(fi));
 	ai->flags = AIF_FALSE;
-	fi.tszFormat = ai->targv[0];
+	fi.szFormat.w = ai->argv.w[0];
 	mir_free(formatString(&fi));
 	int val1 = fi.eCount == 0;
 
-	fi.tszFormat = ai->targv[1];
+	fi.szFormat.w = ai->argv.w[1];
 	mir_free(formatString(&fi));
 	int val2 = fi.eCount == 0;
 

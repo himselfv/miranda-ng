@@ -74,7 +74,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ieviewModuleName	"IEVIEW"
 
-extern HINSTANCE hInstance;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 extern IEView *debugView;
 extern char *workingDirUtf8;
 extern HANDLE hHookOptionsChanged;

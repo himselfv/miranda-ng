@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define DM_OPTIONSAPPLIED    (WM_USER+14)
 #define DM_CLOSETAB          (WM_USER+15)
 #define DM_UPDATETITLE       (WM_USER+16)
-#define DM_APPENDTOLOG       (WM_USER+17)
 #define DM_NEWTIMEZONE       (WM_USER+18)
 #define DM_TYPING            (WM_USER+20)
 #define DM_UPDATEWINICON     (WM_USER+21)
@@ -127,7 +126,7 @@ public:
 public:
 	CSrmmWindow(CTabbedWindow*, MCONTACT hContact);
 
-	void OnInitDialog() override;
+	bool OnInitDialog() override;
 	void OnDestroy() override;
 	void OnActivate() override;
 
@@ -184,7 +183,7 @@ class CChatRoomDlg : public CMsgDialog
 public:
 	CChatRoomDlg(CTabbedWindow*, SESSION_INFO*);
 
-	void OnInitDialog() override;
+	bool OnInitDialog() override;
 	void OnDestroy() override;
 	void OnActivate() override;
 

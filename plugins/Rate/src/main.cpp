@@ -35,12 +35,20 @@
 
 #include "stdafx.h"
 
-HINSTANCE g_hInst;
-
 static HANDLE hExtraIcon = nullptr;
-int hLangpack;
 
-PLUGININFOEX pluginInfo =
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+}
+g_plugin;
+
+
+///////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -54,17 +62,9 @@ PLUGININFOEX pluginInfo =
 	{0x45230488, 0x977b, 0x405b, {0x85, 0x6d, 0xea, 0x27, 0x6d, 0x70, 0x83, 0xb7}}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	g_hInst = hinstDLL;
-	return TRUE;
-}
-
-// плагининфо
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -115,22 +115,15 @@ int onContactSettingChanged(WPARAM hContact, LPARAM lParam)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, onModulesLoaded);
 	HookEvent(ME_DB_CONTACT_SETTINGCHANGED, onContactSettingChanged);
 
 	// IcoLib support
-	Icon_Register(g_hInst, LPGEN("Contact rate"), iconList, _countof(iconList));
+	g_plugin.registerIcon(LPGEN("Contact rate"), iconList);
 
 	// Extra icon support
 	hExtraIcon = ExtraIcon_RegisterIcolib("contact_rate", LPGEN("Contact rate"), "rate_high");
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

@@ -69,7 +69,7 @@ wchar_t *SelectSound(HWND hwndDlg, wchar_t *buff, size_t bufflen)
 
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = GetParent(hwndDlg);
-	ofn.hInstance = hInst;
+	ofn.hInstance = g_plugin.getInst();
 	wchar_t filter[MAX_PATH];
 	if (GetModuleHandle(L"bass_interface.dll"))
 		mir_snwprintf(filter, L"%s (*.wav, *.mp3, *.ogg)%c*.wav;*.mp3;*.ogg%c%s (*.*)%c*%c", TranslateT("Sound files"), 0, 0, TranslateT("All files"), 0, 0);
@@ -150,7 +150,7 @@ INT_PTR CALLBACK DlgProcSoundUIPage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 						lvi.iItem = ListView_InsertItem(hList, &lvi);
 
 						if (!db_get_ws(hContact, MODULE, StatusList[Index(i)].lpzSkinSoundName, &dbv)) {
-							mir_wstrcpy(buff, dbv.ptszVal);
+							mir_wstrcpy(buff, dbv.pwszVal);
 							db_free(&dbv);
 						}
 						else mir_wstrcpy(buff, TranslateW(DEFAULT_SOUND));
@@ -170,7 +170,7 @@ INT_PTR CALLBACK DlgProcSoundUIPage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 					lvi.iItem = ListView_InsertItem(hList, &lvi);
 
 					if (!db_get_ws(hContact, MODULE, StatusList[i].lpzSkinSoundName, &dbv)) {
-						wcsncpy(buff, dbv.ptszVal, _countof(buff)-1);
+						wcsncpy(buff, dbv.pwszVal, _countof(buff)-1);
 						db_free(&dbv);
 					}
 					else wcsncpy(buff, TranslateW(DEFAULT_SOUND), _countof(buff)-1);
@@ -595,13 +595,12 @@ INT_PTR CALLBACK DlgProcFiltering(HWND hwndDlg, UINT msg, WPARAM, LPARAM lParam)
 int UserInfoInitialise(WPARAM wParam, LPARAM lParam)
 {
 	if (lParam) {
-		OPTIONSDIALOGPAGE odp = { 0 };
+		OPTIONSDIALOGPAGE odp = {};
 		odp.position = 100000000;
-		odp.hInstance = hInst;
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_INFO_SOUNDS);
 		odp.szTitle.a = LPGEN("Status Notify");
 		odp.pfnDlgProc = DlgProcSoundUIPage;
-		UserInfo_AddPage(wParam, &odp);
+		g_plugin.addUserInfo(wParam, &odp);
 	}
 	return 0;
 }

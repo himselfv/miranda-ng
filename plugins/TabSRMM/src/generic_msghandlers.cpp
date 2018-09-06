@@ -97,12 +97,12 @@ void CTabBaseDlg::DM_DismissTip(const POINT& pt)
 void CTabBaseDlg::DM_InitTip()
 {
 	m_hwndTip = CreateWindowEx(0, TOOLTIPS_CLASS, nullptr, WS_POPUP | TTS_NOPREFIX | TTS_BALLOON, CW_USEDEFAULT, CW_USEDEFAULT,
-		CW_USEDEFAULT, CW_USEDEFAULT, m_hwnd, nullptr, g_hInst, (LPVOID)nullptr);
+		CW_USEDEFAULT, CW_USEDEFAULT, m_hwnd, nullptr, g_plugin.getInst(), (LPVOID)nullptr);
 
 	memset(&ti, 0, sizeof(ti));
 	ti.cbSize = sizeof(ti);
 	ti.lpszText = TranslateT("No status message");
-	ti.hinst = g_hInst;
+	ti.hinst = g_plugin.getInst();
 	ti.hwnd = m_hwnd;
 	ti.uFlags = TTF_TRACK | TTF_IDISHWND | TTF_TRANSPARENT;
 	ti.uId = (UINT_PTR)m_hwnd;
@@ -131,7 +131,7 @@ bool CTabBaseDlg::DM_GenericHotkeysCheck(MSG *message)
 
 	case TABSRMM_HK_CONTAINEROPTIONS:
 		if (m_pContainer->hWndOptions == nullptr)
-			CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_CONTAINEROPTIONS), m_pContainer->m_hwnd, DlgProcContainerOptions, (LPARAM)m_pContainer);
+			CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_CONTAINEROPTIONS), m_pContainer->m_hwnd, DlgProcContainerOptions, (LPARAM)m_pContainer);
 		return true;
 
 	case TABSRMM_HK_SEND:
@@ -391,7 +391,7 @@ LRESULT CTabBaseDlg::DM_MsgWindowCmdHandler(UINT cmd, WPARAM wParam, LPARAM lPar
 			if (sendLater->isAvail())
 				m_sendMode ^= SMODE_SENDLATER;
 			else
-				CWarning::show(CWarning::WARN_NO_SENDLATER, MB_OK | MB_ICONINFORMATION, TranslateT("Configuration issue|The unattended send feature is disabled. The \\b1 send later\\b0  and \\b1 send to multiple contacts\\b0  features depend on it.\n\nYou must enable it under \\b1Options -> Message sessions -> Advanced tweaks\\b0. Changing this option requires a restart."));
+				CWarning::show(CWarning::WARN_NO_SENDLATER, MB_OK | MB_ICONINFORMATION);
 			break;
 		case ID_SENDMENU_SENDWITHOUTTIMEOUTS:
 			m_sendMode ^= SMODE_NOACK;
@@ -710,46 +710,6 @@ void CTabBaseDlg::DM_ScrollToBottom(WPARAM wParam, LPARAM lParam)
 		InvalidateRect(m_log.GetHwnd(), nullptr, FALSE);
 }
 
-static void LoadKLThread(LPVOID _param)
-{
-	Thread_SetName("TabSRMM: LoadKLThread");
-
-	DBVARIANT dbv;
-	if (!db_get_ws((UINT_PTR)_param, SRMSGMOD_T, "locale", &dbv)) {
-		HKL hkl = LoadKeyboardLayout(dbv.ptszVal, 0);
-		PostMessage(PluginConfig.g_hwndHotkeyHandler, DM_SETLOCALE, (WPARAM)_param, (LPARAM)hkl);
-		db_free(&dbv);
-	}
-}
-
-void CTabBaseDlg::DM_LoadLocale()
-{
-	if (!PluginConfig.m_bAutoLocaleSupport)
-		return;
-
-	if (m_dwFlags & MWF_WASBACKGROUNDCREATE)
-		return;
-
-	DBVARIANT dbv;
-	if (!db_get_ws(m_hContact, SRMSGMOD_T, "locale", &dbv))
-		db_free(&dbv);
-	else {
-		wchar_t szKLName[KL_NAMELENGTH + 1];
-		if (!PluginConfig.m_bDontUseDefaultKbd) {
-			wchar_t	szBuf[20];
-			GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_ILANGUAGE, szBuf, 20);
-			mir_snwprintf(szKLName, L"0000%s", szBuf);
-			db_set_ws(m_hContact, SRMSGMOD_T, "locale", szKLName);
-		}
-		else {
-			GetKeyboardLayoutName(szKLName);
-			db_set_ws(m_hContact, SRMSGMOD_T, "locale", szKLName);
-		}
-	}
-
-	mir_forkthread(LoadKLThread, (void*)m_hContact);
-}
-
 void CTabBaseDlg::DM_RecalcPictureSize()
 {
 	HBITMAP hbm = ((m_pPanel.isActive()) && m_pContainer->avatarMode != 3) ? m_hOwnPic : (m_ace ? m_ace->hbmPic : PluginConfig.g_hbmUnknown);
@@ -797,35 +757,17 @@ void CTabBaseDlg::DM_UpdateLastMessage() const
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
-// save current keyboard layout for the given contact
-
-void CTabBaseDlg::DM_SaveLocale(WPARAM, LPARAM lParam)
-{
-	if (PluginConfig.m_bAutoLocaleSupport && m_hContact && m_pContainer->m_hwndActive == m_hwnd) {
-		wchar_t szKLName[KL_NAMELENGTH + 1];
-		if ((HKL)lParam != m_hkl) {
-			m_hkl = (HKL)lParam;
-			ActivateKeyboardLayout(m_hkl, 0);
-			GetKeyboardLayoutName(szKLName);
-			db_set_ws(m_hContact, SRMSGMOD_T, "locale", szKLName);
-			GetLocaleID(szKLName);
-			UpdateReadChars();
-		}
-	}
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
 // create embedded contact list control
 
 HWND CTabBaseDlg::DM_CreateClist()
 {
 	if (!sendLater->isAvail()) {
-		CWarning::show(CWarning::WARN_NO_SENDLATER, MB_OK | MB_ICONINFORMATION, TranslateT("Configuration issue|The unattended send feature is disabled. The \\b1 send later\\b0  and \\b1 send to multiple contacts\\b0  features depend on it.\n\nYou must enable it under \\b1Options -> Message sessions -> Advanced tweaks\\b0. Changing this option requires a restart."));
+		CWarning::show(CWarning::WARN_NO_SENDLATER, MB_OK | MB_ICONINFORMATION);
 		m_sendMode &= ~SMODE_MULTIPLE;
 		return nullptr;
 	}
 
-	HWND hwndClist = CreateWindowExA(0, "CListControl", "", WS_TABSTOP | WS_VISIBLE | WS_CHILD | 0x248, 184, 0, 30, 30, m_hwnd, (HMENU)IDC_CLIST, g_hInst, nullptr);
+	HWND hwndClist = CreateWindowExA(0, "CListControl", "", WS_TABSTOP | WS_VISIBLE | WS_CHILD | 0x248, 184, 0, 30, 30, m_hwnd, (HMENU)IDC_CLIST, g_plugin.getInst(), nullptr);
 	SendMessage(hwndClist, WM_TIMER, 14, 0);
 	HANDLE hItem = (HANDLE)SendMessage(hwndClist, CLM_FINDCONTACT, m_hContact, 0);
 
@@ -1352,7 +1294,6 @@ void CTabBaseDlg::DM_HandleAutoSizeRequest(REQRESIZE* rr)
 // status icon stuff (by sje, used for indicating encryption status in the status bar
 // this is now part of the message window api
 
-static HANDLE hHookIconPressedEvt;
 
 static int OnSrmmIconChanged(WPARAM hContact, LPARAM)
 {
@@ -1459,7 +1400,7 @@ void CTabBaseDlg::CheckStatusIconClick(POINT pt, const RECT &rc, int gap, int co
 		sicd.dwId = sid->dwId;
 		sicd.szModule = sid->szModule;
 		sicd.flags = (code == NM_RCLICK ? MBCF_RIGHTBUTTON : 0);
-		NotifyEventHooks(hHookIconPressedEvt, m_hContact, (LPARAM)&sicd);
+		Srmm_ClickStatusIcon(m_hContact, &sicd);
 		InvalidateRect(m_pContainer->hwndStatus, nullptr, TRUE);
 	}
 }
@@ -1525,22 +1466,14 @@ int SI_InitStatusIcons()
 	StatusIconData sid = {};
 	sid.szModule = MSG_ICON_MODULE;
 	sid.dwId = MSG_ICON_SOUND; // Sounds
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 
 	sid.dwId = MSG_ICON_UTN;
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 
 	sid.dwId = MSG_ICON_SESSION;
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 
 	HookEvent(ME_MSG_ICONSCHANGED, OnSrmmIconChanged);
-
-	hHookIconPressedEvt = CreateHookableEvent(ME_MSG_ICONPRESSED);
-	return 0;
-}
-
-int SI_DeinitStatusIcons()
-{
-	DestroyHookableEvent(hHookIconPressedEvt);
 	return 0;
 }

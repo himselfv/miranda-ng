@@ -821,21 +821,20 @@ int CJabberProto::OnUserInfoInit(WPARAM wParam, LPARAM lParam)
 
 	char *szProto = GetContactProto(hContact);
 	if (szProto != nullptr && !mir_strcmp(szProto, m_szModuleName)) {
-		OPTIONSDIALOGPAGE odp = { 0 };
-		odp.hInstance = g_plugin.getInst();
+		OPTIONSDIALOGPAGE odp = {};
 		odp.dwInitParam = (LPARAM)this;
 
 		odp.pfnDlgProc = JabberUserInfoDlgProc;
 		odp.position = -2000000000;
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_INFO_JABBER);
 		odp.szTitle.a = LPGEN("Account");
-		UserInfo_AddPage(wParam, &odp);
+		g_plugin.addUserInfo(wParam, &odp);
 
 		odp.pfnDlgProc = JabberUserPhotoDlgProc;
 		odp.position = 2000000000;
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_VCARD_PHOTO);
 		odp.szTitle.a = LPGEN("Photo");
-		UserInfo_AddPage(wParam, &odp);
+		g_plugin.addUserInfo(wParam, &odp);
 	}
 	//TODO: add omemo dialog to userinfo
 	return 0;

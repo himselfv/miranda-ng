@@ -241,7 +241,7 @@ MIR_CORE_DLL(HANDLE) TimeZone_CreateByContact(MCONTACT hContact, LPCSTR szModule
 
 	DBVARIANT dbv;
 	if (!db_get_ws(hContact, szModule, "TzName", &dbv)) {
-		HANDLE res = TimeZone_CreateByName(dbv.ptszVal, dwFlags);
+		HANDLE res = TimeZone_CreateByName(dbv.pwszVal, dwFlags);
 		db_free(&dbv);
 		if (res) return res;
 	}
@@ -250,7 +250,7 @@ MIR_CORE_DLL(HANDLE) TimeZone_CreateByContact(MCONTACT hContact, LPCSTR szModule
 	if (timezone == -1) {
 		char *szProto = GetContactProto(hContact);
 		if (!db_get_ws(hContact, szProto, "TzName", &dbv)) {
-			HANDLE res = TimeZone_CreateByName(dbv.ptszVal, dwFlags);
+			HANDLE res = TimeZone_CreateByName(dbv.pwszVal, dwFlags);
 			db_free(&dbv);
 			if (res) return res;
 		}
@@ -305,6 +305,9 @@ MIR_CORE_DLL(int) TimeZone_PrintDateTime(HANDLE hTZ, LPCTSTR szFormat, LPTSTR sz
 	MIM_TIMEZONE *tz = (MIM_TIMEZONE*)hTZ;
 	if (tz == nullptr && (dwFlags & (TZF_DIFONLY | TZF_KNOWNONLY)))
 		return 1;
+
+	if (tz == nullptr)
+		tz = &myInfo.myTZ;
 
 	SYSTEMTIME st;
 	if (TimeZone_GetTimeZoneTime(tz, &st))
@@ -437,7 +440,7 @@ MIR_CORE_DLL(int) TimeZone_PrepareList(MCONTACT hContact, LPCSTR szModule, HWND 
 	if (lstMsg == nullptr)
 		return 0;
 
-	SendMessage(hWnd, lstMsg->addStr, 0, (LPARAM)TranslateT("<unspecified>"));
+	SendMessage(hWnd, lstMsg->addStr, 0, (LPARAM)TranslateW_LP(L"<unspecified>"));
 
 	for (auto &it : g_timezonesBias) {
 		SendMessage(hWnd, lstMsg->addStr, 0, (LPARAM)it->szDisplay);

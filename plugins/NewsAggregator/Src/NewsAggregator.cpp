@@ -19,13 +19,14 @@ Boston, MA 02111-1307, USA.
 
 #include "stdafx.h"
 
-int hLangpack;
 HANDLE hPrebuildMenuHook = nullptr;
 CDlgBase *pAddFeedDialog = nullptr, *pImportDialog = nullptr, *pExportDialog = nullptr;
 wchar_t tszRoot[MAX_PATH] = {0};
 HANDLE hUpdateMutex;
 
 LIST<CFeedEditor> g_arFeeds(1, PtrKeySortT);
+
+CMPlugin g_plugin;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -42,16 +43,12 @@ PLUGININFOEX pluginInfoEx = {
 	{0x56cc3f29, 0xccbf, 0x4546, {0xa8, 0xba, 0x98, 0x56, 0x24, 0x8a, 0x41, 0x2a}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
 {
-	return &pluginInfoEx;
+	RegisterProtocol(PROTOTYPE_VIRTUAL);
+	SetUniqueId("URL");
 }
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-CMPlugin g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -59,10 +56,8 @@ extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_PROTOC
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-
 	// Add options hook
 	HookEvent(ME_OPT_INITIALISE, OptInit);
 	HookEvent(ME_SYSTEM_MODULESLOADED, NewsAggrInit);
@@ -70,14 +65,14 @@ extern "C" __declspec(dllexport) int Load(void)
 
 	hUpdateMutex = CreateMutex(nullptr, FALSE, nullptr);
 
-	CreateProtoServiceFunction(MODULE, PS_GETNAME, NewsAggrGetName);
-	CreateProtoServiceFunction(MODULE, PS_GETCAPS, NewsAggrGetCaps);
-	CreateProtoServiceFunction(MODULE, PS_SETSTATUS, NewsAggrSetStatus);
-	CreateProtoServiceFunction(MODULE, PS_GETSTATUS, NewsAggrGetStatus);
-	CreateProtoServiceFunction(MODULE, PS_LOADICON, NewsAggrLoadIcon);
-	CreateProtoServiceFunction(MODULE, PSS_GETINFO, NewsAggrGetInfo);
-	CreateProtoServiceFunction(MODULE, PS_GETAVATARINFO, NewsAggrGetAvatarInfo);
-	CreateProtoServiceFunction(MODULE, PSR_MESSAGE, NewsAggrRecvMessage);
+	CreateProtoServiceFunction(MODULENAME, PS_GETNAME, NewsAggrGetName);
+	CreateProtoServiceFunction(MODULENAME, PS_GETCAPS, NewsAggrGetCaps);
+	CreateProtoServiceFunction(MODULENAME, PS_SETSTATUS, NewsAggrSetStatus);
+	CreateProtoServiceFunction(MODULENAME, PS_GETSTATUS, NewsAggrGetStatus);
+	CreateProtoServiceFunction(MODULENAME, PS_LOADICON, NewsAggrLoadIcon);
+	CreateProtoServiceFunction(MODULENAME, PSS_GETINFO, NewsAggrGetInfo);
+	CreateProtoServiceFunction(MODULENAME, PS_GETAVATARINFO, NewsAggrGetAvatarInfo);
+	CreateProtoServiceFunction(MODULENAME, PSR_MESSAGE, NewsAggrRecvMessage);
 
 	CreateServiceFunction(MS_NEWSAGGREGATOR_CHECKALLFEEDS, CheckAllFeeds);
 	CreateServiceFunction(MS_NEWSAGGREGATOR_ADDFEED, AddFeed);
@@ -94,7 +89,7 @@ extern "C" __declspec(dllexport) int Load(void)
 	hkd.szSection.w = LPGENW("News Aggregator");
 	hkd.pszService = MS_NEWSAGGREGATOR_CHECKALLFEEDS;
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL+HKCOMB_A, 'O') | HKF_MIRANDA_LOCAL;
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	InitIcons();
 
@@ -103,7 +98,7 @@ extern "C" __declspec(dllexport) int Load(void)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	DestroyUpdateList();
 	CloseHandle(hUpdateMutex);

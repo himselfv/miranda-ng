@@ -30,9 +30,8 @@ void checkthread(void*);
 
 struct CMPlugin : public PLUGIN<CMPlugin>
 {
-	CMPlugin() :
-		PLUGIN<CMPlugin>(PLUGINNAME)
-	{
-		RegisterProtocol(PROTOTYPE_PROTOCOL);
-	}
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
 };

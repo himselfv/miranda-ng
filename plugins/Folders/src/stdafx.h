@@ -54,8 +54,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MS_FOLDERS_TEST_PLUGIN "Folders/Test/Plugin"
 
-extern char ModuleName[];
-extern HINSTANCE hInstance;
+#define ModuleName "Folders"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 extern OBJLIST<CFolderItem> lstRegisteredFolders;
 
 #endif //FOLDERS_COMMONHEADERS_H

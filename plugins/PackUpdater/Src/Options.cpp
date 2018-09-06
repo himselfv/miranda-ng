@@ -65,7 +65,7 @@ INT_PTR CALLBACK UpdateNotifyOptsProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 		else {
 			for (int i = 1; i < POPUPS; i++) {
 				mir_snprintf(str, "Popups%dM", i);
-				CheckDlgButton(hwndDlg, (i + 1029), (db_get_b(NULL, MODNAME, str, DEFAULT_MESSAGE_ENABLED)) ? BST_CHECKED : BST_UNCHECKED);
+				CheckDlgButton(hwndDlg, (i + 1029), (db_get_b(NULL, MODULENAME, str, DEFAULT_MESSAGE_ENABLED)) ? BST_CHECKED : BST_UNCHECKED);
 			}
 		}
 		return TRUE;
@@ -101,7 +101,7 @@ INT_PTR CALLBACK UpdateNotifyOptsProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 			break;
 
 		case IDC_LINK_HOTKEY:
-			Options_Open(L"Customize", L"Hotkeys");
+			g_plugin.openOptions(L"Customize", L"Hotkeys");
 			return true;
 
 		case IDC_MSG_BOXES2:
@@ -134,17 +134,17 @@ INT_PTR CALLBACK UpdateNotifyOptsProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 
 			InitTimer();
 
-			db_set_b(NULL, MODNAME, "UpdateOnStartup", UpdateOnStartup);
-			db_set_b(NULL, MODNAME, "OnlyOnceADay", OnlyOnceADay);
-			db_set_b(NULL, MODNAME, "UpdateOnPeriod", UpdateOnPeriod);
-			db_set_dw(NULL, MODNAME, "Period", Period);
-			db_set_b(NULL, MODNAME, "PeriodMeasure", PeriodMeasure);
+			db_set_b(NULL, MODULENAME, "UpdateOnStartup", UpdateOnStartup);
+			db_set_b(NULL, MODULENAME, "OnlyOnceADay", OnlyOnceADay);
+			db_set_b(NULL, MODULENAME, "UpdateOnPeriod", UpdateOnPeriod);
+			db_set_dw(NULL, MODULENAME, "Period", Period);
+			db_set_b(NULL, MODULENAME, "PeriodMeasure", PeriodMeasure);
 			Reminder = IsDlgButtonChecked(hwndDlg, IDC_REMINDER);
-			db_set_b(NULL, MODNAME, "Reminder", Reminder);
+			db_set_b(NULL, MODULENAME, "Reminder", Reminder);
 			if (!ServiceExists(MS_POPUP_ADDPOPUPT)) {
 				for (int i = 1; i < POPUPS; i++) {
 					mir_snprintf(str, "Popups%dM", i);
-					db_set_b(NULL, MODNAME, str, (BYTE)(IsDlgButtonChecked(hwndDlg, (i + 1029))));
+					db_set_b(NULL, MODULENAME, str, (BYTE)(IsDlgButtonChecked(hwndDlg, (i + 1029))));
 				}
 			}
 		}
@@ -200,8 +200,8 @@ INT_PTR CALLBACK DlgPopupOpts(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 		for (i = 0; i < POPUPS; i++) {
 			mir_snprintf(str, "Popups%d", i);
 			mir_snprintf(str2, "Popups%dM", i);
-			CheckDlgButton(hdlg, (i + 40071), (db_get_b(NULL, MODNAME, str, DEFAULT_POPUP_ENABLED)) ? BST_CHECKED : BST_UNCHECKED);
-			CheckDlgButton(hdlg, (i + 1024), (db_get_b(NULL, MODNAME, str2, DEFAULT_MESSAGE_ENABLED)) ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hdlg, (i + 40071), (db_get_b(NULL, MODULENAME, str, DEFAULT_POPUP_ENABLED)) ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hdlg, (i + 1024), (db_get_b(NULL, MODULENAME, str2, DEFAULT_MESSAGE_ENABLED)) ? BST_CHECKED : BST_UNCHECKED);
 			if (IsDlgButtonChecked(hdlg, (i + 40071)))
 				EnableWindow(GetDlgItem(hdlg, (i + 1024)), FALSE);
 			else if (i > 0)
@@ -349,27 +349,27 @@ INT_PTR CALLBACK DlgPopupOpts(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 				ctlColor = SendDlgItemMessage(hdlg, (i + 42071), CPM_GETCOLOUR, 0, 0);
 				PopupsList[i].colorBack = ctlColor;
 				mir_snprintf(szSetting, "Popups%iBg", i);
-				db_set_dw(NULL, MODNAME, szSetting, ctlColor);
+				db_set_dw(NULL, MODULENAME, szSetting, ctlColor);
 				ctlColor = SendDlgItemMessage(hdlg, (i + 41071), CPM_GETCOLOUR, 0, 0);
 				PopupsList[i].colorText = ctlColor;
 				mir_snprintf(szSetting, "Popups%iTx", i);
-				db_set_dw(NULL, MODNAME, szSetting, ctlColor);
+				db_set_dw(NULL, MODULENAME, szSetting, ctlColor);
 			}
 			//Colors
-			db_set_b(NULL, MODNAME, "DefColors", MyOptions.DefColors);
+			db_set_b(NULL, MODULENAME, "DefColors", MyOptions.DefColors);
 			//Timeout
 			MyOptions.Timeout = GetDlgItemInt(hdlg, IDC_TIMEOUT_VALUE, nullptr, TRUE);
-			db_set_dw(NULL, MODNAME, "Timeout", MyOptions.Timeout);
+			db_set_dw(NULL, MODULENAME, "Timeout", MyOptions.Timeout);
 			//Left mouse click
-			db_set_b(NULL, MODNAME, "LeftClickAction", MyOptions.LeftClickAction);
+			db_set_b(NULL, MODULENAME, "LeftClickAction", MyOptions.LeftClickAction);
 			//Right mouse click
-			db_set_b(NULL, MODNAME, "RightClickAction", MyOptions.RightClickAction);
+			db_set_b(NULL, MODULENAME, "RightClickAction", MyOptions.RightClickAction);
 			//Notified popups
 			for (i = 0; i < POPUPS; i++) {
 				mir_snprintf(str, "Popups%d", i);
-				db_set_b(NULL, MODNAME, str, (BYTE)(IsDlgButtonChecked(hdlg, (i + 40071))));
+				db_set_b(NULL, MODULENAME, str, (BYTE)(IsDlgButtonChecked(hdlg, (i + 40071))));
 				mir_snprintf(str2, "Popups%dM", i);
-				db_set_b(NULL, MODNAME, str2, (BYTE)(IsDlgButtonChecked(hdlg, (i + 1024))));
+				db_set_b(NULL, MODULENAME, str2, (BYTE)(IsDlgButtonChecked(hdlg, (i + 1024))));
 			}
 			return TRUE;
 		}
@@ -380,22 +380,21 @@ INT_PTR CALLBACK DlgPopupOpts(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 
 int OptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 100000000;
-	odp.hInstance = hInst;
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_UPDATENOTIFY);
 	odp.szGroup.w = LPGENW("Services");
 	odp.szTitle.w = LPGENW("Pack Updater");
 	odp.pfnDlgProc = UpdateNotifyOptsProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	if (ServiceExists(MS_POPUP_ADDPOPUPT)) {
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_POPUP);
 		odp.szGroup.w = LPGENW("Popups");
 		odp.szTitle.w = LPGENW("Pack Updater");
 		odp.pfnDlgProc = DlgPopupOpts;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }

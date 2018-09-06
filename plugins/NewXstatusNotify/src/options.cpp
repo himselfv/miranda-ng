@@ -225,7 +225,7 @@ INT_PTR CALLBACK DlgProcGeneralOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 		case IDC_CONFIGUREAUTODISABLE:
-			CreateDialog(hInst, MAKEINTRESOURCE(IDD_AUTODISABLE), hwndDlg, DlgProcAutoDisableOpts);
+			CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(IDD_AUTODISABLE), hwndDlg, DlgProcAutoDisableOpts);
 			SendMessage(GetParent(hwndDlg), PSM_CHANGED, 0, 0);
 			return FALSE;
 		case IDC_AUTODISABLE:
@@ -346,9 +346,9 @@ INT_PTR CALLBACK DlgProcPopupOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM 
 			if (HIWORD(wParam) == CPN_COLOURCHANGED) {
 				if (idCtrl >= IDC_CHK_OFFLINE) {
 					COLORREF colour = SendDlgItemMessage(hwndDlg, idCtrl, CPM_GETCOLOUR, 0, 0);
-					if ((idCtrl >= IDC_OFFLINE_TX) && (idCtrl <= IDC_ONTHEPHONE_TX)) //Text colour
+					if ((idCtrl >= IDC_OFFLINE_TX) && (idCtrl <= IDC_STATUSMSG_TX)) //Text colour
 						StatusList[Index(idCtrl - 1000)].colorText = colour;
-					else //Background colour
+					else // Background colour
 						StatusList[Index(idCtrl - 2000)].colorBack = colour;
 					SendMessage(GetParent(hwndDlg), PSM_CHANGED, 0, 0);
 					return TRUE;
@@ -705,7 +705,7 @@ INT_PTR CALLBACK DlgProcSMPopupOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 					if (db_get_ws(NULL, MODULE, protoname, &dbVar))
 						wcsncpy(prototemplate->ProtoTemplateMsg, DEFAULT_POPUP_SMSGCHANGED, _countof(prototemplate->ProtoTemplateMsg));
 					else {
-						wcsncpy(prototemplate->ProtoTemplateMsg, dbVar.ptszVal, _countof(prototemplate->ProtoTemplateMsg));
+						wcsncpy(prototemplate->ProtoTemplateMsg, dbVar.pwszVal, _countof(prototemplate->ProtoTemplateMsg));
 						db_free(&dbVar);
 					}
 
@@ -713,7 +713,7 @@ INT_PTR CALLBACK DlgProcSMPopupOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 					if (db_get_ws(NULL, MODULE, protoname, &dbVar))
 						wcsncpy(prototemplate->ProtoTemplateRemoved, DEFAULT_POPUP_SMSGREMOVED, _countof(prototemplate->ProtoTemplateRemoved));
 					else {
-						wcsncpy(prototemplate->ProtoTemplateRemoved, dbVar.ptszVal, _countof(prototemplate->ProtoTemplateRemoved));
+						wcsncpy(prototemplate->ProtoTemplateRemoved, dbVar.pwszVal, _countof(prototemplate->ProtoTemplateRemoved));
 						db_free(&dbVar);
 					}
 
@@ -1172,31 +1172,30 @@ INT_PTR CALLBACK DlgProcLogOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lP
 
 int OptionsInitialize(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -100000000;
-	odp.hInstance = hInst;
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.szTitle.a = LPGEN("Status Notify");
 	odp.szGroup.a = LPGEN("Status");
 	odp.szTab.a = LPGEN("General");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_GENERAL);
 	odp.pfnDlgProc = DlgProcGeneralOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Status logging");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_LOG);
 	odp.pfnDlgProc = DlgProcLogOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Extra status logging");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_XLOG);
 	odp.pfnDlgProc = DlgProcXLogOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Filtering");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_FILTERS);
 	odp.pfnDlgProc = DlgProcFiltering;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	if (ServiceExists(MS_POPUP_ADDPOPUPT)) {
 		odp.szTitle.a = LPGEN("Status Notify");
@@ -1204,17 +1203,17 @@ int OptionsInitialize(WPARAM wParam, LPARAM)
 		odp.szTab.a = LPGEN("General");
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_POPUP);
 		odp.pfnDlgProc = DlgProcPopupOpts;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 
 		odp.szTab.a = LPGEN("Extra status");
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_XPOPUP);
 		odp.pfnDlgProc = DlgProcXPopupOpts;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 
 		odp.szTab.a = LPGEN("Status message");
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_SMPOPUP);
 		odp.pfnDlgProc = DlgProcSMPopupOpts;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }

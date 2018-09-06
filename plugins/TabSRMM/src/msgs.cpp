@@ -54,7 +54,7 @@ int IEViewOptionsChanged(WPARAM, LPARAM)
 int SmileyAddOptionsChanged(WPARAM, LPARAM)
 {
 	Srmm_Broadcast(DM_SMILEYOPTIONSCHANGED, 0, 0);
-	pci->SM_BroadcastMessage(nullptr, DM_SMILEYOPTIONSCHANGED, 0, 0, FALSE);
+	g_chatApi.SM_BroadcastMessage(nullptr, DM_SMILEYOPTIONSCHANGED, 0, 0, FALSE);
 	return 0;
 }
 
@@ -62,7 +62,7 @@ int SmileyAddOptionsChanged(WPARAM, LPARAM)
 // basic window class
 
 CTabBaseDlg::CTabBaseDlg(int iResource, SESSION_INFO *si)
-	: CSrmmBaseDialog(g_hInst, iResource, si),
+	: CSrmmBaseDialog(g_plugin, iResource, si),
 	m_pPanel(this),
 	m_dwFlags(MWF_INITMODE),
 	m_iInputAreaHeight(-1)
@@ -91,7 +91,7 @@ void CTabBaseDlg::LoadSettings()
 	LoadLogfont(FONTSECTION_IM, MSGFONTID_MESSAGEAREA, nullptr, &m_clrInputFG, FONTMODULE);
 }
 
-void CTabBaseDlg::OnInitDialog()
+bool CTabBaseDlg::OnInitDialog()
 {
 	CSrmmBaseDialog::OnInitDialog();
 
@@ -119,6 +119,7 @@ void CTabBaseDlg::OnInitDialog()
 	m_cache->updateUIN();
 
 	m_bIsAutosizingInput = IsAutoSplitEnabled();
+	return true;
 }
 
 INT_PTR CTabBaseDlg::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
@@ -157,18 +158,6 @@ INT_PTR CTabBaseDlg::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		ActivateExistingTab(m_pContainer, m_hwnd);
 		return 0;
 
-	case DM_SETLOCALE:
-		if (m_dwFlags & MWF_WASBACKGROUNDCREATE)
-			break;
-		if (PluginConfig.m_bAutoLocaleSupport && IsActive()) {
-			if (lParam)
-				m_hkl = (HKL)lParam;
-
-			if (m_hkl)
-				ActivateKeyboardLayout(m_hkl, 0);
-		}
-		return 0;
-		
 	case DM_QUERYCONTAINER: // container API support functions
 		if (lParam)
 			*(TContainerData**)lParam = m_pContainer;
@@ -308,7 +297,7 @@ static INT_PTR SetUserPrefs(WPARAM wParam, LPARAM)
 		SetForegroundWindow(hWnd);			// already open, bring it to front
 		return 0;
 	}
-	CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_USERPREFS_FRAME), nullptr, DlgProcUserPrefsFrame, (LPARAM)wParam);
+	CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_USERPREFS_FRAME), nullptr, DlgProcUserPrefsFrame, (LPARAM)wParam);
 	return 0;
 }
 
@@ -617,11 +606,8 @@ HWND TSAPI CreateNewTabForContact(TContainerData *pContainer, MCONTACT hContact,
 
 	pContainer->iTabIndex = iCount;
 	if (iCount > 0) {
-		TCITEM item = {};
 		for (int i = iCount - 1; i >= 0; i--) {
-			item.mask = TCIF_PARAM;
-			TabCtrl_GetItem(hwndTab, i, &item);
-			HWND hwnd = (HWND)item.lParam;
+			HWND hwnd = GetTabWindow(hwndTab, i);
 			CSrmmWindow *dat = (CSrmmWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 			if (dat) {
 				int relPos = M.GetDword(dat->m_hContact, "tabindex", i * 100);
@@ -748,7 +734,7 @@ void TSAPI CreateImageList(BOOL bInitial)
 	// an icon on each tab. This is a blank and empty icon
 	if (bInitial) {
 		PluginConfig.g_hImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 2, 0);
-		HICON hIcon = CreateIcon(g_hInst, 16, 16, 1, 4, nullptr, nullptr);
+		HICON hIcon = CreateIcon(g_plugin.getInst(), 16, 16, 1, 4, nullptr, nullptr);
 		ImageList_AddIcon(PluginConfig.g_hImageList, hIcon);
 		DestroyIcon(hIcon);
 	}
@@ -857,8 +843,6 @@ static int GetIconPackVersion(HMODULE hDLL)
 	else if (!mir_strcmp(szIDString, "__tabSRMM_ICONPACK 5.0__"))
 		version = 5;
 
-	if (version < 5)
-		CWarning::show(CWarning::WARN_ICONPACK_VERSION, MB_OK | MB_ICONERROR);
 	return version;
 }
 
@@ -897,9 +881,9 @@ static int TSAPI SetupIconLibConfig()
 			sid.iDefaultIndex = it.idesc[i].uId == -IDI_HISTORY ? 0 : it.idesc[i].uId;        // workaround problem /w icoLib and a resource id of 1 (actually, a Windows problem)
 
 			if (n > 0 && n < 4)
-				PluginConfig.g_buttonBarIconHandles[j++] = IcoLib_AddIcon(&sid);
+				PluginConfig.g_buttonBarIconHandles[j++] = g_plugin.addIcon(&sid);
 			else
-				IcoLib_AddIcon(&sid);
+				g_plugin.addIcon(&sid);
 		}
 	}
 
@@ -907,30 +891,30 @@ static int TSAPI SetupIconLibConfig()
 	sid.pszName = "tabSRMM_clock_symbol";
 	sid.description.a = LPGEN("Clock symbol (for the info panel clock)");
 	sid.iDefaultIndex = -IDI_CLOCK;
-	IcoLib_AddIcon(&sid);
+	g_plugin.addIcon(&sid);
 
 	wcsncpy(szFilename, L"plugins\\tabsrmm.dll", MAX_PATH);
 
 	sid.pszName = "tabSRMM_overlay_disabled";
 	sid.description.a = LPGEN("Feature disabled (used as overlay)");
 	sid.iDefaultIndex = -IDI_FEATURE_DISABLED;
-	IcoLib_AddIcon(&sid);
+	g_plugin.addIcon(&sid);
 
 	sid.pszName = "tabSRMM_overlay_enabled";
 	sid.description.a = LPGEN("Feature enabled (used as overlay)");
 	sid.iDefaultIndex = -IDI_FEATURE_ENABLED;
-	IcoLib_AddIcon(&sid);
+	g_plugin.addIcon(&sid);
 
 	sid.section.a = LPGEN("Message Sessions") "/" LPGEN("Popups");
 	sid.pszName = "tabSRMM_popups_disabled";
 	sid.description.a = LPGEN("Enable typing notification");
 	sid.iDefaultIndex = -IDI_DISABLED;
-	IcoLib_AddIcon(&sid);
+	g_plugin.addIcon(&sid);
 
 	sid.pszName = "tabSRMM_popups_enabled";
 	sid.description.a = LPGEN("Disable typing notification");
 	sid.iDefaultIndex = -IDI_ENABLED;
-	IcoLib_AddIcon(&sid);
+	g_plugin.addIcon(&sid);
 
 	return 1;
 }

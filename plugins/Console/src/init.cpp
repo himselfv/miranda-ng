@@ -25,32 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdafx.h"
 
 DWORD mirandaVer;
-int hLangpack;
-HINSTANCE hInst;
-
-PLUGININFOEX pluginInfoEx = {
-	sizeof(PLUGININFOEX),
-	__PLUGIN_NAME,
-	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
-	__DESCRIPTION,
-	__AUTHOR,
-	__COPYRIGHT,
-	__AUTHORWEB,
-	UNICODE_AWARE,
-	// {23D4F302-D513-45B7-9027-445F29557311}
-	{ 0x23d4f302, 0xd513, 0x45b7, { 0x90, 0x27, 0x44, 0x5f, 0x29, 0x55, 0x73, 0x11 } }
-};
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
+CMPlugin g_plugin;
 
 static IconItem iconList[] =
 {
@@ -66,18 +41,37 @@ HANDLE LoadIcon(int iIconID)
 	return nullptr;
 }
 
-extern "C" __declspec(dllexport) int Load(void)
-{
-	mir_getLP(&pluginInfoEx);
+/////////////////////////////////////////////////////////////////////////////////////////
 
-	Icon_Register(hInst, "Console", iconList, _countof(iconList));
+PLUGININFOEX pluginInfoEx = {
+	sizeof(PLUGININFOEX),
+	__PLUGIN_NAME,
+	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
+	__DESCRIPTION,
+	__AUTHOR,
+	__COPYRIGHT,
+	__AUTHORWEB,
+	UNICODE_AWARE,
+	// {23D4F302-D513-45B7-9027-445F29557311}
+{ 0x23d4f302, 0xd513, 0x45b7,{ 0x90, 0x27, 0x44, 0x5f, 0x29, 0x55, 0x73, 0x11 } }
+};
+
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>("Console", pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Load()
+{
+	g_plugin.registerIcon("Console", iconList);
 
 	InitCommonControls();
 	InitConsole();
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	ShutdownConsole();
 	return 0;

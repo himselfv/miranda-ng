@@ -40,12 +40,19 @@
 #include "yapp_history.h"
 #include "icons.h"
 
-#define MODULE "YAPP"
+#define MODULENAME "YAPP"
 
-extern HMODULE  hInst;
-extern bool     bShutdown;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
 
-extern HFONT    hFontFirstLine, hFontSecondLine, hFontTime;
+	int Load() override;
+	int Unload() override;
+};
+
+extern bool bShutdown;
+
+extern HFONT hFontFirstLine, hFontSecondLine, hFontTime;
 extern COLORREF colFirstLine, colSecondLine, colBg, colTime, colBorder, colSidebar, colTitleUnderline;
 
 extern MNOTIFYLINK *notifyLink;

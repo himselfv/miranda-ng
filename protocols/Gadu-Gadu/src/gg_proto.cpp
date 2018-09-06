@@ -74,7 +74,7 @@ GaduProto::GaduProto(const char *pszProtoName, const wchar_t *tszUserName) :
 	hImagesFolder = FoldersRegisterCustomPathT(LPGEN("Images"), m_szModuleName, szPath, m_tszUserName);
 
 	DWORD pluginVersion = getDword(GG_PLUGINVERSION, 0);
-	if (pluginVersion < pluginInfo.version)
+	if (pluginVersion < pluginInfoEx.version)
 		cleanuplastplugin(pluginVersion);
 
 	links_instance_init();
@@ -598,8 +598,8 @@ void __cdecl GaduProto::getawaymsgthread(void *arg)
 	debugLogA("getawaymsgthread(): started");
 	gg_sleep(100, FALSE, "getawaymsgthread", 106, 1);
 	if (!db_get_s(hContact, "CList", GG_KEY_STATUSDESCR, &dbv, DBVT_WCHAR)) {
-		ProtoBroadcastAck(hContact, ACKTYPE_AWAYMSG, ACKRESULT_SUCCESS, (HANDLE)1, (LPARAM)dbv.ptszVal);
-		debugLogW(L"getawaymsgthread(): Reading away msg <%s>.", dbv.ptszVal);
+		ProtoBroadcastAck(hContact, ACKTYPE_AWAYMSG, ACKRESULT_SUCCESS, (HANDLE)1, (LPARAM)dbv.pwszVal);
+		debugLogW(L"getawaymsgthread(): Reading away msg <%s>.", dbv.pwszVal);
 		db_free(&dbv);
 	}
 	else {

@@ -55,14 +55,8 @@ MIR_APP_DLL(PROTOACCOUNT*) Proto_CreateAccount(const char *pszInternal, const ch
 	if (pszBaseProto == nullptr || tszAccountName == nullptr)
 		return nullptr;
 
-	PROTOACCOUNT *pa = (PROTOACCOUNT*)mir_calloc(sizeof(PROTOACCOUNT));
-	pa->bIsEnabled = pa->bIsVisible = true;
-	pa->iOrder = accounts.getCount();
-	pa->szProtoName = mir_strdup(pszBaseProto);
-	pa->iRealStatus = ID_STATUS_OFFLINE;
-	pa->iIconBase = -1;
-
 	// if the internal name is empty, generate new one
+	const char *szProto;
 	if (mir_strlen(pszInternal) == 0) {
 		char buf[100];
 		int count = 1;
@@ -71,10 +65,14 @@ MIR_APP_DLL(PROTOACCOUNT*) Proto_CreateAccount(const char *pszInternal, const ch
 			if (ptrA(db_get_sa(0, buf, "AM_BaseProto")) == nullptr)
 				break;
 		}
-		pa->szModuleName = mir_strdup(buf);
+		szProto = buf;
 	}
-	else pa->szModuleName = mir_strdup(pszInternal);
+	else szProto = pszInternal;
 
+	PROTOACCOUNT *pa = new PROTOACCOUNT(szProto);
+	pa->bIsEnabled = pa->bIsVisible = true;
+	pa->iOrder = accounts.getCount();
+	pa->szProtoName = mir_strdup(pszBaseProto);
 	pa->tszAccountName = mir_wstrdup(tszAccountName);
 
 	db_set_s(0, pa->szModuleName, "AM_BaseProto", pszBaseProto);
@@ -115,9 +113,8 @@ class CAccountFormDlg : public CDlgBase
 public:
 	CAccountFormDlg(CAccountManagerDlg *pParent, int action, PROTOACCOUNT *pa);
 
-	virtual void OnInitDialog() override;
-
-	void OnOk(CCtrlButton*);
+	bool OnInitDialog() override;
+	bool OnApply() override;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -243,7 +240,7 @@ class CAccountManagerDlg : public CDlgBase
 
 public:
 	CAccountManagerDlg() :
-		CDlgBase(g_hInst, IDD_ACCMGR),
+		CDlgBase(g_plugin, IDD_ACCMGR),
 		m_accList(this, IDC_ACCLIST),
 		m_name(this, IDC_NAME),
 		m_link(this, IDC_LNK_ADDONS, "https://miranda-ng.org/"),
@@ -272,7 +269,7 @@ public:
 		m_btnNetwork.OnClick = Callback(this, &CAccountManagerDlg::OnNetwork);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		Window_SetSkinIcon_IcoLib(m_hwnd, SKINICON_OTHER_ACCMGR);
 
@@ -319,9 +316,10 @@ public:
 		Refresh();
 
 		Utils_RestoreWindowPositionNoSize(m_hwnd, 0, "AccMgr", "");
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		PSHNOTIFY pshn;
 		pshn.hdr.idFrom = 0;
@@ -333,6 +331,7 @@ public:
 				pa->bAccMgrUIChanged = FALSE;
 			}
 		}
+		return true;
 	}
 
 	virtual void OnReset() override
@@ -349,7 +348,7 @@ public:
 		}
 	}
 
-	virtual void OnDestroy() override
+	void OnDestroy() override
 	{
 		for (auto &pa : accounts) {
 			pa->bAccMgrUIChanged = FALSE;
@@ -467,7 +466,7 @@ public:
 		WriteDbAccounts();
 		NotifyEventHooks(hAccListChanged, PRAC_CHECKED, (LPARAM)pa);
 		UpdateAccountInfo();
-		RedrawWindow(m_accList.GetHwnd(), nullptr, nullptr, RDW_INVALIDATE);
+		SelectItem(m_accList.GetCurSel());
 	}
 
 	void OnOk(CCtrlButton*)
@@ -509,7 +508,7 @@ public:
 		pshn.hdr.hwndFrom = m_hwnd;
 		SendMessage(m_hwnd, WM_NOTIFY, 0, (LPARAM)&pshn);
 
-		Options_Open(nullptr, L"Network");
+		g_plugin.openOptions(nullptr, L"Network");
 	}
 
 	void OnOptions(CCtrlButton*)
@@ -518,7 +517,7 @@ public:
 		if (idx != -1) {
 			PROTOACCOUNT *pa = (PROTOACCOUNT*)m_accList.GetItemData(idx);
 			if (pa->bOldProto)
-				Options_Open(L"Network", _A2T(pa->szModuleName));
+				g_plugin.openOptions(L"Network", _A2T(pa->szModuleName));
 			else
 				OpenAccountOptions(pa);
 		}
@@ -805,7 +804,7 @@ LRESULT CAccountListCtrl::CustomWndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 /////////////////////////////////////////////////////////////////////////////////////////
 
 CAccountFormDlg::CAccountFormDlg(CAccountManagerDlg *pParent, int action, PROTOACCOUNT *pa) :
-	CDlgBase(g_hInst, IDD_ACCFORM),
+	CDlgBase(g_plugin, IDD_ACCFORM),
 	m_btnOk(this, IDOK),
 	m_accName(this, IDC_ACCNAME),
 	m_prototype(this, IDC_PROTOTYPECOMBO),
@@ -815,14 +814,13 @@ CAccountFormDlg::CAccountFormDlg(CAccountManagerDlg *pParent, int action, PROTOA
 	m_pParent(pParent)
 {
 	m_hwndParent = pParent->GetHwnd();
-	m_btnOk.OnClick = Callback(this, &CAccountFormDlg::OnOk);
 }
 
-void CAccountFormDlg::OnInitDialog()
+bool CAccountFormDlg::OnInitDialog()
 {
 	int cnt = 0;
 	for (auto &it : g_arProtos)
-		if (it->type == PROTOTYPE_PROTOWITHACCS) {
+		if (it->type == PROTOTYPE_PROTOWITHACCS && it->hInst != nullptr) {
 			m_prototype.AddStringA(it->szName);
 			++cnt;
 		}
@@ -848,16 +846,17 @@ void CAccountFormDlg::OnInitDialog()
 	}
 
 	m_internalName.SendMsg(EM_LIMITTEXT, 40, 0);
+	return true;
 }
 
-void CAccountFormDlg::OnOk(CCtrlButton*)
+bool CAccountFormDlg::OnApply()
 {
 	wchar_t tszAccName[256];
 	m_accName.GetText(tszAccName, _countof(tszAccName));
 	rtrimw(tszAccName);
 	if (tszAccName[0] == 0) {
 		MessageBox(m_hwnd, TranslateT("Account name must be filled."), TranslateT("Account error"), MB_ICONERROR | MB_OK);
-		return;
+		return false;
 	}
 
 	if (m_action == PRAC_ADDED) {
@@ -865,7 +864,7 @@ void CAccountFormDlg::OnOk(CCtrlButton*)
 		m_internalName.GetTextA(buf, _countof(buf));
 		if (FindAccountByName(rtrim(buf))) {
 			MessageBox(m_hwnd, TranslateT("Account name has to be unique. Please enter unique name."), TranslateT("Account error"), MB_ICONERROR | MB_OK);
-			return;
+			return false;
 		}
 	}
 
@@ -903,6 +902,7 @@ void CAccountFormDlg::OnOk(CCtrlButton*)
 
 	m_pParent->Refresh();
 	EndModal(IDOK);
+	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -950,7 +950,7 @@ void CAccountListCtrl::InitRename()
 	rc.bottom = rc.top + max(g_iIconSX, PARENT()->m_titleHeight) + 4 - 1;
 	++rc.top; --rc.right;
 
-	m_hwndEdit = ::CreateWindow(L"EDIT", pa->tszAccountName, WS_CHILD | WS_BORDER | ES_AUTOHSCROLL, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, m_hwnd, nullptr, g_hInst, nullptr);
+	m_hwndEdit = ::CreateWindow(L"EDIT", pa->tszAccountName, WS_CHILD | WS_BORDER | ES_AUTOHSCROLL, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, m_hwnd, nullptr, g_plugin.getInst(), nullptr);
 	SetWindowLongPtr(m_hwndEdit, GWLP_USERDATA, (LPARAM)m_parentWnd);
 	mir_subclassWindow(m_hwndEdit, sttEditSubclassProc);
 	SendMessage(m_hwndEdit, WM_SETFONT, (WPARAM)PARENT()->m_hfntTitle, 0);
@@ -977,7 +977,7 @@ static INT_PTR OptProtosShow(WPARAM, LPARAM)
 
 int OptProtosLoaded(WPARAM, LPARAM)
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0xb1f74008, 0x1fa6, 0x4e98, 0x95, 0x28, 0x5a, 0x7e, 0xab, 0xfe, 0x10, 0x61);
 	mi.hIcolibItem = Skin_GetIconHandle(SKINICON_OTHER_ACCMGR);
 	mi.position = 1900000000;

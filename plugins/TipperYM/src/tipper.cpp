@@ -20,7 +20,7 @@ Boston, MA 02111-1307, USA.
 
 #include "stdafx.h"
 
-HMODULE hInst;
+CMPlugin g_plugin;
 
 FontIDW fontTitle, fontLabels, fontValues, fontTrayTitle;
 ColourIDW colourBg, colourBorder, colourAvatarBorder, colourDivider, colourSidebar;
@@ -34,8 +34,7 @@ HANDLE hReloadFonts = nullptr;
 HANDLE hFolderChanged, hSkinFolder;
 wchar_t SKIN_FOLDER[256];
 
-CLIST_INTERFACE *pcli;
-int hLangpack;
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx =
 {
@@ -51,16 +50,11 @@ PLUGININFOEX pluginInfoEx =
 	{0x8392df1d, 0x9090, 0x4f8e, {0x9d, 0xf6, 0x2f, 0xe0, 0x58, 0xed, 0xd8, 0x00}}
 };
 
-bool WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 int ReloadFont(WPARAM, LPARAM)
 {
@@ -86,12 +80,11 @@ int ReloadFont(WPARAM, LPARAM)
 	opt.colAvatarBorder = Colour_GetW(colourAvatarBorder);
 	opt.colSidebar = Colour_GetW(colourSidebar);
 	opt.colDivider = Colour_GetW(colourDivider);
-
 	return 0;
 }
 
 // hack to hide tip when clist hides from timeout
-int SettingChanged(WPARAM, LPARAM lParam)
+static int SettingChanged(WPARAM, LPARAM lParam)
 {
 	DBCONTACTWRITESETTING *dcws = (DBCONTACTWRITESETTING *)lParam;
 	if (strcmp(dcws->szModule, "CList") != 0 || strcmp(dcws->szSetting, "State") != 0)
@@ -105,75 +98,69 @@ int SettingChanged(WPARAM, LPARAM lParam)
 }
 
 // needed for msg_count_xxx substitutions
-int EventDeleted(WPARAM wParam, LPARAM lParam)
+static int EventDeleted(WPARAM wParam, LPARAM lParam)
 {
 	DBEVENTINFO dbei = {};
 	if (!db_event_get(lParam, &dbei))
 		if (dbei.eventType == EVENTTYPE_MESSAGE)
-			db_unset(wParam, MODULE, "LastCountTS");
+			db_unset(wParam, MODULENAME, "LastCountTS");
 
 	return 0;
 }
 
-int ReloadSkinFolder(WPARAM, LPARAM)
+static int ReloadSkinFolder(WPARAM, LPARAM)
 {
 	FoldersGetCustomPathT(hSkinFolder, SKIN_FOLDER, _countof(SKIN_FOLDER), DEFAULT_SKIN_FOLDER);
 	return 0;
 }
 
-void InitFonts()
+static void InitFonts()
 {
-	colourBg.cbSize = sizeof(ColourIDW);
 	mir_wstrcpy(colourBg.group, LPGENW("Tooltips"));
 	mir_wstrcpy(colourBg.name, LPGENW("Background"));
-	mir_strcpy(colourBg.dbSettingsGroup, MODULE);
+	mir_strcpy(colourBg.dbSettingsGroup, MODULENAME);
 	mir_strcpy(colourBg.setting, "ColourBg");
 	colourBg.defcolour = RGB(219, 219, 219);
 	colourBg.order = 0;
-	Colour_RegisterW(&colourBg);
+	g_plugin.addColor(&colourBg);
 
-	colourBorder.cbSize = sizeof(ColourIDW);
 	mir_wstrcpy(colourBorder.group, LPGENW("Tooltips"));
 	mir_wstrcpy(colourBorder.name, LPGENW("Border"));
-	mir_strcpy(colourBorder.dbSettingsGroup, MODULE);
+	mir_strcpy(colourBorder.dbSettingsGroup, MODULENAME);
 	mir_strcpy(colourBorder.setting, "BorderCol");
 	colourBorder.defcolour = 0;
 	colourBorder.order = 0;
-	Colour_RegisterW(&colourBorder);
+	g_plugin.addColor(&colourBorder);
 
-	colourAvatarBorder.cbSize = sizeof(ColourIDW);
 	mir_wstrcpy(colourAvatarBorder.group, LPGENW("Tooltips"));
 	mir_wstrcpy(colourAvatarBorder.name, LPGENW("Avatar border"));
-	mir_strcpy(colourAvatarBorder.dbSettingsGroup, MODULE);
+	mir_strcpy(colourAvatarBorder.dbSettingsGroup, MODULENAME);
 	mir_strcpy(colourAvatarBorder.setting, "AvBorderCol");
 	colourAvatarBorder.defcolour = 0;
 	colourAvatarBorder.order = 0;
-	Colour_RegisterW(&colourAvatarBorder);
+	g_plugin.addColor(&colourAvatarBorder);
 
-	colourDivider.cbSize = sizeof(ColourIDW);
 	mir_wstrcpy(colourDivider.group, LPGENW("Tooltips"));
 	mir_wstrcpy(colourDivider.name, LPGENW("Dividers"));
-	mir_strcpy(colourDivider.dbSettingsGroup, MODULE);
+	mir_strcpy(colourDivider.dbSettingsGroup, MODULENAME);
 	mir_strcpy(colourDivider.setting, "DividerCol");
 	colourDivider.defcolour = 0;
 	colourDivider.order = 0;
-	Colour_RegisterW(&colourDivider);
+	g_plugin.addColor(&colourDivider);
 
-	colourSidebar.cbSize = sizeof(ColourIDW);
 	mir_wstrcpy(colourSidebar.group, LPGENW("Tooltips"));
 	mir_wstrcpy(colourSidebar.name, LPGENW("Sidebar"));
-	mir_strcpy(colourSidebar.dbSettingsGroup, MODULE);
+	mir_strcpy(colourSidebar.dbSettingsGroup, MODULENAME);
 	mir_strcpy(colourSidebar.setting, "SidebarCol");
 	colourSidebar.defcolour = RGB(192, 192, 192);
 	colourSidebar.order = 0;
-	Colour_RegisterW(&colourSidebar);
+	g_plugin.addColor(&colourSidebar);
 
-	fontTitle.cbSize = sizeof(FontIDW);
 	fontTitle.flags = FIDF_ALLOWEFFECTS;
 	mir_wstrcpy(fontTitle.group, LPGENW("Tooltips"));
 	mir_wstrcpy(fontTitle.name, LPGENW("Title"));
-	mir_strcpy(fontTitle.dbSettingsGroup, MODULE);
-	mir_strcpy(fontTitle.prefix, "FontFirst");
+	mir_strcpy(fontTitle.dbSettingsGroup, MODULENAME);
+	mir_strcpy(fontTitle.setting, "FontFirst");
 	mir_wstrcpy(fontTitle.backgroundGroup, LPGENW("Tooltips"));
 	mir_wstrcpy(fontTitle.backgroundName, LPGENW("Background"));
 	fontTitle.order = 0;
@@ -184,12 +171,11 @@ void InitFonts()
 	fontTitle.deffontsettings.colour = RGB(255, 0, 0);
 	fontTitle.flags |= FIDF_DEFAULTVALID;
 
-	fontLabels.cbSize = sizeof(FontIDW);
 	fontLabels.flags = FIDF_ALLOWEFFECTS;
 	mir_wstrcpy(fontLabels.group, LPGENW("Tooltips"));
 	mir_wstrcpy(fontLabels.name, LPGENW("Labels"));
-	mir_strcpy(fontLabels.dbSettingsGroup, MODULE);
-	mir_strcpy(fontLabels.prefix, "FontLabels");
+	mir_strcpy(fontLabels.dbSettingsGroup, MODULENAME);
+	mir_strcpy(fontLabels.setting, "FontLabels");
 	mir_wstrcpy(fontLabels.backgroundGroup, LPGENW("Tooltips"));
 	mir_wstrcpy(fontLabels.backgroundName, LPGENW("Background"));
 	fontLabels.order = 1;
@@ -200,12 +186,11 @@ void InitFonts()
 	fontLabels.deffontsettings.colour = RGB(128, 128, 128);
 	fontLabels.flags |= FIDF_DEFAULTVALID;
 
-	fontValues.cbSize = sizeof(FontIDW);
 	fontValues.flags = FIDF_ALLOWEFFECTS;
 	mir_wstrcpy(fontValues.group, LPGENW("Tooltips"));
 	mir_wstrcpy(fontValues.name, LPGENW("Values"));
-	mir_strcpy(fontValues.dbSettingsGroup, MODULE);
-	mir_strcpy(fontValues.prefix, "FontValues");
+	mir_strcpy(fontValues.dbSettingsGroup, MODULENAME);
+	mir_strcpy(fontValues.setting, "FontValues");
 	mir_wstrcpy(fontValues.backgroundGroup, LPGENW("Tooltips"));
 	mir_wstrcpy(fontValues.backgroundName, LPGENW("Background"));
 	fontValues.order = 2;
@@ -216,12 +201,11 @@ void InitFonts()
 	fontValues.deffontsettings.colour = RGB(0, 0, 0);
 	fontValues.flags |= FIDF_DEFAULTVALID;
 
-	fontTrayTitle.cbSize = sizeof(FontIDW);
 	fontTrayTitle.flags = FIDF_ALLOWEFFECTS;
 	mir_wstrcpy(fontTrayTitle.group, LPGENW("Tooltips"));
 	mir_wstrcpy(fontTrayTitle.name, LPGENW("Tray title"));
-	mir_strcpy(fontTrayTitle.dbSettingsGroup, MODULE);
-	mir_strcpy(fontTrayTitle.prefix, "FontTrayTitle");
+	mir_strcpy(fontTrayTitle.dbSettingsGroup, MODULENAME);
+	mir_strcpy(fontTrayTitle.setting, "FontTrayTitle");
 	mir_wstrcpy(fontTrayTitle.backgroundGroup, LPGENW("Tooltips"));
 	mir_wstrcpy(fontTrayTitle.backgroundName, LPGENW("Background"));
 	fontTrayTitle.order = 0;
@@ -232,15 +216,15 @@ void InitFonts()
 	fontTrayTitle.deffontsettings.colour = RGB(0, 0, 0);
 	fontTrayTitle.flags |= FIDF_DEFAULTVALID;
 
-	Font_RegisterW(&fontTitle);
-	Font_RegisterW(&fontLabels);
-	Font_RegisterW(&fontValues);
-	Font_RegisterW(&fontTrayTitle);
+	g_plugin.addFont(&fontTitle);
+	g_plugin.addFont(&fontLabels);
+	g_plugin.addFont(&fontValues);
+	g_plugin.addFont(&fontTrayTitle);
 
 	hReloadFonts = HookEvent(ME_FONT_RELOAD, ReloadFont);
 }
 
-int ModulesLoaded(WPARAM, LPARAM)
+static int ModulesLoaded(WPARAM, LPARAM)
 {
 	InitFonts();
 	
@@ -266,7 +250,7 @@ int ModulesLoaded(WPARAM, LPARAM)
 	CallService(MS_CLC_SETINFOTIPHOVERTIME, opt.iTimeIn, 0);
 
 	// set Miranda start timestamp
-	db_set_dw(0, MODULE, "MirandaStartTS", (DWORD)time(0));
+	db_set_dw(0, MODULENAME, "MirandaStartTS", (DWORD)time(0));
 	return 0;
 }
 
@@ -299,13 +283,15 @@ static INT_PTR ReloadSkin(WPARAM wParam, LPARAM lParam)
 	ReloadFont(0, 0);
 	SaveOptions();
 
-	db_set_b(0, MODULE, "SkinEngine", opt.skinMode);
-	db_set_ws(0, MODULE, "SkinName", opt.szSkinName);
+	db_set_b(0, MODULENAME, "SkinEngine", opt.skinMode);
+	db_set_ws(0, MODULENAME, "SkinName", opt.szSkinName);
 
 	DestroySkinBitmap();
 
 	return 0;
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 IconItem iconList[] =
 {
@@ -318,14 +304,11 @@ IconItem iconList[] =
 	{ LPGEN("Apply"),          "apply",          IDI_APPLY     }
 };
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-	pcli = Clist_GetInterface();
-
 	iCodePage = Langpack_GetDefaultCodePage();
 
-	Icon_Register(hInst, MODULE, iconList, _countof(iconList), MODULE);
+	g_plugin.registerIcon(MODULENAME, iconList, MODULENAME);
 
 	InitTranslations();
 	InitMessagePump();
@@ -346,7 +329,9 @@ extern "C" int __declspec(dllexport) Load(void)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload()
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	UnhookEvent(hSettingChangedEvent);
 	UnhookEvent(hEventDeleted);

@@ -82,6 +82,10 @@ Dateiübertragungen
 Andere
 [Choose appropriate accounts for import]
 Passendes Konto zum Importieren auswählen
+[Enter file name for import:]
+Zu importierende Datei angeben:
+[Check duplicates]
+Duplikate prüfen
 ;file \plugins\Import\src\import.cpp
 [<New account>]
 <Neues Konto>
@@ -169,6 +173,11 @@ Miranda-NG-Datenbank
 Alle Dateien
 [You cannot import your current profile into itself]
 Sie können ein Profil nicht in sich selbst importieren.
+;file \plugins\Import\src\ui.cpp
+[Import history for %s]
+Verlauf für %s importieren
+[JSON file]
+JSON-Datei
 ;file \plugins\Import\src\utils.cpp
 [Skipping duplicate group %s.]
 Duplizierte Gruppe %s überspringen

@@ -9,12 +9,6 @@
 #include <newpluginapi.h>
 #endif
 
-#if defined MIR_APP_EXPORTS
-	typedef struct TMO_IntMenuItem* HGENMENU;
-#else
-	DECLARE_HANDLE(HGENMENU);
-#endif
-
 // predefined menu objects
 #define MO_MAIN    (-1)
 #define MO_CONTACT (-2)
@@ -46,25 +40,20 @@ struct TMO_MenuItem
 		HICON hIcon;
 		HANDLE hIcolibItem;
 	};
-	int hLangpack;
+	const CMPluginBase *pPlugin;
 	MUUID uid;
 };
 
-#if _MSC_VER <= 1600
-	#define SET_UID(M,A,B,C,D1,D2,D3,D4,D5,D6,D7,D8) { MUUID tmp = { A, B, C, {D1,D2,D3,D4,D5,D6,D7,D8}}; M.uid = tmp; }
-	#define UNSET_UID(M) { MUUID tmp = MIID_LAST; M.uid = tmp; }
-#else
-	#define SET_UID(M,A,B,C,D1,D2,D3,D4,D5,D6,D7,D8) { M.uid = { A, B, C, {D1,D2,D3,D4,D5,D6,D7,D8}}; }
-	#define UNSET_UID(M) { M.uid = MIID_LAST; }
-#endif
+#define SET_UID(M,A,B,C,D1,D2,D3,D4,D5,D6,D7,D8) { M.uid = { A, B, C, {D1,D2,D3,D4,D5,D6,D7,D8}}; }
+#define UNSET_UID(M) { M.uid = MIID_LAST; }
 
 #ifdef __cplusplus
 struct CMenuItem : public TMO_MenuItem
 {
-	CMenuItem()
+	CMenuItem(HPLUGIN _p)
 	{
 		memset(this, 0, sizeof(CMenuItem));
-		this->hLangpack = ::hLangpack;
+		this->pPlugin = _p;
 	}
 };
 #endif
@@ -118,7 +107,7 @@ EXTERN_C MIR_APP_DLL(HGENMENU) Menu_AddItem(int hMenuObject, TMO_MenuItem *pItem
 // Adds new submenu
 // Returns HGENMENU on success, or NULL on failure
 
-EXTERN_C MIR_APP_DLL(HGENMENU) Menu_CreateRoot(int hMenuObject, LPCWSTR ptszName, int position, HANDLE hIcoLib = nullptr, int hLang = hLangpack);
+EXTERN_C MIR_APP_DLL(HGENMENU) Menu_CreateRoot(int hMenuObject, LPCWSTR ptszName, int position, HANDLE hIcoLib, HPLUGIN pPlugin);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // process a WM_DRAWITEM message for user context menus      v0.1.1.0+
@@ -182,7 +171,7 @@ EXTERN_C MIR_APP_DLL(BOOL) Menu_ProcessHotKey(int hMenuObject, int key);
 EXTERN_C MIR_APP_DLL(int) Menu_RemoveItem(HGENMENU hMenuItem);
 
 /////////////////////////////////////////////////////////////////////////////////////////
-// changes menu item's visibility
+// temporarily changes menu item's visibility
 
 EXTERN_C MIR_APP_DLL(void) Menu_ShowItem(HGENMENU hMenuItem, bool bShow);
 
@@ -190,6 +179,11 @@ EXTERN_C MIR_APP_DLL(void) Menu_ShowItem(HGENMENU hMenuItem, bool bShow);
 // turns a menu item's check on & off
 
 EXTERN_C MIR_APP_DLL(void) Menu_SetChecked(HGENMENU hMenuItem, bool bSet);
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// sets menu item's Visible checkbox programmatically and write it to the options
+
+EXTERN_C MIR_APP_DLL(void) Menu_SetVisible(HGENMENU pimi, bool bVisible);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Creates a new menu object
@@ -258,9 +252,9 @@ __forceinline int Menu_ConfigureItem(HGENMENU hMenu, int iSetting, LPCSTR pszVal
 EXTERN_C MIR_APP_DLL(HGENMENU) Menu_GetProtocolRoot(PROTO_INTERFACE *pThis);
 
 /////////////////////////////////////////////////////////////////////////////////////////
-// kills all menu items & submenus that belong to the hLangpack given
+// kills all menu items & submenus that belong to the language id given
 
-EXTERN_C MIR_APP_DLL(void) KillModuleMenus(int hLangpack);
+EXTERN_C MIR_APP_DLL(void) KillModuleMenus(HPLUGIN pPlugin);
 
 #endif // M_GENMENU_H__
 

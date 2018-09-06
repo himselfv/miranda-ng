@@ -2,7 +2,7 @@
 ;============================================================
 ;  File: TabSRMM.dll
 ;  Plugin: TabSRMM
-;  Version: 3.5.0.9
+;  Version: 3.5.0.12
 ;  Authors: The Miranda developers team and contributors
 ;============================================================
 [IM and group chat module for Miranda NG.]
@@ -374,7 +374,7 @@ Options diverses
 Régler les états pour la création auto. d'onglet...
 [Limit nicknames on tabs to]
 Limiter pseudo dans l'onglet à
-[ESC key behavior]
+[Esc key behavior]
 
 [Select container]
 Sélection d'un Conteneur
@@ -724,10 +724,10 @@ Copier le message
 &Fichier
 [Save message log as...]
 Enregistrer sous...
-[Close message session\tCtrl-W]
-Fermer la session\tCtrl-W
-[Close container\tAlt-F4]
-Fermer le conteneur\tAlt-F4
+[Close message session\tCtrl+W]
+Fermer la session\tCtrl+W
+[Close container\tAlt+F4]
+Fermer le conteneur\tAlt+F4
 [&View]
 &Aperçu
 [Show menu bar]
@@ -1060,12 +1060,6 @@ Sessions de message
 
 [Group chat log]
 
-[Appearance and functionality of chat room windows]
-Apparence et fonctionnalités des fenêtres de salon
-[Appearance of the message log]
-Apparence du journal des messages
-[Chat rooms]
-
 [Voiced]
 
 [Half operators]
@@ -1087,6 +1081,12 @@ Texte sélectionné
 [Nick list background]
 Fond de la liste
 [Group chat log background]
+
+[Appearance and functionality of chat room windows]
+Apparence et fonctionnalités des fenêtres de salon
+[Appearance of the message log]
+Apparence du journal des messages
+[Chat rooms]
 
 [nick of current contact (if defined)]
 
@@ -1147,6 +1147,14 @@ Sélectionnez un répertoire
 [Show as icons]
 
 [Show as text symbols]
+
+[Settings]
+Paramètres
+[Log formatting]
+
+[Events and filters]
+
+[Highlighting]
 
 ;file \plugins\TabSRMM\src\chat_tools.cpp
 [%s%s says:%s %s]
@@ -1239,7 +1247,7 @@ Ne pas les afficher
 &Contact
 [&Room]
 
-[Sounds are %s. Click to toggle status, hold SHIFT and click to set for all open containers]
+[Sounds are %s. Click to toggle status, hold Shift and click to set for all open containers]
 Les sons sont %s. Cliquez pour modifier l'état, Shift et clic pour régler tous les containeur ouverts.
 [disabled]
 désactivé
@@ -1268,12 +1276,12 @@ Fichier reçu
 Nouveaux messages :\s
 [Unknown module or contact]
 
+[Event notifications]
+
 ;file \plugins\TabSRMM\src\generic_msghandlers.cpp
 [Rich Edit file]
 
 [No status message]
-
-[Configuration issue|The unattended send feature is disabled. The \\b1 send later\\b0  and \\b1 send to multiple contacts\\b0  features depend on it.\n\nYou must enable it under \\b1Options -> Message sessions -> Advanced tweaks\\b0. Changing this option requires a restart.]
 
 [You cannot edit user notes when there are unsent messages]
 
@@ -1455,13 +1463,13 @@ Clic pour le menu du contact\nClic sur la flèche pour le réglage de la fenêtr
 
 [Send later]
 Différer l'envoi
-[UID: %s (SHIFT click -> copy to clipboard)\nClick for user's details\nRight click for metacontact control\nClick dropdown to add or remove user from your favorites.]
+[UID: %s (Shift+click -> copy to clipboard)\nClick for user's details\nRight click for metacontact control\nClick dropdown to add or remove user from your favorites.]
 
 [No UID]
 
-[UID: %s (SHIFT click -> copy to clipboard)\nClick for user's details\nClick dropdown to change this contact's favorite status.]
+[UID: %s (Shift+click -> copy to clipboard)\nClick for user's details\nClick dropdown to change this contact's favorite status.]
 
-[You are editing the user notes. Click the button again or use the hotkey (default: Alt-N) to save the notes and return to normal messaging mode]
+[You are editing the user notes. Click the button again or use the hotkey (default: Alt+N) to save the notes and return to normal messaging mode]
 
 [Selection copied to clipboard]
 Sélection mise dans le presse-papier
@@ -1610,21 +1618,11 @@ Conteneurs
 Historique récent
 [Typing notify]
 Notification de frappe
-[Event notifications]
-
 [Message window]
 Fenêtre de message
 [Load and apply]
 Charger et appliquer
 [Window layout tweaks]
-
-[Settings]
-Paramètres
-[Log formatting]
-
-[Events and filters]
-
-[Highlighting]
 
 [Choose status modes]
 Choisir les modes d'état...
@@ -1838,12 +1836,8 @@ Changer le skin
 
 [Error feedback]
 
-[Enable typing sounds]
-
 [Close current tab on send]
 Fermer l'onglet en cours dés l'envoi
-[Automatic keyboard layout: Do not load the system default for new contacts]
-
 [Enable unattended send (experimental feature, required for multisend and send later) (*)]
 
 [Show client description in info panel]
@@ -1980,11 +1974,9 @@ Bulle détaillée sur les onglets (requière Tipper)
 
 [Automatically switch existing tabs in minimized windows on incoming messages (ignored when using Aero Peek task bar features)]
 
-[Remember and set keyboard layout per contact]
-Se rappeler du keyboard layout de chaques contacts.
 [Close button only hides message windows]
 
-[Allow TAB key in typing area (this will disable focus selection by TAB key)]
+[Allow Tab key in typing area (this will disable focus selection by Tab key)]
 
 [Add offline contacts to multisend list]
 Ajouter les contacts hors ligne à la liste de l'envoi groupé
@@ -2014,11 +2006,7 @@ Utiliser IEView
 ;file \plugins\TabSRMM\src\utils.cpp
 [TabSRMM message (%s)]
 Message TabSRMM (%s)
-[Important release notes|A test warning message]
-
-[Icon pack version check|The installed icon pack is outdated and might be incompatible with TabSRMM version 3.\n\n\\b1Missing or misplaced icons are possible issues with the currently installed icon pack.\\b0]
-
-[Edit user notes|You are editing the user notes. Click the button again or use the hotkey (default: Alt-N) to save the notes and return to normal messaging mode]
+[Edit user notes|You are editing the user notes. Click the button again or use the hotkey (default: Alt+N) to save the notes and return to normal messaging mode]
 
 [Missing component|The icon pack is missing. Please install it to the default icons folder.\n\nNo icons will be available]
 
@@ -2027,6 +2015,8 @@ Message TabSRMM (%s)
 [File transfer problem|Sending the image by file transfer failed.\n\nPossible reasons: File transfers not supported, either you or the target contact is offline, or you are invisible and the target contact is not on your visibility list.]
 
 [Settings problem|The option \\b1 History -> Imitate IEView API\\b0  is enabled and the History++ plugin is active. This can cause problems when using IEView as message log viewer.\n\nShould I correct the option (a restart is required)?]
+
+[Configuration issue|The unattended send feature is disabled. The \\b1 send later\\b0  and \\b1 send to multiple contacts\\b0  features depend on it.\n\nYou must enable it under \\b1Options -> Message sessions -> Advanced tweaks\\b0. Changing this option requires a restart.]
 
 [Closing Window|You are about to close a window with multiple tabs open.\n\nProceed?]
 

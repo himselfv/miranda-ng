@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
 COptions::COptions()
-	: CDlgBase(g_hInstance, IDD_OPTIONS_MAIN),
+	: CDlgBase(g_plugin, IDD_OPTIONS_MAIN),
 	m_shortcut(this, IDC_SHORTCUT),
 	m_preview(this, IDC_PREVIEW),
 	m_enabled(this, IDC_CHECK_ENABLED)
@@ -11,9 +11,10 @@ COptions::COptions()
 	m_enabled.OnChange = Callback(this, &COptions::Enabled_OnChange);
 }
 
-void COptions::OnInitDialog()
+bool COptions::OnInitDialog()
 {
 	m_enabled.SetState(CallService(MS_POPUP_QUERY, PUQS_GETSTATUS));
+	return true;
 }
 
 void COptions::Shortcut_OnClick(CCtrlBase*)
@@ -45,13 +46,13 @@ void COptions::Enabled_OnChange(CCtrlCheck* chk)
 
 int OnOptionsInitialized(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.szTitle.w = L"Popups"; //_T(MODULE);
+	OPTIONSDIALOGPAGE odp = {};
+	odp.szTitle.w = L"Popups"; //_T(MODULENAME);
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
 	odp.position = -790000000;
-	odp.szTab.w = _T(MODULE);
+	odp.szTab.w = _T(MODULENAME);
 	odp.pDialog = new COptions();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	return 0;
 }

@@ -52,8 +52,15 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 extern HNETLIBUSER hNetlibUser;
-extern HINSTANCE hInstance;
 extern char protoName[64];
 
 extern int LoadServices();
 extern int UnloadServices();
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};

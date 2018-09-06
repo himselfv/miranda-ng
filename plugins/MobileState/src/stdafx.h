@@ -36,3 +36,10 @@
 #include "clients.h"
 
 #define MODULENAME "MobileState"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};

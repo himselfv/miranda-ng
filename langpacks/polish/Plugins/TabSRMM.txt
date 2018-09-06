@@ -2,7 +2,7 @@
 ;============================================================
 ;  File: TabSRMM.dll
 ;  Plugin: TabSRMM
-;  Version: 3.5.0.9
+;  Version: 3.5.0.12
 ;  Authors: The Miranda developers team and contributors
 ;============================================================
 [IM and group chat module for Miranda NG.]
@@ -374,8 +374,8 @@ Inne opcje
 Ustaw statusy dla automatycznego tworzenia kart...
 [Limit nicknames on tabs to]
 Limituj nicki na kartach do
-[ESC key behavior]
-Opcje ESC
+[Esc key behavior]
+Opcje Esc
 [Select container]
 Wybierz kontener
 [Available containers]
@@ -724,10 +724,10 @@ Skopiuj wiadomość do schowka
 &Plik
 [Save message log as...]
 Zapisz dziennik wiadomości jako...
-[Close message session\tCtrl-W]
-Zamknij sesję rozmowy\tctrl+w
-[Close container\tAlt-F4]
-Zamknij kontener\talt+f4
+[Close message session\tCtrl+W]
+Zamknij sesję rozmowy\tCtrl+W
+[Close container\tAlt+F4]
+Zamknij kontener\tAlt+F4
 [&View]
 &Widok
 [Show menu bar]
@@ -1060,12 +1060,6 @@ Okno rozmowy
 Okno czatu
 [Group chat log]
 Dziennik czatu
-[Appearance and functionality of chat room windows]
-Wygląd i funkcjonalność okna czatu
-[Appearance of the message log]
-Wygląd dziennika wiadomości
-[Chat rooms]
-Pokoje czatu
 [Voiced]
 Głos członków
 [Half operators]
@@ -1088,6 +1082,12 @@ Tło pola
 Tło listy użytkowników
 [Group chat log background]
 Tło dziennika czatu grupowego
+[Appearance and functionality of chat room windows]
+Wygląd i funkcjonalność okna czatu
+[Appearance of the message log]
+Wygląd dziennika wiadomości
+[Chat rooms]
+Pokoje czatu
 [nick of current contact (if defined)]
 nick obecnego kontaktu (jeśli zdefiniowany)
 [protocol name of current contact (if defined). Account name is used when protocol supports multiple accounts]
@@ -1148,6 +1148,14 @@ Brak znaków
 Pokaż ikony
 [Show as text symbols]
 Pokaż symbole tekstowe
+[Settings]
+Ustawienia
+[Log formatting]
+Formatowanie dziennika
+[Events and filters]
+Zdarzenia i filtry
+[Highlighting]
+Podświetlanie
 ;file \plugins\TabSRMM\src\chat_tools.cpp
 [%s%s says:%s %s]
 %s%s mówi: %s %s
@@ -1239,8 +1247,8 @@ Nie pokazuj ich
 &Użytkownik
 [&Room]
 &Pokój
-[Sounds are %s. Click to toggle status, hold SHIFT and click to set for all open containers]
-Dźwięk jest %s. Kliknij aby przełączyć, przytrzymaj SHIFT i kliknij, aby ustawić dla otwartych kontenerów
+[Sounds are %s. Click to toggle status, hold Shift and click to set for all open containers]
+Dźwięk jest %s. Kliknij aby przełączyć, przytrzymaj Shift i kliknij, aby ustawić dla otwartych kontenerów
 [disabled]
 wyłączony
 [enabled]
@@ -1268,13 +1276,13 @@ Nieznane zdarzenie
 Nowych wiadomości:\s
 [Unknown module or contact]
 Nieznany moduł lub kontakt
+[Event notifications]
+Zdarzenia
 ;file \plugins\TabSRMM\src\generic_msghandlers.cpp
 [Rich Edit file]
 Plik pola edycji z formatowaniem
 [No status message]
 Kontakt nie ma opisu.
-[Configuration issue|The unattended send feature is disabled. The \\b1 send later\\b0  and \\b1 send to multiple contacts\\b0  features depend on it.\n\nYou must enable it under \\b1Options -> Message sessions -> Advanced tweaks\\b0. Changing this option requires a restart.]
-błąd konfiguracji|Funkcja nienadzorowanego wysyłania jest wyłączona. Funkcje \\b1 wyślij później\\b0  oraz \\b1 wyślij do wielu kontaktów\\b0 zależą od niej.\n\nMusisz ją włączyć w \\b1Opcje -> Okno rozmowy -> Zaawansowane\\b0. Zmiana tej opcji wymaga ponownego uruchomienia.
 [You cannot edit user notes when there are unsent messages]
 Nie możesz edytować notatek o użytkowniku, podczas gdy istnieją niewysłane wiadomości
 [%s is typing a message...]
@@ -1455,14 +1463,14 @@ Kliknij, by pokazać menu kontaktu\nKliknij strzałkę, by pokazać ustawienia o
 Gotowy
 [Send later]
 Wyślij później
-[UID: %s (SHIFT click -> copy to clipboard)\nClick for user's details\nRight click for metacontact control\nClick dropdown to add or remove user from your favorites.]
-UID: %s (kliknięcie SHIFT -> kopiuj do schowka)\nKliknij, by pokazać dane użytkownika\nKliknij prawym przyciskiem myszy, by pokazać kontrolę metakontaktów\nKliknij w pole rozwijalne, by dodać lub usunąć kontakt z ulubionych..
+[UID: %s (Shift+click -> copy to clipboard)\nClick for user's details\nRight click for metacontact control\nClick dropdown to add or remove user from your favorites.]
+UID: %s (kliknięcie Shift -> kopiuj do schowka)\nKliknij, by pokazać dane użytkownika\nKliknij prawym przyciskiem myszy, by pokazać kontrolę metakontaktów\nKliknij w pole rozwijalne, by dodać lub usunąć kontakt z ulubionych..
 [No UID]
 Brak UID
-[UID: %s (SHIFT click -> copy to clipboard)\nClick for user's details\nClick dropdown to change this contact's favorite status.]
-UID: %s (kliknięcie SHIFT -> kopiuj do schowka)\nKliknij, by pokazać dane użytkownika\nKliknij prawym przyciskiem myszy, by pokazać kontrolę metakontaktów\nKliknij w pole rozwijalne, by zmienić status tego kontaktu jako ulubionego.
-[You are editing the user notes. Click the button again or use the hotkey (default: Alt-N) to save the notes and return to normal messaging mode]
-Edytujesz notatki o użytkowniku. Użyj przycisku ponownie lub naciśnij skrót klawiszowy (domyślnie: alt+n), aby zapisać notatki i powrócić do normalnego trybu wiadomości
+[UID: %s (Shift+click -> copy to clipboard)\nClick for user's details\nClick dropdown to change this contact's favorite status.]
+UID: %s (kliknięcie Shift -> kopiuj do schowka)\nKliknij, by pokazać dane użytkownika\nKliknij prawym przyciskiem myszy, by pokazać kontrolę metakontaktów\nKliknij w pole rozwijalne, by zmienić status tego kontaktu jako ulubionego.
+[You are editing the user notes. Click the button again or use the hotkey (default: Alt+N) to save the notes and return to normal messaging mode]
+Edytujesz notatki o użytkowniku. Użyj przycisku ponownie lub naciśnij skrót klawiszowy (domyślnie: Alt+N), aby zapisać notatki i powrócić do normalnego trybu wiadomości
 [Selection copied to clipboard]
 Zaznaczenie skopiowano do schowka
 [WARNING: The message you are trying to paste exceeds the message size limit for the active protocol. It will be sent in chunks of max %d characters]
@@ -1610,22 +1618,12 @@ Kontenery
 Dziennik wiadomości
 [Typing notify]
 Pisanie
-[Event notifications]
-Zdarzenia
 [Message window]
 Okno rozmowy
 [Load and apply]
 Wczytaj i zastosuj
 [Window layout tweaks]
 Wygląd kart
-[Settings]
-Ustawienia
-[Log formatting]
-Formatowanie dziennika
-[Events and filters]
-Zdarzenia i filtry
-[Highlighting]
-Podświetlanie
 [Choose status modes]
 Wybierz tryby statusu
 ;file \plugins\TabSRMM\src\msgs.cpp
@@ -1838,12 +1836,8 @@ Poprawki okna rozmowy
 Wyświetlaj ikony metakontaktów
 [Error feedback]
 Błędy
-[Enable typing sounds]
-Włącz dźwięki przy pisaniu
 [Close current tab on send]
 Zamknij kartę po wysłaniu wiadomości
-[Automatic keyboard layout: Do not load the system default for new contacts]
-Automatyczny układ klawiatury: Nie ładuj domyślnie dla nowych kontaktów
 [Enable unattended send (experimental feature, required for multisend and send later) (*)]
 Włącz wysyłanie bez nadzoru (eksperymentalnie, wymagane przez wyślij później i do wielu naraz, możliwe błędy) (*)
 [Show client description in info panel]
@@ -1980,12 +1974,10 @@ Nowe okna zminimalizowane
 Aktywuj zminimalizowane okno, gdy tworzona jest nowa karta
 [Automatically switch existing tabs in minimized windows on incoming messages (ignored when using Aero Peek task bar features)]
 Automatycznie przełączaj istniejące karty w zminimalizowanych oknach dla przychodzących wiadomości (ignorowane przy użyciu funkcji Aero Peek)
-[Remember and set keyboard layout per contact]
-Pamiętaj i ustaw układ klawiatury dla każdego z kontaktów
 [Close button only hides message windows]
 Przycisk zamykania tylko ukrywa okno rozmowy
-[Allow TAB key in typing area (this will disable focus selection by TAB key)]
-Zezwól na tabulację (TAB przełącza fokus w karcie/oknie)
+[Allow Tab key in typing area (this will disable focus selection by Tab key)]
+Zezwól na tabulację (Tab przełącza fokus w karcie/oknie)
 [Add offline contacts to multisend list]
 Dodaj rozłączone kontakty na listę wysyłania do wielu naraz
 ;file \plugins\TabSRMM\src\trayicon.cpp
@@ -2014,12 +2006,8 @@ Ustawienia opcji rozmowy dla %s
 ;file \plugins\TabSRMM\src\utils.cpp
 [TabSRMM message (%s)]
 Wiadomość TabSRMM (%s)
-[Important release notes|A test warning message]
-Ważne informacje o wydaniu|Ostrzeżenie testowe
-[Icon pack version check|The installed icon pack is outdated and might be incompatible with TabSRMM version 3.\n\n\\b1Missing or misplaced icons are possible issues with the currently installed icon pack.\\b0]
-Sprawdzanie wersji ikon|Zainstalowane ikony nie są aktualne i mogą być niekompatybilne z TabSRMM w wersji 3.\n\n\\b1Możliwe problemy z obecnie zainstalowanymi ikonami, to brakujące lub źle przyporządkowane ikony\\b0
-[Edit user notes|You are editing the user notes. Click the button again or use the hotkey (default: Alt-N) to save the notes and return to normal messaging mode]
-Edycja notatek kontaktu|Kliknij przycisk ponownie lub użyj skrótu klawiszowego (domyślnie: Alt-N) aby zapisać informacje i powrócić do normalnego trybu wiadomości.
+[Edit user notes|You are editing the user notes. Click the button again or use the hotkey (default: Alt+N) to save the notes and return to normal messaging mode]
+Edycja notatek kontaktu|Kliknij przycisk ponownie lub użyj skrótu klawiszowego (domyślnie: Alt+N) aby zapisać informacje i powrócić do normalnego trybu wiadomości.
 [Missing component|The icon pack is missing. Please install it to the default icons folder.\n\nNo icons will be available]
 Brakujący komponent|Brakuje ikon. Zainstaluj je w domyślnym folderze ikon.\n\nŻadne ikony nie będą dostępne.
 [Aero peek warning|You have enabled Aero Peek features and loaded a custom container window skin\n\nThis can result in minor visual anomalies in the live preview feature.]
@@ -2028,6 +2016,8 @@ Ostrzeżenie Aero peek. Włączono funkcje Aero Peek oraz wczytywanie domyślnej
 Problem z transferem pliku|Wysyłanie obrazka poprzez transfer pliku nie powiodło się.\n\nMożliwe przyczyny: Transfer plików niewspierany, ty lub kontakt docelowy jesteście rozłączeni lub jesteś niewidoczny, a kontakt docelowy nie znajduje się na twojej liście widoczności.
 [Settings problem|The option \\b1 History -> Imitate IEView API\\b0  is enabled and the History++ plugin is active. This can cause problems when using IEView as message log viewer.\n\nShould I correct the option (a restart is required)?]
 Błąd ustawień|Opcja \\b1 Historia -> Imituj API IEView\\b0 i wtyczka History++ jest aktywna. Może to powodować problemy podczas korzystania z wtyczki IEView jako dziennik wiadomości.\n\nNależy skorygować opcje (ponowne uruchomienie jest wymagane)?
+[Configuration issue|The unattended send feature is disabled. The \\b1 send later\\b0  and \\b1 send to multiple contacts\\b0  features depend on it.\n\nYou must enable it under \\b1Options -> Message sessions -> Advanced tweaks\\b0. Changing this option requires a restart.]
+błąd konfiguracji|Funkcja nienadzorowanego wysyłania jest wyłączona. Funkcje \\b1 wyślij później\\b0  oraz \\b1 wyślij do wielu kontaktów\\b0 zależą od niej.\n\nMusisz ją włączyć w \\b1Opcje -> Okno rozmowy -> Zaawansowane\\b0. Zmiana tej opcji wymaga ponownego uruchomienia.
 [Closing Window|You are about to close a window with multiple tabs open.\n\nProceed?]
 Zamykanie okna|Czy na pewno chcesz zamknąć okno rozmowy z otwartymi kilkoma kartami.\n\nZatwierdzić?
 [Closing options dialog|To reflect the changes done by importing a theme in the options dialog, the dialog must be closed after loading a theme \\b1 and unsaved changes might be lost\\b0 .\n\nDo you want to continue?]

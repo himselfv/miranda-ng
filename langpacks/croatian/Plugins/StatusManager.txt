@@ -2,7 +2,7 @@
 ;============================================================
 ;  File: StatusManager.dll
 ;  Plugin: Status manager
-;  Version: 1.2.0.1
+;  Version: 1.2.0.4
 ;  Authors: P Boon
 ;============================================================
 [A connection checker and auto away module. Also allows you to define the status Miranda should set on startup, configurable per protocol.]
@@ -56,7 +56,9 @@
 
 [Message]
 Poruka
-[Account]
+[Account:]
+
+[Away mode]
 
 [Set]
 
@@ -66,9 +68,13 @@ Poruka
 
 [when workstation is locked]
 
+[when terminal session is disconnected]
+
 [after]
 
 [minutes of inactivity]
+
+[After away]
 
 [minutes of level 1 mode]
 
@@ -79,6 +85,8 @@ Poruka
 [Reset status on return]
 
 [Confirm resetting status]
+
+[Enter idle mode]
 
 [Only set if current status is]
 
@@ -202,13 +210,11 @@ Koristi %time% za trenutno vrijeme, %date% za trenutni datum
 
 [Confirm dialog timeout (secs)]
 
-[This options are ignored because you enabled "Change my status mode to" in the "Idle" options dialog.]
-
 [Monitor keyboard activity]
 
 [Monitor mouse activity]
 
-[Ignore CTRL, ALT, SHIFT, TAB, ESC and Windows keys]
+[Ignore Ctrl, Alt, Shift, Tab, Esc and Windows keys]
 
 [Ignore any key combination with above keys]
 
@@ -219,6 +225,8 @@ Koristi %time% za trenutno vrijeme, %date% za trenutni datum
 [Disable checking]
 
 [Set status message]
+
+[Account]
 
 [Status]
 
@@ -286,6 +294,15 @@ sekundi
 
 [Leaving second auto-away status]
 
+;file \plugins\StatusManager\src\aaa_options.cpp
+[minutes of %s mode]
+
+[Auto away]
+
+[Rules]
+
+[Status messages]
+Statusne poruke
 ;file \plugins\StatusManager\src\confirmdialog.cpp
 [Set %s message for %s.]
 
@@ -299,19 +316,7 @@ sekundi
 
 [Closing in %d]
 Zatvaranje za %d
-;file \plugins\StatusManager\src\options.cpp
-[Status manager]
-
-;file \plugins\StatusManager\src\AdvancedAutoAway\aaa_options.cpp
-[minutes of %s mode]
-
-[Auto away]
-
-[Rules]
-
-[Status messages]
-Statusne poruke
-;file \plugins\StatusManager\src\KeepStatus\keepstatus.cpp
+;file \plugins\StatusManager\src\keepstatus.cpp
 [%s connected from another location]
 
 [%s login error, cancel reconnecting]
@@ -336,7 +341,7 @@ Statusne poruke
 
 [Giving up]
 
-;file \plugins\StatusManager\src\KeepStatus\ks_options.cpp
+;file \plugins\StatusManager\src\ks_options.cpp
 [You broke the Internet!]
 
 [Basic]
@@ -345,8 +350,19 @@ Statusne poruke
 
 [Popups]
 
-;file \plugins\StatusManager\src\StartupStatus\ss_options.cpp
+;file \plugins\StatusManager\src\options.cpp
+[Status manager]
+
+;file \plugins\StatusManager\src\ss_options.cpp
 [<unknown>]
+
+[default]
+
+[Hidden]
+
+[Minimized]
+
+[Normal]
 
 [Right]
 
@@ -356,15 +372,7 @@ Statusne poruke
 
 [loc: %d x %d]
 
-[Hidden]
-
-[Minimized]
-
-[Normal]
-
 [Create a status menu item]
-
-[default]
 
 [unknown]
 
@@ -372,9 +380,11 @@ Statusne poruke
 
 [Your default profile will be changed]
 
-;file \plugins\StatusManager\src\StartupStatus\ss_profiles.cpp
-;file \plugins\StatusManager\src\StartupStatus\ss_toolbars.cpp
+;file \plugins\StatusManager\src\ss_profiles.cpp
+;file \plugins\StatusManager\src\ss_toolbars.cpp
 [Pressed toolbar icon]
 
 [Released toolbar icon]
+
+[Toolbar]
 

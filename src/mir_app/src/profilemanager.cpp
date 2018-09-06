@@ -82,13 +82,16 @@ class CCreateProfileDlg : public CDlgBase
 	CCtrlButton &m_btnOk;
 	PROFILEMANAGERDATA *m_pd;
 
-	int CreateProfile(wchar_t *profile, DATABASELINK *link)
+	int CreateProfile(const wchar_t *profile, DATABASELINK *link)
 	{
 		wchar_t buf[256];
 		int err = 0;
+		
 		// check if the file already exists
-		wchar_t *file = wcsrchr(profile, '\\');
-		if (file) file++;
+		const wchar_t *file = wcsrchr(profile, '\\');
+		if (file)
+			file++;
+		
 		if (_waccess(profile, 0) == 0) {
 			// file already exists!
 			mir_snwprintf(buf,
@@ -130,7 +133,7 @@ class CCreateProfileDlg : public CDlgBase
 
 public:
 	CCreateProfileDlg(CCtrlButton &_btn, PROFILEMANAGERDATA *_pd) :
-		CDlgBase(g_hInst, IDD_PROFILE_NEW),
+		CDlgBase(g_plugin, IDD_PROFILE_NEW),
 		m_btnOk(_btn),
 		m_pd(_pd),
 		m_bFocused(false),
@@ -139,7 +142,7 @@ public:
 		m_warning(this, IDC_NODBDRIVERS)
 	{}
 
-	virtual void OnInitDialog()
+	bool OnInitDialog() override
 	{
 		// what, no plugins?!
 		if (arDbPlugins.getCount() == 0) {
@@ -175,9 +178,10 @@ public:
 
 		// focus on the textbox
 		PostMessage(m_hwnd, WM_FOCUSTEXTBOX, 0, 0);
+		return true;
 	}
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (msg) {
 		case WM_FOCUSTEXTBOX:
@@ -201,15 +205,15 @@ public:
 		return CDlgBase::DlgProc(msg, wParam, lParam);
 	}
 
-	virtual void OnApply()
+	bool OnApply() override
 	{
 		LRESULT curSel = m_driverList.GetCurSel();
 		if (curSel == -1 || !m_bFocused)
-			return; // should never happen
+			return false; // should never happen
 
 		ptrW szName(m_profileName.GetText());
 		if (mir_wstrlen(szName) == 0)
-			return;
+			return false;
 
 		// profile placed in "profile_name" subfolder
 		mir_snwprintf(m_pd->ptszProfile, MAX_PATH, L"%s\\%s\\%s.dat", m_pd->ptszProfileDir, szName, szName);
@@ -220,6 +224,7 @@ public:
 			SetWindowLongPtr(m_hwnd, DWLP_MSGRESULT, PSNRET_INVALID_NOCHANGEPAGE);
 		else
 			m_pd->bRun = true;
+		return true;
 	}
 };
 
@@ -270,18 +275,22 @@ class CChooseProfileDlg : public CDlgBase
 				mir_snwprintf(sizeBuf, L"%.3lf", (double)statbuf.st_size / 1024.0);
 				mir_wstrcpy(sizeBuf + 5, L" KB");
 			}
-			bFileLocked = findMirandaForProfile(tszFullPath) != 0;
+			bFileLocked = Profile_CheckOpened(tszFullPath);
 		}
 		else bFileLocked = true;
 
 		DATABASELINK *dblink;
 		switch (touchDatabase(tszFullPath, &dblink)) {
 		case ERROR_SUCCESS:
-			item.iImage = bFileLocked;
+			item.iImage = 0;
 			break;
 
 		case EGROKPRF_OBSOLETE:
 			item.iImage = 2;
+			break;
+
+		case EGROKPRF_CANTREAD:
+			item.iImage = (bFileLocked) ? 1 : 3;
 			break;
 
 		default:
@@ -296,13 +305,12 @@ class CChooseProfileDlg : public CDlgBase
 
 		list.SetItemText(iItem, 2, sizeBuf);
 
-		if (dblink != nullptr) {
-			if (bFileLocked) // file locked
-				list.SetItemText(iItem, 1, TranslateT("<In use>"));
-			else
-				list.SetItemText(iItem, 1, TranslateW(dblink->szFullName));
-		}
-		else list.SetItemText(iItem, 1, TranslateT("<Unknown format>"));
+		if (dblink != nullptr)
+			list.SetItemText(iItem, 1, TranslateW(dblink->szFullName));
+		else if (bFileLocked) // file locked
+			list.SetItemText(iItem, 1, TranslateT("<In use>"));
+		else
+			list.SetItemText(iItem, 1, TranslateT("<Unknown format>"));
 
 		return TRUE;
 	}
@@ -432,7 +440,7 @@ class CChooseProfileDlg : public CDlgBase
 
 public:
 	CChooseProfileDlg(CCtrlButton &_btn, PROFILEMANAGERDATA *_pd) :
-		CDlgBase(g_hInst, IDD_PROFILE_SELECTION),
+		CDlgBase(g_plugin, IDD_PROFILE_SELECTION),
 		m_btnOk(_btn),
 		m_pd(_pd),
 		m_profileList(this, IDC_PROFILELIST)
@@ -443,7 +451,7 @@ public:
 		m_profileList.OnDoubleClick = Callback(this, &CChooseProfileDlg::list_OnDblClick);
 	}
 
-	virtual void OnInitDialog()
+	bool OnInitDialog() override
 	{
 		// set columns
 		LVCOLUMN col;
@@ -479,9 +487,10 @@ public:
 		m_hFileNotify = FindFirstChangeNotification(m_pd->ptszProfileDir, TRUE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE);
 		if (m_hFileNotify != INVALID_HANDLE_VALUE)
 			SetTimer(m_hwnd, 0, 1200, nullptr);
+		return true;
 	}
 
-	virtual void OnDestroy()
+	void OnDestroy()
 	{
 		KillTimer(m_hwnd, 0);
 		FindCloseChangeNotification(m_hFileNotify);
@@ -524,7 +533,7 @@ public:
 		EndDialog(GetParent(m_hwndParent), 1);
 	}
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (msg) {
 		case WM_TIMER:
@@ -570,7 +579,7 @@ class CProfileManager : public CDlgBase
 
 public:
 	CProfileManager(PROFILEMANAGERDATA *_pd) :
-		CDlgBase(g_hInst, IDD_PROFILEMANAGER),
+		CDlgBase(g_plugin, IDD_PROFILEMANAGER),
 		m_btnOk(this, IDOK),
 		m_pd(_pd),
 		m_tab(this, IDC_TABS),
@@ -583,11 +592,11 @@ public:
 		m_tab.AddPage(LPGENW("New profile"), nullptr, new CCreateProfileDlg(m_btnOk, m_pd));
 	}
 	
-	virtual void OnInitDialog()
+	bool OnInitDialog() override
 	{
 		// MUST NOT be replaced with Window_SetIcon_IcoLib!!!
-		SendMessage(m_hwnd, WM_SETICON, ICON_SMALL, (LPARAM)LoadImage(g_hInst, MAKEINTRESOURCE(IDI_DETAILSLOGO), IMAGE_ICON, g_iIconSX, g_iIconSY, 0));
-		SendMessage(m_hwnd, WM_SETICON, ICON_BIG, (LPARAM)LoadImage(g_hInst, MAKEINTRESOURCE(IDI_DETAILSLOGO), IMAGE_ICON, g_iIconX, g_iIconY, 0));
+		SendMessage(m_hwnd, WM_SETICON, ICON_SMALL, (LPARAM)LoadImage(g_plugin.getInst(), MAKEINTRESOURCE(IDI_DETAILSLOGO), IMAGE_ICON, g_iIconSX, g_iIconSY, 0));
+		SendMessage(m_hwnd, WM_SETICON, ICON_BIG, (LPARAM)LoadImage(g_plugin.getInst(), MAKEINTRESOURCE(IDI_DETAILSLOGO), IMAGE_ICON, g_iIconX, g_iIconY, 0));
 
 		if (m_pd->noProfiles || shouldAutoCreate(m_pd->ptszProfile))
 			m_tab.ActivatePage(1);
@@ -606,9 +615,10 @@ public:
 				m_servicePlugs.AddString(TranslateW(p->pluginname), i);
 			}
 		}
+		return true;
 	}
 
-	virtual void OnDestroy()
+	void OnDestroy()
 	{
 		LRESULT curSel = m_servicePlugs.GetCurSel();
 		if (curSel != -1) {

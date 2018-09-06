@@ -38,9 +38,7 @@ TOptionListGroup m_lvGroupsModPlus[] =
 
 TOptionListItem m_lvItemsModPlus[] =
 {
-	{ 0, LPGENW("Enable typing sounds"), 0, LOI_TYPE_SETTING, (UINT_PTR)"adv_soundontyping", 0 },
 	{ 0, LPGENW("Close current tab on send"), 0, LOI_TYPE_SETTING, (UINT_PTR)"adv_AutoClose_2", 0 },
-	{ 0, LPGENW("Automatic keyboard layout: Do not load the system default for new contacts"), 1, LOI_TYPE_SETTING, (UINT_PTR)"adv_leaveKeyboardAlone", 0 },
 	{ 0, LPGENW("Enable unattended send (experimental feature, required for multisend and send later) (*)"), 0, LOI_TYPE_SETTING, (UINT_PTR)"sendLaterAvail", 0 },
 	{ 0, LPGENW("Show client description in info panel"), 1, LOI_TYPE_SETTING, (UINT_PTR)"ShowClientDescription", 0 },
 	{ 0, LPGENW("On tab control"), 1, LOI_TYPE_SETTING, (UINT_PTR)"MetaiconTab", 1 },
@@ -168,9 +166,8 @@ TOptionListItem m_lvItemsTab[] =
 	{ 0, LPGENW("New windows are minimized (the option above MUST be active)"), 1, LOI_TYPE_SETTING, (UINT_PTR)"autocontainer", 1 },
 	{ 0, LPGENW("Activate a minimized window when a new tab is created inside it"), 0, LOI_TYPE_SETTING, (UINT_PTR)"cpopup", 1 },
 	{ 0, LPGENW("Automatically switch existing tabs in minimized windows on incoming messages (ignored when using Aero Peek task bar features)"), 1, LOI_TYPE_SETTING, (UINT_PTR)"autoswitchtabs", 1 },
-	{ 0, LPGENW("Remember and set keyboard layout per contact"), 1, LOI_TYPE_SETTING, (UINT_PTR)"al", 2 },
 	{ 0, LPGENW("Close button only hides message windows"), 0, LOI_TYPE_SETTING, (UINT_PTR)"hideonclose", 2 },
-	{ 0, LPGENW("Allow TAB key in typing area (this will disable focus selection by TAB key)"), 0, LOI_TYPE_SETTING, (UINT_PTR)"tabmode", 2 },
+	{ 0, LPGENW("Allow Tab key in typing area (this will disable focus selection by Tab key)"), 0, LOI_TYPE_SETTING, (UINT_PTR)"tabmode", 2 },
 	{ 0, LPGENW("Add offline contacts to multisend list"), 0, LOI_TYPE_SETTING, (UINT_PTR) "AllowOfflineMultisend", 2 },
 	{ 0, nullptr, 0, 0, 0, 0 }
 };

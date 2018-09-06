@@ -17,20 +17,22 @@ class COptionsDialog : public CDlgBase
 	CCtrlButton m_btnChangePass;
 	CDbxMDBX *m_db;
 
-	void OnInitDialog()
+	bool OnInitDialog() override
 	{
 		m_chkStandart.SetState(!m_db->isEncrypted());
 		m_chkTotal.SetState(m_db->isEncrypted());
 		m_btnChangePass.SetTextA(Translate(m_db->GetMenuTitle()));
+		return true;
 	}
 
-	void OnApply()
+	bool OnApply() override
 	{
 		SetCursor(LoadCursor(nullptr, IDC_WAIT));
 		m_db->EnableEncryption(m_chkTotal.GetState() != 0);
 		SetCursor(LoadCursor(nullptr, IDC_ARROW));
 		m_chkStandart.SetState(!m_db->isEncrypted());
 		m_chkTotal.SetState(m_db->isEncrypted());
+		return true;
 	}
 
 	void ChangePass(CCtrlButton*)
@@ -40,7 +42,7 @@ class COptionsDialog : public CDlgBase
 
 public:
 	COptionsDialog(CDbxMDBX *db) :
-		CDlgBase(g_hInst, IDD_OPTIONS),
+		CDlgBase(g_plugin, IDD_OPTIONS),
 		m_chkStandart(this, IDC_STANDARD),
 		m_chkTotal(this, IDC_TOTAL),
 		m_btnChangePass(this, IDC_USERPASS),
@@ -60,31 +62,32 @@ class CSelectCryptoDialog : public CDlgBase
 	CRYPTO_PROVIDER *m_selected;
 	bool m_bTotalEncryption;
 
-	void OnInitDialog()
+	bool OnInitDialog() override
 	{
-		for (size_t i = 0; i < m_provscount; i++)
-		{
+		for (size_t i = 0; i < m_provscount; i++) {
 			CRYPTO_PROVIDER *prov = m_provs[i];
 			m_combo.AddStringA(prov->pszName, i);
 		}
 		m_combo.SetCurSel(0);
-		m_descr.SetText(m_provs[0]->ptszDescr);
+		m_descr.SetText(m_provs[0]->szDescr.w);
+		return true;
 	}
 
-	void OnClose()
+	bool OnClose() override
 	{
-		m_selected = m_provs[ m_combo.GetItemData(m_combo.GetCurSel()) ];
+		m_selected = m_provs[m_combo.GetItemData(m_combo.GetCurSel())];
 		m_bTotalEncryption = m_chkTotalCrypt.GetState() != 0;
+		return true;
 	}
 
 	void OnComboChanged(CCtrlCombo*)
 	{
-		m_descr.SetText(m_provs[m_combo.GetItemData(m_combo.GetCurSel())]->ptszDescr);
+		m_descr.SetText(m_provs[m_combo.GetItemData(m_combo.GetCurSel())]->szDescr.w);
 	}
 
 public:
 	CSelectCryptoDialog(CRYPTO_PROVIDER **provs, size_t count) :
-		CDlgBase(g_hInst, IDD_SELECT_CRYPTOPROVIDER),
+		CDlgBase(g_plugin, IDD_SELECT_CRYPTOPROVIDER),
 		m_combo(this, IDC_SELECTCRYPT_COMBO),
 		m_descr(this, IDC_CRYPTOPROVIDER_DESCR),
 		m_chkTotalCrypt(this, IDC_CHECK_TOTALCRYPT),
@@ -121,10 +124,9 @@ class CEnterPasswordDialog : public CDlgBase
 
 	DlgChangePassParam *m_param;
 
-	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override
 	{
-		if (msg == WM_TIMER)
-		{
+		if (msg == WM_TIMER) {
 			UINT_PTR LangID = (UINT_PTR)GetKeyboardLayout(0);
 			char Lang[3] = { 0 };
 			GetLocaleInfoA(MAKELCID((LangID & 0xffffffff), SORT_DEFAULT), LOCALE_SABBREVLANGNAME, Lang, 2);
@@ -133,8 +135,7 @@ class CEnterPasswordDialog : public CDlgBase
 			m_language.SetTextA(Lang);
 			return FALSE;
 		}
-		else if (msg == WM_CTLCOLORSTATIC)
-		{
+		else if (msg == WM_CTLCOLORSTATIC) {
 			if ((HWND)lParam == m_language.GetHwnd()) {
 				SetTextColor((HDC)wParam, GetSysColor(COLOR_HIGHLIGHTTEXT));
 				SetBkMode((HDC)wParam, TRANSPARENT);
@@ -144,27 +145,26 @@ class CEnterPasswordDialog : public CDlgBase
 		return CDlgBase::DlgProc(msg, wParam, lParam);
 	}
 
-	void OnInitDialog()
+	bool OnInitDialog() override
 	{
-		m_header.SendMsg(WM_SETICON, ICON_SMALL, (LPARAM)LoadIcon(g_hInst, MAKEINTRESOURCE(iconList[0].defIconID)));
-		if (m_param->wrongPass)
-		{
-			if (m_param->wrongPass > 2)
-			{
+		m_header.SendMsg(WM_SETICON, ICON_SMALL, (LPARAM)LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(iconList[0].defIconID)));
+		if (m_param->wrongPass) {
+			if (m_param->wrongPass > 2) {
 				m_passwordEdit.Disable();
 				m_buttonOK.Disable();
 				m_header.SetText(TranslateT("Too many errors!"));
 			}
-			else
-			{
-				m_header.SetText(TranslateT("Password is not correct!"));
-			}
+			else m_header.SetText(TranslateT("Password is not correct!"));
 		}
-		else
-		{
-			m_header.SetText(TranslateT("Please type in your password"));
-		}
+		else m_header.SetText(TranslateT("Please type in your password"));
+
 		SetTimer(m_hwnd, 1, 200, nullptr);
+		return true;
+	}
+
+	void OnDestroy() override
+	{
+		KillTimer(m_hwnd, 1);
 	}
 
 	void OnOK(CCtrlButton*)
@@ -173,14 +173,9 @@ class CEnterPasswordDialog : public CDlgBase
 		EndDialog(m_hwnd, -128);
 	}
 
-	void OnDestroy()
-	{
-		KillTimer(m_hwnd, 1);
-	}
-
 public:
 	CEnterPasswordDialog(DlgChangePassParam *param) :
-		CDlgBase(g_hInst, IDD_LOGIN),
+		CDlgBase(g_plugin, IDD_LOGIN),
 		m_header(this, IDC_HEADERBAR),
 		m_language(this, IDC_LANG),
 		m_passwordEdit(this, IDC_USERPASS),
@@ -189,5 +184,4 @@ public:
 	{
 		m_buttonOK.OnClick = Callback(this, &CEnterPasswordDialog::OnOK);
 	}
-
 };

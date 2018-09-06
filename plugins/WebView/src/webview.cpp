@@ -239,7 +239,7 @@ int SendToRichEdit(HWND hWindow, char *truncated, COLORREF rgbText, COLORREF rgb
 	cfFM.dwEffects = bold | italic | underline;
 
 	if (!db_get_ws(NULL, MODULENAME, FONT_FACE_KEY, &dbv)) {
-		mir_wstrcpy(cfFM.szFaceName, dbv.ptszVal);
+		mir_wstrcpy(cfFM.szFaceName, dbv.pwszVal);
 		db_free(&dbv);
 	}
 	else mir_wstrcpy(cfFM.szFaceName, Def_font_face);
@@ -290,21 +290,20 @@ void CALLBACK Countdownfunc(HWND, UINT, UINT_PTR, DWORD)
 
 static int OptInitialise(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_plugin.getInst();
+	OPTIONSDIALOGPAGE odp = {};
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT);
 	odp.szGroup.a = LPGEN("Network");
 	odp.szTitle.a = MODULENAME;
 	odp.pfnDlgProc = DlgProcOpt;
 	odp.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	// if popup service exists
 	if ((ServiceExists(MS_POPUP_ADDPOPUPT))) {
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_POPUP);
-		odp.szGroup.w = LPGENW("Popups");
+		odp.szGroup.a = LPGEN("Popups");
 		odp.pfnDlgProc = DlgPopUpOpts;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }

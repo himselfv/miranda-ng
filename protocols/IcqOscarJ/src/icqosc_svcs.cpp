@@ -98,7 +98,7 @@ INT_PTR CIcqProto::GetInfoSetting(WPARAM hContact, LPARAM lParam)
 		else if (type == DBVT_WCHAR) {
 			if (dbv.type != DBVT_UTF8) {
 				int len = MultiByteToWideChar(CP_ACP, 0, dbv.pszVal, -1, nullptr, 0);
-				cgs->pValue->pwszVal = (WCHAR*)mir_alloc((len + 1)*sizeof(WCHAR));
+				cgs->pValue->pwszVal = (WCHAR*)mir_alloc((len + 1) * sizeof(WCHAR));
 				if (cgs->pValue->pwszVal == nullptr)
 					rc = 1;
 				else {
@@ -422,15 +422,17 @@ int CIcqProto::OnIdleChanged(WPARAM, LPARAM lParam)
 {
 	int bIdle = (lParam & IDF_ISIDLE);
 	int bPrivacy = (lParam & IDF_PRIVACY);
-	if (bPrivacy)
+	if (bPrivacy) {
+		debugLogA("ICQ: idle mode ignored due to the private mode: %08x", lParam);
 		return 0;
+	}
 
 	setDword("IdleTS", bIdle ? time(0) : 0);
 
 	if (m_bTempVisListEnabled) // remove temporary visible users
 		sendEntireListServ(ICQ_BOS_FAMILY, ICQ_CLI_REMOVETEMPVISIBLE, BUL_TEMPVISIBLE);
 
-	icq_setidle(bIdle ? 1 : 0);
+	icq_setidle(bIdle != 0);
 	return 0;
 }
 
@@ -444,7 +446,7 @@ INT_PTR CIcqProto::RevokeAuthorization(WPARAM wParam, LPARAM)
 
 		if (MessageBox(nullptr, TranslateT("Are you sure you want to revoke user's authorization?\nThis will remove you from his/her list on some clients."), TranslateT("Confirmation"), MB_ICONQUESTION | MB_YESNO) != IDYES)
 			return 0;
-		
+
 		icq_sendRevokeAuthServ(dwUin, szUid);
 	}
 
@@ -493,13 +495,13 @@ INT_PTR CIcqProto::SetMyAvatar(WPARAM, LPARAM lParam)
 			HBITMAP avt = Bitmap_Load(tszFile);
 			if (!avt)
 				return -1;
-			
+
 			DeleteObject(avt);
 		}
 
 		wchar_t tszMyFile[MAX_PATH + 1];
 		GetFullAvatarFileName(0, nullptr, dwPaFormat, tszMyFile, MAX_PATH);
-		
+
 		// if not in our storage, copy
 		if (mir_wstrcmp(tszFile, tszMyFile) && !CopyFile(tszFile, tszMyFile, FALSE)) {
 			debugLogA("Failed to copy our avatar to local storage.");
@@ -527,7 +529,7 @@ INT_PTR CIcqProto::SetMyAvatar(WPARAM, LPARAM lParam)
 		setWString(NULL, "AvatarFile", tmp);
 		SAFE_FREE((void**)&hash);
 	}
-   else {
+	else {
 		// delete user avatar
 		delSetting("AvatarFile");
 		setSettingBlob(NULL, "AvatarHash", hashEmptyAvatar, 9);

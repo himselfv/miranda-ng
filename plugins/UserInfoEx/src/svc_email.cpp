@@ -177,13 +177,13 @@ void SvcEMailRebuildMenu()
 {
 	static HANDLE hPrebuildMenuHook = nullptr;
 
-	if (db_get_b(NULL, MODNAME, SET_EXTENDED_EMAILSERVICE, TRUE)) {
+	if (db_get_b(NULL, MODULENAME, SET_EXTENDED_EMAILSERVICE, TRUE)) {
 		if (!hPrebuildMenuHook) 
 			hPrebuildMenuHook = HookEvent(ME_CLIST_PREBUILDCONTACTMENU, OnPreBuildMenu);
 
 		if (!ghMenuItem) {
 			// insert contact menuitem
-			CMenuItem mi;
+			CMenuItem mi(&g_plugin);
 			SET_UID(mi, 0x61d8e25a, 0x92e, 0x4470, 0x84, 0x57, 0x5e, 0x52, 0x17, 0x7f, 0xfa, 0x3);
 			mi.position = -2000010000;
 			mi.hIcolibItem = IcoLib_GetIcon(ICO_BTN_EMAIL);
@@ -216,9 +216,9 @@ bool SvcEMailEnableExtraIcons(bool bEnable, bool bUpdateDB)
 
 	if (bUpdateDB) {
 		bChanged = g_eiEmail != bEnable;
-		db_set_b(NULL, MODNAME, SET_CLIST_EXTRAICON_EMAIL, g_eiEmail = bEnable);
+		db_set_b(NULL, MODULENAME, SET_CLIST_EXTRAICON_EMAIL, g_eiEmail = bEnable);
 	}
-	else bChanged = g_eiEmail = db_get_b(NULL, MODNAME, SET_CLIST_EXTRAICON_EMAIL, DEFVAL_CLIST_EXTRAICON_EMAIL) != 0;
+	else bChanged = g_eiEmail = db_get_b(NULL, MODULENAME, SET_CLIST_EXTRAICON_EMAIL, DEFVAL_CLIST_EXTRAICON_EMAIL) != 0;
 
 	if (g_eiEmail) { // E-mail checked
 		// hook events
@@ -252,7 +252,7 @@ bool SvcEMailEnableExtraIcons(bool bEnable, bool bUpdateDB)
 void SvcEMailLoadModule()
 {
 	SvcEMailEnableExtraIcons();
-	if (db_get_b(NULL, MODNAME, SET_EXTENDED_EMAILSERVICE, TRUE)) {
+	if (db_get_b(NULL, MODULENAME, SET_EXTENDED_EMAILSERVICE, TRUE)) {
 		// create own email send command
 		DestroyServiceFunction(MS_EMAIL_SENDEMAIL);
 		CreateServiceFunction(MS_EMAIL_SENDEMAIL, MenuCommand);

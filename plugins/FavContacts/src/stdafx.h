@@ -49,6 +49,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <m_metacontacts.h>
 #include <m_toptoolbar.h>
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 #include "resource.h"
 #include "version.h"
 #include "contact_cache.h"
@@ -99,5 +107,4 @@ void UninitMenu();
 void InitServices();
 void UninitServices();
 
-extern HINSTANCE g_hInst;
 extern IconItem iconList[];

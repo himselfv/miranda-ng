@@ -38,13 +38,13 @@ static HANDLE AddIcon(char *name, char *description, wchar_t *tszPath, int iDefa
 	sid.pszName = name;
 	sid.defaultFile.w = tszPath;
 	sid.iDefaultIndex = -iDefaultIdx;
-	return IcoLib_AddIcon(&sid);
+	return g_plugin.addIcon(&sid);
 }
 
 int AddIcons()
 {
 	wchar_t tszPath[MAX_PATH];
-	GetModuleFileName(hInstance, tszPath, _countof(tszPath));
+	GetModuleFileName(g_plugin.getInst(), tszPath, _countof(tszPath));
 
 	hCheckMenu = AddIcon("MenuCheck", LPGEN("Check birthdays menu item"), tszPath, IDI_CHECK);
 	hListMenu = AddIcon("MenuList", LPGEN("List birthdays menu item"), tszPath, IDI_LIST);

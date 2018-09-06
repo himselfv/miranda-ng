@@ -151,7 +151,6 @@ typedef struct
 		struct {
 			union {
 				char *pszVal;
-				wchar_t *ptszVal;
 				wchar_t *pwszVal;
 			};
 			WORD cchVal;   //only used for db/contact/getsettingstatic
@@ -188,7 +187,7 @@ typedef struct
 
 	wchar_t* getString(const char *str) const
 	{
-		return (flags & DBEF_UTF) ? Utf8DecodeW(str) : mir_a2u(str);
+		return (flags & DBEF_UTF) ? mir_utf8decodeW(str) : mir_a2u(str);
 	}
 
 #endif
@@ -458,8 +457,20 @@ EXTERN_C MIR_APP_DLL(int) Profile_GetPathW(size_t cbLen, wchar_t *pwszDest);
 
 // Sets the default profile name programmatically
 // Analog of Database/DefaultProfile in mirandaboot.ini
-
 EXTERN_C MIR_APP_DLL(void) Profile_SetDefault(const wchar_t *pwszPath);
+
+// Checks if a profile is opened
+EXTERN_C MIR_APP_DLL(bool) Profile_CheckOpened(const wchar_t *pwszProfileName);
+
+// Read an option from mirandaboot.ini
+EXTERN_C MIR_APP_DLL(int) Profile_GetSettingInt(const wchar_t *pwszSetting, int iDefault = 0);
+EXTERN_C MIR_APP_DLL(bool) Profile_GetSetting(const wchar_t *pwszSetting, wchar_t *pwszBuf, size_t cbLen, const wchar_t *pwszDefault = nullptr);
+
+template <size_t _Size>
+bool Profile_GetSetting(const wchar_t *pwszSetting, wchar_t(&pwszBuf)[_Size], const wchar_t *pwszDefault = nullptr)
+{
+	return Profile_GetSetting(pwszSetting, pwszBuf, _Size, pwszDefault);
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Contact services

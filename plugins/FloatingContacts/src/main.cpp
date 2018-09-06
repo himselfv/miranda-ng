@@ -18,6 +18,7 @@ No warranty for any misbehaviour.
 
 #include "../../utils/mir_fonts.h"
 
+/////////////////////////////////////////////////////////////////////////////
 // Globals
 
 // TODO: move to some more approriate place, probably part of Thumbs manager
@@ -38,7 +39,6 @@ static int  ClcStatusToPf2(int status);
 
 static VOID CALLBACK ToTopTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
 
-HINSTANCE  hInst;
 HFONT      hFont[FLT_FONTIDS];
 COLORREF   tColor[FLT_FONTIDS];
 HIMAGELIST himlMiranda;
@@ -63,10 +63,30 @@ BOOL       bIsCListShow;
 
 HGENMENU	hMenuItemRemove, hMenuItemHideAll, hMainMenuItemHideAll;
 
-int hLangpack;
-CLIST_INTERFACE *pcli;
+CMPlugin g_plugin;
 
-//Options
+/////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx =
+{
+	sizeof(PLUGININFOEX),
+	__PLUGIN_NAME,
+	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
+	__DESCRIPTION,
+	__AUTHOR,
+	__COPYRIGHT,
+	__AUTHORWEB,
+	UNICODE_AWARE,
+	// {53C715A8-EB01-4136-A73C-441868610074}
+	{0x53c715a8, 0xeb01, 0x4136, {0xa7, 0x3c, 0x44, 0x18, 0x68, 0x61, 0x0, 0x74}}
+};
+
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULE, pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////
+// Options
 
 FCOptions fcOpt = { 0 };
 
@@ -86,34 +106,6 @@ static void InitOptions()
 	fcOpt.bHideWhenCListShow = FALSE;
 	fcOpt.bUseSingleClick = FALSE;
 	fcOpt.bShowIdle = TRUE;
-}
-
-PLUGININFOEX pluginInfoEx =
-{
-	sizeof(PLUGININFOEX),
-	__PLUGIN_NAME,
-	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
-	__DESCRIPTION,
-	__AUTHOR,
-	__COPYRIGHT,
-	__AUTHORWEB,
-	UNICODE_AWARE,
-	// {53C715A8-EB01-4136-A73C-441868610074}
-	{ 0x53c715a8, 0xeb01, 0x4136, { 0xa7, 0x3c, 0x44, 0x18, 0x68, 0x61, 0x0, 0x74 } }
-};
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
-
-///////////////////////////////////////////////////////
-// Load / unload
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -334,17 +326,17 @@ static LRESULT __stdcall CommWndProc(HWND	hwnd, UINT uMsg, WPARAM wParam, LPARAM
 
 	switch (uMsg) {
 	case WM_RBUTTONUP:
-		{
-			POINT pt;
-			pt.x = LOWORD(lParam);
-			pt.y = HIWORD(lParam);
+	{
+		POINT pt;
+		pt.x = LOWORD(lParam);
+		pt.y = HIWORD(lParam);
 
-			if (pThumb) pThumb->ThumbDeselect(TRUE);
+		if (pThumb) pThumb->ThumbDeselect(TRUE);
 
-			ClientToScreen(hwnd, &pt);
-			ShowContactMenu(hwnd, pt);
-		}
-		break;
+		ClientToScreen(hwnd, &pt);
+		ShowContactMenu(hwnd, pt);
+	}
+	break;
 
 	case WM_CLOSE:
 		DestroyWindow(hwnd);
@@ -487,7 +479,7 @@ static void RegisterWindowClass()
 	wcx.cbSize = sizeof(WNDCLASSEX);
 	wcx.style = CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS;
 	wcx.lpfnWndProc = CommWndProc;
-	wcx.hInstance = hInst;
+	wcx.hInstance = g_plugin.getInst();
 	wcx.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
 	wcx.lpszClassName = WND_CLASS;
 	RegisterClassEx(&wcx);
@@ -495,7 +487,7 @@ static void RegisterWindowClass()
 
 static void UnregisterWindowClass()
 {
-	UnregisterClass(WND_CLASS, hInst);
+	UnregisterClass(WND_CLASS, g_plugin.getInst());
 }
 
 static void CreateThumbWnd(wchar_t *ptszName, MCONTACT hContact, int nX, int nY)
@@ -505,7 +497,7 @@ static void CreateThumbWnd(wchar_t *ptszName, MCONTACT hContact, int nX, int nY)
 		return;
 
 	// Prepare for window creation
-	HWND hwnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, WND_CLASS, ptszName, WS_POPUP, nX, nY, 50, 20, nullptr, nullptr, hInst, nullptr);
+	HWND hwnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, WND_CLASS, ptszName, WS_POPUP, nX, nY, 50, 20, nullptr, nullptr, g_plugin.getInst(), nullptr);
 	if (hwnd == nullptr)
 		return;
 
@@ -715,14 +707,14 @@ static INT_PTR OnHotKey_HideWhenCListShow(WPARAM, LPARAM)
 
 static void LoadMenus()
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 
 	// Remove thumb menu item
 	CreateServiceFunction(MODULE "/RemoveThumb", OnContactMenu_Remove);
-	SET_UID(mi,0xbab83df0, 0xe126, 0x4d9a, 0xbc, 0xc3, 0x2b, 0xea, 0x84, 0x90, 0x58, 0xc8);
+	SET_UID(mi, 0xbab83df0, 0xe126, 0x4d9a, 0xbc, 0xc3, 0x2b, 0xea, 0x84, 0x90, 0x58, 0xc8);
 	mi.position = 0xFFFFF;
 	mi.flags = CMIF_UNICODE;
-	mi.hIcolibItem = LoadIcon(hInst, MAKEINTRESOURCE(IDI_HIDE));
+	mi.hIcolibItem = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_HIDE));
 	mi.name.w = LPGENW("Remove thumb");
 	mi.pszService = MODULE "/RemoveThumb";
 	hMenuItemRemove = Menu_AddContactMenuItem(&mi);
@@ -743,13 +735,13 @@ static void LoadMenus()
 	hkd.pszName = MODULE "/MainHideAllThumbs";
 	hkd.szDescription.a = LPGEN("Show/Hide all thumbs");
 	hkd.pszService = MODULE "/MainHideAllThumbs";
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	CreateServiceFunction(MODULE "/HideWhenCListShow", OnHotKey_HideWhenCListShow);
 	hkd.pszName = MODULE "/HideWhenCListShow";
 	hkd.szDescription.a = LPGEN("Hide when contact list is shown");
 	hkd.pszService = MODULE "/HideWhenCListShow";
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -843,7 +835,7 @@ static LRESULT __stdcall newMirandaWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, 
 			if (method) {
 				WORD wBehindEdgeBorderSize = db_get_w(NULL, "ModernData", "HideBehindBorderSize", 0);
 				RECT rc = { wp->x, wp->y, wp->x + wp->cx, wp->y + wp->cy };
-				RECT rcScr = { wBehindEdgeBorderSize*(2 - method), 0, GetSystemMetrics(SM_CXSCREEN) - wBehindEdgeBorderSize*(method - 1), GetSystemMetrics(SM_CYSCREEN) };
+				RECT rcScr = { wBehindEdgeBorderSize*(2 - method), 0, GetSystemMetrics(SM_CXSCREEN) - wBehindEdgeBorderSize * (method - 1), GetSystemMetrics(SM_CYSCREEN) };
 				RECT rcOverlap;
 				BOOL isIntersect = IntersectRect(&rcOverlap, &rc, &rcScr);
 				if (!isIntersect && bIsCListShow) {
@@ -875,10 +867,10 @@ static int OnModulesLoded(WPARAM, LPARAM)
 	HookEvent(ME_CLIST_STATUSMODECHANGE, OnStatusModeChange);
 	HookEvent(ME_CLIST_PREBUILDCONTACTMENU, OnPrebuildContactMenu);
 
-	hwndMiranda = pcli->hwndContactList;
+	hwndMiranda = g_clistApi.hwndContactList;
 	mir_subclassWindow(hwndMiranda, newMirandaWndProc);
 
-	UINT_PTR dwStyle = SendMessageW(pcli->hwndContactTree, CLM_GETEXSTYLE, 0, 0);
+	UINT_PTR dwStyle = SendMessageW(g_clistApi.hwndContactTree, CLM_GETEXSTYLE, 0, 0);
 	if (dwStyle & CLS_EX_DISABLEDRAGDROP)
 		MessageBox(hwndMiranda,
 			TranslateT("Floating contacts plugin won't work until you uncheck the \"Disable drag and drop of items\" option in Options - Contact list"),
@@ -909,12 +901,9 @@ static int OnPreshutdown(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-	pcli = Clist_GetInterface();
-
-	Icon_RegisterT(hInst, _A2W(MODULE), g_iconList, _countof(g_iconList));
+	g_plugin.registerIconW(LPGENW("Floating contacts"), g_iconList, MODULE);
 	LoadMenus();
 	InitOptions();
 
@@ -938,7 +927,7 @@ extern "C" int __declspec(dllexport) Load()
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Unload()
+int CMPlugin::Unload()
 {
 	if (hLTEdgesPen)
 		DeleteObject(hLTEdgesPen);

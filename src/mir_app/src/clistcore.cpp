@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 int LoadContactListModule2(void);
 int LoadCLCModule(void);
 
-CLIST_INTERFACE cli;
+MIR_APP_EXPORT CLIST_INTERFACE g_clistApi;
 
 static wchar_t szTip[MAX_TIP_SIZE+1];
 
@@ -58,79 +58,80 @@ static int fnIsVisibleContact(ClcCacheEntry*, ClcGroup*)
 
 void InitClistCore()
 {
-	cli.menuProtos = &g_menuProtos;
+	g_clistApi.menuProtos = &g_menuProtos;
+	g_clistApi.bOwnerDrawMenu = true;
 
-	cli.pfnContactListControlWndProc = fnContactListControlWndProc;
+	g_clistApi.pfnContactListControlWndProc = fnContactListControlWndProc;
 
-	cli.pfnGetRowsPriorTo = fnGetRowsPriorTo;
-	cli.pfnFindItem = fnFindItem;
-	cli.pfnGetRowByIndex = fnGetRowByIndex;
-	cli.pfnGetContactHiddenStatus = fnGetContactHiddenStatus;
+	g_clistApi.pfnGetRowsPriorTo = fnGetRowsPriorTo;
+	g_clistApi.pfnFindItem = fnFindItem;
+	g_clistApi.pfnGetRowByIndex = fnGetRowByIndex;
+	g_clistApi.pfnGetContactHiddenStatus = fnGetContactHiddenStatus;
 
-	cli.pfnAddGroup = fnAddGroup;
-	cli.pfnAddItemToGroup = fnAddItemToGroup;
-	cli.pfnCreateClcContact = fnCreateClcContact;
+	g_clistApi.pfnAddGroup = fnAddGroup;
+	g_clistApi.pfnAddItemToGroup = fnAddItemToGroup;
+	g_clistApi.pfnCreateClcContact = fnCreateClcContact;
 	
-	cli.pfnFreeContact = fnFreeContact;	
-	cli.pfnAddInfoItemToGroup = fnAddInfoItemToGroup;	
-	cli.pfnAddContactToGroup = fnAddContactToGroup;	
-	cli.pfnAddContactToTree = fnAddContactToTree;	
-	cli.pfnRebuildEntireList = fnRebuildEntireList;	
-	cli.pfnGetGroupContentsCount = fnGetGroupContentsCount;
-	cli.pfnSortCLC = fnSortCLC;
+	g_clistApi.pfnFreeContact = fnFreeContact;	
+	g_clistApi.pfnAddInfoItemToGroup = fnAddInfoItemToGroup;	
+	g_clistApi.pfnAddContactToGroup = fnAddContactToGroup;	
+	g_clistApi.pfnAddContactToTree = fnAddContactToTree;	
+	g_clistApi.pfnRebuildEntireList = fnRebuildEntireList;	
+	g_clistApi.pfnGetGroupContentsCount = fnGetGroupContentsCount;
+	g_clistApi.pfnSortCLC = fnSortCLC;
 
-	cli.pfnProcessExternalMessages = fnProcessExternalMessages;
+	g_clistApi.pfnProcessExternalMessages = fnProcessExternalMessages;
 
-	cli.pfnPaintClc = fnPaintClc;
+	g_clistApi.pfnPaintClc = fnPaintClc;
 
-	cli.pfnHitTest = fnHitTest;	
-	cli.pfnScrollTo = fnScrollTo;	
-	cli.pfnRecalcScrollBar = fnRecalcScrollBar;	
-	cli.pfnSetGroupExpand = fnSetGroupExpand;
-	cli.pfnFindRowByText = fnFindRowByText;	
-	cli.pfnBeginRenameSelection = fnBeginRenameSelection;
-	cli.pfnIsVisibleContact = fnIsVisibleContact;
-	cli.pfnGetDefaultFontSetting = fnGetDefaultFontSetting;
-	cli.pfnLoadClcOptions = fnLoadClcOptions;
-	cli.pfnGetRowBottomY = fnGetRowBottomY;
-	cli.pfnGetRowHeight = fnGetRowHeight;
-	cli.pfnGetRowTopY = fnGetRowTopY;
-	cli.pfnGetRowTotalHeight = fnGetRowTotalHeight;
-	cli.pfnRowHitTest = fnRowHitTest;
+	g_clistApi.pfnHitTest = fnHitTest;	
+	g_clistApi.pfnScrollTo = fnScrollTo;	
+	g_clistApi.pfnRecalcScrollBar = fnRecalcScrollBar;	
+	g_clistApi.pfnSetGroupExpand = fnSetGroupExpand;
+	g_clistApi.pfnFindRowByText = fnFindRowByText;	
+	g_clistApi.pfnBeginRenameSelection = fnBeginRenameSelection;
+	g_clistApi.pfnIsVisibleContact = fnIsVisibleContact;
+	g_clistApi.pfnGetDefaultFontSetting = fnGetDefaultFontSetting;
+	g_clistApi.pfnLoadClcOptions = fnLoadClcOptions;
+	g_clistApi.pfnGetRowBottomY = fnGetRowBottomY;
+	g_clistApi.pfnGetRowHeight = fnGetRowHeight;
+	g_clistApi.pfnGetRowTopY = fnGetRowTopY;
+	g_clistApi.pfnGetRowTotalHeight = fnGetRowTotalHeight;
+	g_clistApi.pfnRowHitTest = fnRowHitTest;
 
-	cli.pfnAddEvent = fnAddEvent;
-	cli.pfnGetEvent = fnGetEvent;
-	cli.pfnGetImlIconIndex = fnGetImlIconIndex;
-	cli.pfnRemoveEvent = fnRemoveEvent;
+	g_clistApi.pfnAddEvent = fnAddEvent;
+	g_clistApi.pfnGetEvent = fnGetEvent;
+	g_clistApi.pfnGetImlIconIndex = fnGetImlIconIndex;
+	g_clistApi.pfnRemoveEvent = fnRemoveEvent;
 
-	cli.pfnInvalidateDisplayNameCacheEntry = fnInvalidateDisplayNameCacheEntry;
-	cli.pfnCreateCacheItem = fnCreateCacheItem;
-	cli.pfnCheckCacheItem = fnCheckCacheItem;
-	cli.pfnFreeCacheItem = fnFreeCacheItem;
+	g_clistApi.pfnInvalidateDisplayNameCacheEntry = fnInvalidateDisplayNameCacheEntry;
+	g_clistApi.pfnCreateCacheItem = fnCreateCacheItem;
+	g_clistApi.pfnCheckCacheItem = fnCheckCacheItem;
+	g_clistApi.pfnFreeCacheItem = fnFreeCacheItem;
 
-	cli.szTip = szTip;
+	g_clistApi.szTip = szTip;
 
-	cli.pfnTrayIconInit = fnTrayIconInit;
-	cli.pfnTrayIconPauseAutoHide = fnTrayIconPauseAutoHide;
-	cli.pfnTrayIconProcessMessage = fnTrayIconProcessMessage;
+	g_clistApi.pfnTrayIconInit = fnTrayIconInit;
+	g_clistApi.pfnTrayIconPauseAutoHide = fnTrayIconPauseAutoHide;
+	g_clistApi.pfnTrayIconProcessMessage = fnTrayIconProcessMessage;
 
-	cli.pfnContactListWndProc = fnContactListWndProc;
-	cli.pfnLoadCluiGlobalOpts = fnLoadCluiGlobalOpts;
-	cli.pfnCluiProtocolStatusChanged = fnCluiProtocolStatusChanged;
-	cli.pfnInvalidateRect = fnInvalidateRect;
-	cli.pfnOnCreateClc = fnOnCreateClc;
+	g_clistApi.pfnContactListWndProc = fnContactListWndProc;
+	g_clistApi.pfnLoadCluiGlobalOpts = fnLoadCluiGlobalOpts;
+	g_clistApi.pfnCluiProtocolStatusChanged = fnCluiProtocolStatusChanged;
+	g_clistApi.pfnInvalidateRect = fnInvalidateRect;
+	g_clistApi.pfnOnCreateClc = fnOnCreateClc;
 
-	cli.pfnSetHideOffline = fnSetHideOffline;
+	g_clistApi.pfnSetHideOffline = fnSetHideOffline;
 
-	cli.pfnDocking_ProcessWindowMessage = fnDocking_ProcessWindowMessage;
+	g_clistApi.pfnDocking_ProcessWindowMessage = fnDocking_ProcessWindowMessage;
 
-	cli.pfnGetIconFromStatusMode = fnGetIconFromStatusMode;
-	cli.pfnGetWindowVisibleState = fnGetWindowVisibleState;
-	cli.pfnIconFromStatusMode = fnIconFromStatusMode;
-	cli.pfnShowHide = fnShowHide;
+	g_clistApi.pfnGetIconFromStatusMode = fnGetIconFromStatusMode;
+	g_clistApi.pfnGetWindowVisibleState = fnGetWindowVisibleState;
+	g_clistApi.pfnIconFromStatusMode = fnIconFromStatusMode;
+	g_clistApi.pfnShowHide = fnShowHide;
 
-	cli.pfnTrayCalcChanged = fnTrayCalcChanged;
-	cli.pfnSetContactCheckboxes = fnSetContactCheckboxes;
+	g_clistApi.pfnTrayCalcChanged = fnTrayCalcChanged;
+	g_clistApi.pfnSetContactCheckboxes = fnSetContactCheckboxes;
 }
 
 MIR_APP_DLL(CLIST_INTERFACE*) Clist_GetInterface(void)
@@ -141,5 +142,5 @@ MIR_APP_DLL(CLIST_INTERFACE*) Clist_GetInterface(void)
 		g_bReadyToInitClist = false;
 	}
 
-	return &cli;
+	return &g_clistApi;
 }

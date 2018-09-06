@@ -18,9 +18,9 @@ Boston, MA 02111-1307, USA.
 */
 
 #include "mir_smileys.h"
-#include "utf8_helpers.h"
 
 #include <richedit.h>
+
 #include <m_smileyadd.h>
 #include <newpluginapi.h>
 #include <m_langpack.h>
@@ -70,7 +70,7 @@ int InitContactListSmileys()
 
 		rc.cbSize = sizeof(rc);
 		rc.name = "clist";
-		rc.dispname = Translate("Contact List smileys");
+		rc.dispname = TranslateA_LP("Contact List smileys");
 
 		CallService(MS_SMILEYADD_REGISTERCATEGORY, 0, (LPARAM)&rc);
 	}

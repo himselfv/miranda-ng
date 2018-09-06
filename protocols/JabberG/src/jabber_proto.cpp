@@ -287,7 +287,7 @@ void CJabberProto::OnModulesLoaded()
 	sid.hIcon = LoadIconEx("main");
 	sid.flags = MBF_HIDDEN;
 	sid.szTooltip = LPGEN("Jabber Resource");
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 
 	HookProtoEvent(ME_MSG_ICONPRESSED, &CJabberProto::OnProcessSrmmIconClick);
 	HookProtoEvent(ME_MSG_WINDOWEVENT, &CJabberProto::OnProcessSrmmEvent);
@@ -1130,6 +1130,7 @@ int CJabberProto::SetStatus(int iNewStatus)
 	m_iDesiredStatus = iNewStatus;
 
 	if (iNewStatus == ID_STATUS_OFFLINE) {
+		m_StrmMgmt.ResetState();
 		if (m_ThreadInfo) {
 			if(m_bEnableStreamMgmt)
 				m_StrmMgmt.SendAck();
@@ -1316,7 +1317,7 @@ void CJabberProto::InfoFrame_OnTransport(CJabberInfoFrame_Event *evt)
 		HMENU hContactMenu = Menu_BuildContactMenu(hContact);
 		POINT pt;
 		GetCursorPos(&pt);
-		int res = TrackPopupMenu(hContactMenu, TPM_RETURNCMD, pt.x, pt.y, 0, pcli->hwndContactList, nullptr);
+		int res = TrackPopupMenu(hContactMenu, TPM_RETURNCMD, pt.x, pt.y, 0, g_clistApi.hwndContactList, nullptr);
 		Clist_MenuProcessCommand(res, MPCF_CONTACTMENU, hContact);
 	}
 }

@@ -70,7 +70,7 @@ struct DLGTEMPLATEEX
 // General
 
 extern int LCStatus;
-extern IconItem icoList[];
+extern IconItem iconList[];
 
 // Services.c
 INT_PTR GetLCCaps(WPARAM wParam,LPARAM lParam);
@@ -119,11 +119,10 @@ extern HNETLIBUSER hNetlibUser;
 
 struct CMPlugin : public PLUGIN<CMPlugin>
 {
-	CMPlugin() :
-		PLUGIN<CMPlugin>(MODNAME)
-	{
-		RegisterProtocol(PROTOTYPE_VIRTUAL);
-	}
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
 };
 
 #endif

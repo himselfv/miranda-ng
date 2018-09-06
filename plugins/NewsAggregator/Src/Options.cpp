@@ -20,7 +20,7 @@ Boston, MA 02111-1307, USA.
 #include "stdafx.h"
 
 CExportFeed::CExportFeed()
-	: CSuper(g_plugin.getInst(), IDD_FEEDEXPORT),
+	: CSuper(g_plugin, IDD_FEEDEXPORT),
 	m_feedslist(this, IDC_FEEDSLIST), m_feedsexportlist(this, IDC_FEEDSEXPORTLIST),
 	m_addfeed(this, IDC_ADDFEED), m_removefeed(this, IDC_REMOVEFEED), 
 	m_addallfeeds(this, IDC_ADDALLFEEDS), m_removeallfeeds(this, IDC_REMOVEALLFEEDS),
@@ -36,11 +36,11 @@ CExportFeed::CExportFeed()
 	m_feedsexportlist.OnDblClick = Callback(this, &CExportFeed::OnFeedsExportList);
 }
 
-void CExportFeed::OnInitDialog()
+bool CExportFeed::OnInitDialog()
 {
-	Utils_RestoreWindowPositionNoSize(m_hwnd, NULL, MODULE, "ExportDlg");
-	for (auto &hContact : Contacts(MODULE)) {
-		wchar_t *message = db_get_wsa(hContact, MODULE, "Nick");
+	Utils_RestoreWindowPositionNoSize(m_hwnd, NULL, MODULENAME, "ExportDlg");
+	for (auto &hContact : Contacts(MODULENAME)) {
+		wchar_t *message = db_get_wsa(hContact, MODULENAME, "Nick");
 		if (message != nullptr) {
 			m_feedslist.AddString(message);
 			mir_free(message);
@@ -53,6 +53,7 @@ void CExportFeed::OnInitDialog()
 		m_addfeed.Disable();
 		m_addallfeeds.Disable();
 	}
+	return true;
 }
 
 void CExportFeed::OnAddFeed(CCtrlBase*)
@@ -200,9 +201,9 @@ void CExportFeed::OnOk(CCtrlBase*)
 			m_feedsexportlist.GetItemText(i, item, _countof(item));
 			MCONTACT hContact = GetContactByNick(item);
 			wchar_t
-				*title = db_get_wsa(hContact, MODULE, "Nick"),
-				*url = db_get_wsa(hContact, MODULE, "URL"),
-				*siteurl = db_get_wsa(hContact, MODULE, "Homepage"),
+				*title = db_get_wsa(hContact, MODULENAME, "Nick"),
+				*url = db_get_wsa(hContact, MODULENAME, "URL"),
+				*siteurl = db_get_wsa(hContact, MODULENAME, "Homepage"),
 				*group = db_get_wsa(hContact, "CList", "Group");
 
 			HXML elem = header;
@@ -243,15 +244,18 @@ void CExportFeed::OnOk(CCtrlBase*)
 	}
 }
 
-void CExportFeed::OnClose()
+bool CExportFeed::OnClose()
 {
-	Utils_SaveWindowPosition(m_hwnd, NULL, MODULE, "ExportDlg");
+	Utils_SaveWindowPosition(m_hwnd, NULL, MODULENAME, "ExportDlg");
 	if (pExportDialog)
 		pExportDialog = nullptr;
+	return true;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////
+
 CImportFeed::CImportFeed(CCtrlListView *m_feeds)
-	: CSuper(g_plugin.getInst(), IDD_FEEDIMPORT),
+	: CSuper(g_plugin, IDD_FEEDIMPORT),
 	m_importfile(this, IDC_IMPORTFILEPATH), m_browsefile(this, IDC_BROWSEIMPORTFILE),
 	m_feedslist(this, IDC_FEEDSLIST), m_feedsimportlist(this, IDC_FEEDSIMPORTLIST),
 	m_addfeed(this, IDC_ADDFEED), m_removefeed(this, IDC_REMOVEFEED),
@@ -270,14 +274,15 @@ CImportFeed::CImportFeed(CCtrlListView *m_feeds)
 	m_feedsimportlist.OnDblClick = Callback(this, &CImportFeed::OnFeedsImportList);
 }
 
-void CImportFeed::OnInitDialog()
+bool CImportFeed::OnInitDialog()
 {
-	Utils_RestoreWindowPositionNoSize(m_hwnd, NULL, MODULE, "ImportDlg");
+	Utils_RestoreWindowPositionNoSize(m_hwnd, NULL, MODULENAME, "ImportDlg");
 	m_removefeed.Disable();
 	m_removeallfeeds.Disable();
 	m_ok.Disable();
 	m_addfeed.Disable();
 	m_addallfeeds.Disable();
+	return true;
 }
 
 void CImportFeed::OnBrowseFile(CCtrlBase*)
@@ -599,14 +604,14 @@ void CImportFeed::OnOk(CCtrlBase*)
 						}
 
 						MCONTACT hContact = db_add_contact();
-						Proto_AddToContact(hContact, MODULE);
-						db_set_ws(hContact, MODULE, "Nick", text);
-						db_set_ws(hContact, MODULE, "URL", url);
-						db_set_ws(hContact, MODULE, "Homepage", siteurl);
-						db_set_b(hContact, MODULE, "CheckState", 1);
-						db_set_dw(hContact, MODULE, "UpdateTime", DEFAULT_UPDATE_TIME);
-						db_set_ws(hContact, MODULE, "MsgFormat", TAGSDEFAULT);
-						db_set_w(hContact, MODULE, "Status", Proto_GetStatus(MODULE));
+						Proto_AddToContact(hContact, MODULENAME);
+						db_set_ws(hContact, MODULENAME, "Nick", text);
+						db_set_ws(hContact, MODULENAME, "URL", url);
+						db_set_ws(hContact, MODULENAME, "Homepage", siteurl);
+						db_set_b(hContact, MODULENAME, "CheckState", 1);
+						db_set_dw(hContact, MODULENAME, "UpdateTime", DEFAULT_UPDATE_TIME);
+						db_set_ws(hContact, MODULENAME, "MsgFormat", TAGSDEFAULT);
+						db_set_w(hContact, MODULENAME, "Status", Proto_GetStatus(MODULENAME));
 
 						if (m_list != nullptr) {
 							int iItem = m_list->AddItem(text, -1);
@@ -653,15 +658,18 @@ void CImportFeed::OnOk(CCtrlBase*)
 	}
 }
 
-void CImportFeed::OnClose()
+bool CImportFeed::OnClose()
 {
-	Utils_SaveWindowPosition(m_hwnd, NULL, MODULE, "ImportDlg");
+	Utils_SaveWindowPosition(m_hwnd, NULL, MODULENAME, "ImportDlg");
 	if (pImportDialog)
 		pImportDialog = nullptr;
+	return true;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////
+
 CFeedEditor::CFeedEditor(int iItem, CCtrlListView *m_feeds, MCONTACT Contact)
-	: CSuper(g_plugin.getInst(), IDD_ADDFEED),
+	: CSuper(g_plugin, IDD_ADDFEED),
 	m_feedtitle(this, IDC_FEEDTITLE), m_feedurl(this, IDC_FEEDURL),
 	m_checktime(this, IDC_CHECKTIME), m_checktimespin(this, IDC_TIMEOUT_VALUE_SPIN),
 	m_checkfeed(this, IDC_DISCOVERY), m_useauth(this, IDC_USEAUTH),
@@ -678,7 +686,7 @@ CFeedEditor::CFeedEditor(int iItem, CCtrlListView *m_feeds, MCONTACT Contact)
 	m_ok.OnClick = Callback(this, &CFeedEditor::OnOk);
 }
 
-void CFeedEditor::OnInitDialog()
+bool CFeedEditor::OnInitDialog()
 {
 	if (m_iItem == -1 && m_hContact == NULL)
 		SetWindowText(m_hwnd, TranslateT("Add Feed"));
@@ -692,40 +700,40 @@ void CFeedEditor::OnInitDialog()
 		m_list->GetItemText(m_iItem, 0, SelNick, _countof(SelNick));
 		m_list->GetItemText(m_iItem, 1, SelUrl, _countof(SelNick));
 
-		for (auto &hContact : Contacts(MODULE)) {
-			ptrW dbNick(db_get_wsa(hContact, MODULE, "Nick"));
+		for (auto &hContact : Contacts(MODULENAME)) {
+			ptrW dbNick(db_get_wsa(hContact, MODULENAME, "Nick"));
 			if ((dbNick == NULL) || (mir_wstrcmp(dbNick, SelNick) != 0))
 				continue;
 
-			ptrW dbURL(db_get_wsa(hContact, MODULE, "URL"));
+			ptrW dbURL(db_get_wsa(hContact, MODULENAME, "URL"));
 			if ((dbURL == NULL) || (mir_wstrcmp(dbURL, SelUrl) != 0))
 				continue;
 
 			m_hContact = hContact;
 			m_feedtitle.SetText(SelNick);
 			m_feedurl.SetText(SelUrl);
-			m_checktime.SetInt(db_get_dw(hContact, MODULE, "UpdateTime", DEFAULT_UPDATE_TIME));
+			m_checktime.SetInt(db_get_dw(hContact, MODULENAME, "UpdateTime", DEFAULT_UPDATE_TIME));
 
-			wchar_t *szMsgFormat = db_get_wsa(hContact, MODULE, "MsgFormat");
+			wchar_t *szMsgFormat = db_get_wsa(hContact, MODULENAME, "MsgFormat");
 			if (szMsgFormat) {
 				m_tagedit.SetText(szMsgFormat);
 				mir_free(szMsgFormat);
 			}
-			if (db_get_b(hContact, MODULE, "UseAuth", 0)) {
+			if (db_get_b(hContact, MODULENAME, "UseAuth", 0)) {
 				m_useauth.SetState(1);
 				m_login.Enable();
 				m_password.Enable();
 
-				wchar_t *szLogin = db_get_wsa(hContact, MODULE, "Login");
+				wchar_t *szLogin = db_get_wsa(hContact, MODULENAME, "Login");
 				if (szLogin) {
 					m_login.SetText(szLogin);
 					mir_free(szLogin);
 				}
-				pass_ptrA pwd(db_get_sa(hContact, MODULE, "Password"));
+				pass_ptrA pwd(db_get_sa(hContact, MODULENAME, "Password"));
 				m_password.SetTextA(pwd);
 			}
 			g_arFeeds.insert(this);
-			Utils_RestoreWindowPositionNoSize(m_hwnd, hContact, MODULE, "ChangeDlg");
+			Utils_RestoreWindowPositionNoSize(m_hwnd, hContact, MODULENAME, "ChangeDlg");
 			break;
 		}
 	}
@@ -733,37 +741,38 @@ void CFeedEditor::OnInitDialog()
 		m_feedurl.SetText(L"http://");
 		m_tagedit.SetText(TAGSDEFAULT);
 		m_checktime.SetInt(DEFAULT_UPDATE_TIME);
-		Utils_RestoreWindowPositionNoSize(m_hwnd, NULL, MODULE, "AddDlg");
+		Utils_RestoreWindowPositionNoSize(m_hwnd, NULL, MODULENAME, "AddDlg");
 	}
 	else if (m_hContact != NULL) {
-		ptrW dbNick(db_get_wsa(m_hContact, MODULE, "Nick"));
-		ptrW dbURL(db_get_wsa(m_hContact, MODULE, "URL"));
+		ptrW dbNick(db_get_wsa(m_hContact, MODULENAME, "Nick"));
+		ptrW dbURL(db_get_wsa(m_hContact, MODULENAME, "URL"));
 
 		m_feedtitle.SetText(dbNick);
 		m_feedurl.SetText(dbURL);
-		m_checktime.SetInt(db_get_dw(m_hContact, MODULE, "UpdateTime", DEFAULT_UPDATE_TIME));
+		m_checktime.SetInt(db_get_dw(m_hContact, MODULENAME, "UpdateTime", DEFAULT_UPDATE_TIME));
 
-		wchar_t *szMsgFormat = db_get_wsa(m_hContact, MODULE, "MsgFormat");
+		wchar_t *szMsgFormat = db_get_wsa(m_hContact, MODULENAME, "MsgFormat");
 		if (szMsgFormat) {
 			m_tagedit.SetText(szMsgFormat);
 			mir_free(szMsgFormat);
 		}
-		if (db_get_b(m_hContact, MODULE, "UseAuth", 0)) {
+		if (db_get_b(m_hContact, MODULENAME, "UseAuth", 0)) {
 			m_useauth.SetState(1);
 			m_login.Enable();
 			m_password.Enable();
 
-			wchar_t *szLogin = db_get_wsa(m_hContact, MODULE, "Login");
+			wchar_t *szLogin = db_get_wsa(m_hContact, MODULENAME, "Login");
 			if (szLogin) {
 				m_login.SetText(szLogin);
 				mir_free(szLogin);
 			}
-			pass_ptrA pwd(db_get_sa(m_hContact, MODULE, "Password"));
+			pass_ptrA pwd(db_get_sa(m_hContact, MODULENAME, "Password"));
 			m_password.SetTextA(pwd);
 		}
 		g_arFeeds.insert(this);
-		Utils_RestoreWindowPositionNoSize(m_hwnd, m_hContact, MODULE, "ChangeDlg");
+		Utils_RestoreWindowPositionNoSize(m_hwnd, m_hContact, MODULENAME, "ChangeDlg");
 	}
+	return true;
 }
 
 void CFeedEditor::OnCheckFeed(CCtrlBase*)
@@ -825,26 +834,26 @@ void CFeedEditor::OnOk(CCtrlBase*)
 	MCONTACT hContact;
 	if (m_iItem == -1 && m_hContact == NULL) {
 		hContact = db_add_contact();
-		Proto_AddToContact(hContact, MODULE);
-		db_set_b(hContact, MODULE, "CheckState", 1);
+		Proto_AddToContact(hContact, MODULENAME);
+		db_set_b(hContact, MODULENAME, "CheckState", 1);
 	}
 	else
 		hContact = m_hContact;
 
-	db_set_ws(hContact, MODULE, "Nick", strfeedtitle);
-	db_set_ws(hContact, MODULE, "URL", strfeedurl);
-	db_set_dw(hContact, MODULE, "UpdateTime", (DWORD)m_checktime.GetInt());
-	db_set_ws(hContact, MODULE, "MsgFormat", strtagedit);
-	db_set_w(hContact, MODULE, "Status", Proto_GetStatus(MODULE));
+	db_set_ws(hContact, MODULENAME, "Nick", strfeedtitle);
+	db_set_ws(hContact, MODULENAME, "URL", strfeedurl);
+	db_set_dw(hContact, MODULENAME, "UpdateTime", (DWORD)m_checktime.GetInt());
+	db_set_ws(hContact, MODULENAME, "MsgFormat", strtagedit);
+	db_set_w(hContact, MODULENAME, "Status", Proto_GetStatus(MODULENAME));
 	if (m_useauth.IsChecked()) {
-		db_set_b(hContact, MODULE, "UseAuth", 1);
-		db_set_ws(hContact, MODULE, "Login", m_login.GetText());
-		db_set_s(hContact, MODULE, "Password", m_password.GetTextA());
+		db_set_b(hContact, MODULENAME, "UseAuth", 1);
+		db_set_ws(hContact, MODULENAME, "Login", m_login.GetText());
+		db_set_s(hContact, MODULENAME, "Password", m_password.GetTextA());
 	}
 	else {
-		db_unset(hContact, MODULE, "UseAuth");
-		db_unset(hContact, MODULE, "Login");
-		db_unset(hContact, MODULE, "Password");
+		db_unset(hContact, MODULENAME, "UseAuth");
+		db_unset(hContact, MODULENAME, "Login");
+		db_unset(hContact, MODULENAME, "Password");
 	}
 
 	if (m_iItem == -1 && m_list != nullptr && m_hContact == NULL) {
@@ -858,12 +867,13 @@ void CFeedEditor::OnOk(CCtrlBase*)
 	}
 }
 
-void CFeedEditor::OnClose()
+bool CFeedEditor::OnClose()
 {
 	g_arFeeds.remove(this);
-	Utils_SaveWindowPosition(m_hwnd, NULL, MODULE, m_iItem == -1 ? "AddDlg" : "ChangeDlg");
+	Utils_SaveWindowPosition(m_hwnd, NULL, MODULENAME, m_iItem == -1 ? "AddDlg" : "ChangeDlg");
 	if (pAddFeedDialog == this)
 		pAddFeedDialog = nullptr;
+	return true;
 }
 
 void CFeedEditor::OnUseAuth(CCtrlBase*)
@@ -874,16 +884,16 @@ void CFeedEditor::OnUseAuth(CCtrlBase*)
 
 void COptionsMain::UpdateList()
 {
-	for (auto &hContact : Contacts(MODULE)) {
+	for (auto &hContact : Contacts(MODULENAME)) {
 		UpdateListFlag = TRUE;
-		wchar_t *ptszNick = db_get_wsa(hContact, MODULE, "Nick");
+		wchar_t *ptszNick = db_get_wsa(hContact, MODULENAME, "Nick");
 		if (ptszNick) {
 			int iItem = m_feeds.AddItem(ptszNick, -1);
 
-			wchar_t *ptszURL = db_get_wsa(hContact, MODULE, "URL");
+			wchar_t *ptszURL = db_get_wsa(hContact, MODULENAME, "URL");
 			if (ptszURL) {
 				m_feeds.SetItem(iItem, 1, ptszURL);
-				m_feeds.SetCheckState(iItem, db_get_b(hContact, MODULE, "CheckState", 1));
+				m_feeds.SetCheckState(iItem, db_get_b(hContact, MODULENAME, "CheckState", 1));
 				mir_free(ptszURL);
 			}
 			mir_free(ptszNick);
@@ -892,8 +902,8 @@ void COptionsMain::UpdateList()
 	UpdateListFlag = FALSE;
 }
 
-COptionsMain::COptionsMain()
-	: CPluginDlgBase(g_plugin.getInst(), IDD_OPTIONS, MODULE),
+COptionsMain::COptionsMain() :
+	CDlgBase(g_plugin, IDD_OPTIONS),
 	m_feeds(this, IDC_FEEDLIST),
 	m_add(this, IDC_ADD),
 	m_change(this, IDC_CHANGE),
@@ -902,7 +912,7 @@ COptionsMain::COptionsMain()
 	m_export(this, IDC_EXPORT),
 	m_checkonstartup(this, IDC_STARTUPRETRIEVE)
 {
-	CreateLink(m_checkonstartup, "AutoUpdate", DBVT_BYTE, 1);
+	CreateLink(m_checkonstartup, "StartupRetrieve", DBVT_BYTE, 1);
 
 	m_add.OnClick = Callback(this, &COptionsMain::OnAddButtonClick);
 	m_change.OnClick = Callback(this, &COptionsMain::OnChangeButtonClick);
@@ -915,7 +925,7 @@ COptionsMain::COptionsMain()
 
 }
 
-void COptionsMain::OnInitDialog()
+bool COptionsMain::OnInitDialog()
 {
 	CDlgBase::OnInitDialog();
 	m_change.Disable();
@@ -924,18 +934,19 @@ void COptionsMain::OnInitDialog()
 	m_feeds.AddColumn(0, TranslateT("Feed"), 160);
 	m_feeds.AddColumn(1, TranslateT("URL"), 276);
 	UpdateList();
+	return true;
 }
 
-void COptionsMain::OnApply()
+bool COptionsMain::OnApply()
 {
-	for (auto &hContact : Contacts(MODULE)) {
-		ptrW dbNick(db_get_wsa(hContact, MODULE, "Nick"));
+	for (auto &hContact : Contacts(MODULENAME)) {
+		ptrW dbNick(db_get_wsa(hContact, MODULENAME, "Nick"));
 		for (int i = 0; i < m_feeds.GetItemCount(); i++) {
 			wchar_t nick[MAX_PATH];
 			m_feeds.GetItemText(i, 0, nick, _countof(nick));
 			if (mir_wstrcmp(dbNick, nick) == 0)
 			{
-				db_set_b(hContact, MODULE, "CheckState", m_feeds.GetCheckState(i));
+				db_set_b(hContact, MODULENAME, "CheckState", m_feeds.GetCheckState(i));
 				if (!m_feeds.GetCheckState(i))
 					db_set_b(hContact, "CList", "Hidden", 1);
 				else
@@ -943,6 +954,7 @@ void COptionsMain::OnApply()
 			}
 		}
 	}
+	return true;
 }
 
 void COptionsMain::OnAddButtonClick(CCtrlBase*)
@@ -968,11 +980,11 @@ void COptionsMain::OnChangeButtonClick(CCtrlBase*)
 		m_feeds.GetItemText(isel, 0, nick, _countof(nick));
 		m_feeds.GetItemText(isel, 1, url, _countof(url));
 
-		ptrW dbNick(db_get_wsa(it->getContact(), MODULE, "Nick"));
+		ptrW dbNick(db_get_wsa(it->getContact(), MODULENAME, "Nick"));
 		if ((dbNick == NULL) || (mir_wstrcmp(dbNick, nick) != 0))
 			continue;
 
-		ptrW dbURL(db_get_wsa(it->getContact(), MODULE, "URL"));
+		ptrW dbURL(db_get_wsa(it->getContact(), MODULENAME, "URL"));
 		if ((dbURL == NULL) || (mir_wstrcmp(dbURL, url) != 0))
 			continue;
 
@@ -998,14 +1010,14 @@ void COptionsMain::OnDeleteButtonClick(CCtrlBase*)
 		m_feeds.GetItemText(isel, 0, nick, _countof(nick));
 		m_feeds.GetItemText(isel, 1, url, _countof(url));
 
-		for (auto &hContact : Contacts(MODULE)) {
-			ptrW dbNick(db_get_wsa(hContact, MODULE, "Nick"));
+		for (auto &hContact : Contacts(MODULENAME)) {
+			ptrW dbNick(db_get_wsa(hContact, MODULENAME, "Nick"));
 			if (dbNick == NULL)
 				break;
 			if (mir_wstrcmp(dbNick, nick))
 				continue;
 
-			ptrW dbURL(db_get_wsa(hContact, MODULE, "URL"));
+			ptrW dbURL(db_get_wsa(hContact, MODULENAME, "URL"));
 			if (dbURL == NULL)
 				break;
 			if (mir_wstrcmp(dbURL, url))
@@ -1063,12 +1075,11 @@ void COptionsMain::OnFeedListDoubleClick(CCtrlBase*)
 
 int OptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_plugin.getInst();
+	OPTIONSDIALOGPAGE odp = {};
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
 	odp.szGroup.w = LPGENW("Network");
 	odp.szTitle.w = LPGENW("News Aggregator");
 	odp.pDialog = new COptionsMain();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

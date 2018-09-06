@@ -114,7 +114,7 @@ BOOL CEditCtrl::OnInfoChanged(MCONTACT hContact, LPCSTR pszProto)
 		_Flags.W |= DB::Setting::GetTStringCtrl(hContact, _pszModule, _pszModule, pszProto, _pszSetting, &dbv);
 
 		EnableWindow(_hwnd,
-			!hContact || _Flags.B.hasCustom || !db_get_b(NULL, MODNAME, SET_PROPSHEET_PCBIREADONLY, 0));
+			!hContact || _Flags.B.hasCustom || !db_get_b(NULL, MODULENAME, SET_PROPSHEET_PCBIREADONLY, 0));
 
 		MIR_FREE(_pszValue);
 		switch (dbv.type) {
@@ -137,9 +137,9 @@ BOOL CEditCtrl::OnInfoChanged(MCONTACT hContact, LPCSTR pszProto)
 			break;
 
 		case DBVT_WCHAR:
-			if (dbv.ptszVal) {
-				SetWindowText(_hwnd, dbv.ptszVal);
-				_pszValue = dbv.ptszVal;
+			if (dbv.pwszVal) {
+				SetWindowText(_hwnd, dbv.pwszVal);
+				_pszValue = dbv.pwszVal;
 				break;
 			}
 
@@ -191,7 +191,7 @@ void CEditCtrl::OnApply(MCONTACT hContact, LPCSTR pszProto)
 						break;
 
 					case DBVT_WCHAR:
-						dbv.ptszVal = val;
+						dbv.pwszVal = val;
 						break;
 
 					default:

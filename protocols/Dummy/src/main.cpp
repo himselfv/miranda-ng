@@ -18,10 +18,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "stdafx.h"
 #include "version.h"
 
-int hLangpack;
-CLIST_INTERFACE *pcli;
+CMPlugin	g_plugin;
 
-PLUGININFOEX pluginInfo =
+PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -35,14 +34,19 @@ PLUGININFOEX pluginInfo =
 	{ 0x2a1081d1, 0xaee3, 0x4091, {0xb7, 0xd, 0xae, 0x46, 0xd0, 0x9f, 0x9a, 0x7f}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX *MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	ACCPROTOPLUGIN<CDummyProto>("Dummy", pluginInfoEx)
 {
-	return &pluginInfo;
+	int id = db_get_b(0, m_szModuleName, DUMMY_ID_TEMPLATE, -1);
+	if (id < 0 || id >= _countof(templates))
+		SetUniqueId(ptrA(db_get_sa(0, m_szModuleName, DUMMY_ID_SETTING)));
+	else
+		SetUniqueId(templates[id].setting);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = {MIID_PROTOCOL, MIID_LAST};
+extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_PROTOCOL, MIID_LAST };
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // OnModulesLoaded - execute some code when all plugins are initialized
@@ -55,35 +59,18 @@ static int OnModulesLoaded(WPARAM, LPARAM)
 /////////////////////////////////////////////////////////////////////////////////////////
 // OnLoad - initialize the plugin instance
 
-extern "C" int __declspec(dllexport) Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, OnModulesLoaded);
 	return 0;
 }
-
-/////////////////////////////////////////////////////////////////////////////////////////
-// Unload - destroy the plugin instance
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
-	return 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-CMPlugin	g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // stubs for obsoleted protocols
 
 struct CMPluginAim : public ACCPROTOPLUGIN<CDummyProto>
 {
-	CMPluginAim() : ACCPROTOPLUGIN<CDummyProto>("AIM")
+	CMPluginAim() : ACCPROTOPLUGIN<CDummyProto>("AIM", pluginInfoEx)
 	{
 		SetUniqueId("SN");
 	}
@@ -92,7 +79,7 @@ static g_pluginAim;
 
 struct CMPluginYahoo : public ACCPROTOPLUGIN<CDummyProto>
 {
-	CMPluginYahoo() : ACCPROTOPLUGIN<CDummyProto>("YAHOO")
+	CMPluginYahoo() : ACCPROTOPLUGIN<CDummyProto>("YAHOO", pluginInfoEx)
 	{
 		SetUniqueId("yahoo_id");
 	}
@@ -101,7 +88,7 @@ static g_pluginYahoo;
 
 struct CMPluginTlen : public ACCPROTOPLUGIN<CDummyProto>
 {
-	CMPluginTlen() : ACCPROTOPLUGIN<CDummyProto>("TLEN")
+	CMPluginTlen() : ACCPROTOPLUGIN<CDummyProto>("TLEN", pluginInfoEx)
 	{
 		SetUniqueId("jid");
 	}
@@ -110,7 +97,7 @@ static g_pluginTlen;
 
 struct CMPluginXFire : public ACCPROTOPLUGIN<CDummyProto>
 {
-	CMPluginXFire() : ACCPROTOPLUGIN<CDummyProto>("XFire")
+	CMPluginXFire() : ACCPROTOPLUGIN<CDummyProto>("XFire", pluginInfoEx)
 	{
 		SetUniqueId("Username");
 	}
@@ -119,7 +106,7 @@ static g_pluginXFire;
 
 struct CMPluginWhatsapp : public ACCPROTOPLUGIN<CDummyProto>
 {
-	CMPluginWhatsapp() : ACCPROTOPLUGIN<CDummyProto>("WhatsApp")
+	CMPluginWhatsapp() : ACCPROTOPLUGIN<CDummyProto>("WhatsApp", pluginInfoEx)
 	{
 		SetUniqueId("ID");
 	}

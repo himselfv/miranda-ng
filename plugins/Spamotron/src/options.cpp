@@ -6,10 +6,10 @@ wchar_t* _getCOptS(wchar_t *buf, unsigned int buflen, MCONTACT hContact, const c
 {
 	DBVARIANT dbv = {0};
 	wcsnset(buf, 0, buflen);
-	if (db_get_ws(hContact, PLUGIN_NAME, option, &dbv) != 0)
+	if (db_get_ws(hContact, MODULENAME, option, &dbv) != 0)
 		wcsncpy(buf, def, min(buflen, mir_wstrlen(def)+1));
 	else if (dbv.type == DBVT_WCHAR) {
-		wcsncpy(buf, dbv.ptszVal, min(buflen, mir_wstrlen(dbv.ptszVal)+1));
+		wcsncpy(buf, dbv.pwszVal, min(buflen, mir_wstrlen(dbv.pwszVal)+1));
 	}
 	db_free(&dbv);
 	return buf;
@@ -22,7 +22,7 @@ wchar_t* _getMOptS(wchar_t *buf, unsigned int buflen, const char* module, const 
 	if (db_get_s(NULL, module, option, &dbv) != 0)
 		wcsncpy(buf, def, min(buflen, mir_wstrlen(def)+1));
 	else if (dbv.type == DBVT_WCHAR) {
-		wcsncpy(buf, dbv.ptszVal, min(buflen, mir_wstrlen(dbv.ptszVal)+1));
+		wcsncpy(buf, dbv.pwszVal, min(buflen, mir_wstrlen(dbv.pwszVal)+1));
 	} else {
 		tmp = mir_a2u(dbv.pszVal);
 		wcsncpy(buf, tmp, min(buflen, mir_wstrlen(tmp)+1));
@@ -86,8 +86,6 @@ BOOL _saveDlgItemScore(HWND hDialog, int controlID, char* option)
 	_setOptD(option, wcstod(tmp, nullptr)/SCORE_C);
 	return TRUE;
 }
-
-extern HINSTANCE hInst;
 
 INT_PTR CALLBACK DlgProcOptionsMain(HWND optDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -553,33 +551,32 @@ extern INT_PTR CALLBACK DlgProcOptionsPopups(HWND optDlg, UINT msg, WPARAM wPara
 
 int OnOptInitialize(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szGroup.a = LPGEN("Message sessions");
-	odp.szTitle.a = PLUGIN_NAME;
+	odp.szTitle.a = MODULENAME;
 	odp.flags = ODPF_BOLDGROUPS;
 
 	odp.szTab.a = LPGEN("Settings");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_SPAMOTRON_MAIN);
 	odp.pfnDlgProc = DlgProcOptionsMain;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Messages");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_SPAMOTRON_Q);
 	odp.pfnDlgProc = DlgProcOptionsQuestion;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Bayes");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_SPAMOTRON_BAYES);
 	odp.pfnDlgProc = DlgProcOptionsBayes;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	if (ServiceExists(MS_POPUP_ADDPOPUPT)) {
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_SPAMOTRON_POPUPS);
 		odp.pfnDlgProc = DlgProcOptionsPopups;
 		odp.szGroup.a = LPGEN("Popups");
 		odp.szTab.a = nullptr;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }

@@ -33,10 +33,10 @@ void TfrmMain::Unload()
 {
 	std::list<TfrmMain*> lst;
 	for (CHandleMapping::iterator iter = _HandleMapping.begin(); iter != _HandleMapping.end(); ++iter) {
-		lst.push_back(iter->second);//we can't delete inside loop.. not MT compatible
+		lst.push_back(iter->second); // we can't delete inside loop.. not MT compatible
 	}
 	while (!lst.empty()) {
-		DestroyWindow(lst.front()->m_hWnd);//deletes class
+		DestroyWindow(lst.front()->m_hWnd); // deletes class
 		lst.pop_front();
 	}
 }
@@ -70,7 +70,7 @@ INT_PTR CALLBACK TfrmMain::DlgProc_CaptureTabPage(HWND hDlg, UINT uMsg, WPARAM w
 		return (INT_PTR)GetStockObject(WHITE_BRUSH);
 
 	case WM_COMMAND:
-		if (HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == ID_btnExplore) { /// local file tab
+		if (HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == ID_btnExplore) { // local file tab
 			OPENFILENAME ofn = { sizeof(OPENFILENAME) };
 			wchar_t filename[MAX_PATH];
 			GetDlgItemText(hDlg, ID_edtSize, filename, _countof(filename));
@@ -80,7 +80,6 @@ INT_PTR CALLBACK TfrmMain::DlgProc_CaptureTabPage(HWND hDlg, UINT uMsg, WPARAM w
 			ofn.nFilterIndex = 1;
 			ofn.lpstrFile = filename;
 			ofn.nMaxFile = MAX_PATH;
-			//			ofn.lpstrInitialDir = m_FDestFolder;
 			ofn.Flags = OFN_FILEMUSTEXIST | OFN_READONLY;
 			if (GetOpenFileName(&ofn)) {
 				SetDlgItemText(hDlg, ID_edtSize, filename);
@@ -113,7 +112,7 @@ INT_PTR CALLBACK TfrmMain::DlgTfrmMain(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 			return 0;
 		}
 		SetBkColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
-		return (INT_PTR)GetStockObject(WHITE_BRUSH); 	//GetSysColorBrush(COLOR_WINDOW);
+		return (INT_PTR)GetStockObject(WHITE_BRUSH);
 	}
 
 	CHandleMapping::iterator wnd;
@@ -124,12 +123,11 @@ INT_PTR CALLBACK TfrmMain::DlgTfrmMain(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 		return 0;
 	}
 	wnd = _HandleMapping.find(hWnd);
-	if (wnd == _HandleMapping.end()) {	//something screwed up dialog!
-		return 0;					//do not use ::DefWindowProc(hWnd, msg, wParam, lParam);
-	}
+	if (wnd == _HandleMapping.end())
+		return 0;
 
 	switch (msg) {
-	case WM_DROPFILES:{ /// Drag&Drop of local files
+	case WM_DROPFILES:{ // Drag&Drop of local files
 			wchar_t filename[MAX_PATH];
 			if (!DragQueryFile((HDROP)wParam, 0, filename, MAX_PATH)) *filename = '\0';
 			DragFinish((HDROP)wParam);
@@ -158,9 +156,6 @@ INT_PTR CALLBACK TfrmMain::DlgTfrmMain(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 	case WM_TIMER:
 		wnd->second->wmTimer(wParam, lParam);
 		break;
-	case UM_CLOSING:
-		wnd->second->UMClosing(wParam, lParam);
-		break;
 	case UM_EVENT:
 		wnd->second->UMevent(wParam, lParam);
 		break;
@@ -181,7 +176,7 @@ int EnumCloudFileServices(const CFSERVICEINFO *serviceInfo, void *param)
 void TfrmMain::wmInitdialog(WPARAM, LPARAM)
 {
 	HWND hCtrl;
-	/// Taskbar and Window icon
+	// Taskbar and Window icon
 	Window_SetIcon_IcoLib(m_hWnd, GetIconHandle(ICO_MAIN));
 
 	wchar_t *pt = mir_wstrdup(Clist_GetContactDisplayName(m_hContact));
@@ -192,25 +187,24 @@ void TfrmMain::wmInitdialog(WPARAM, LPARAM)
 	}
 	mir_free(pt);
 
-	/// Headerbar
+	// Headerbar
 	SendDlgItemMessage(m_hWnd, IDC_HEADERBAR, WM_SETICON, ICON_BIG, (LPARAM)GetIcon(ICO_MAIN));
 
-	/// Timed controls
+	// Timed controls
 	CheckDlgButton(m_hWnd, ID_chkTimed, m_opt_chkTimed ? BST_CHECKED : BST_UNCHECKED);
 	SetDlgItemInt(m_hWnd, ID_edtTimed, (UINT)m_opt_edtTimed, FALSE);
 	SendDlgItemMessage(m_hWnd, ID_upTimed, UDM_SETRANGE, 0, (LPARAM)MAKELONG(250, 1));
-	chkTimedClick();		//enable disable Timed controls
+	chkTimedClick();		// enable disable Timed controls
 
-	/// create Image list for tab control
+	// create Image list for tab control
 	if (!m_himlTab) {
-		//m_himlTab = ImageList_Create(16, 16, PluginConfig.m_bIsXP ? ILC_COLOR32 | ILC_MASK : ILC_COLOR8 | ILC_MASK, 2, 0);
 		m_himlTab = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 1);
 		ImageList_AddIcon(m_himlTab, GetIcon(ICO_TARGET));
 		ImageList_AddIcon(m_himlTab, GetIcon(ICO_MONITOR));
 		ImageList_AddIcon(m_himlTab, GetIconBtn(ICO_BTN_FOLDER));
 	}
 
-	/// create the tab control.
+	// create the tab control.
 	{
 		m_hwndTab = GetDlgItem(m_hWnd, IDC_CAPTURETAB);
 		TabCtrl_SetImageList(m_hwndTab, m_himlTab);
@@ -221,24 +215,25 @@ void TfrmMain::wmInitdialog(WPARAM, LPARAM)
 		itab.hwndTab = m_hwndTab;
 		itab.tcih.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
 
-		/// Add a tab for each of the three child dialog boxes.
+		// Add a tab for each of the three child dialog boxes.
 		itab.tcih.pszText = TranslateT("Window");
 		itab.tcih.iImage = 0;
-		itab.hwndTabPage = CreateDialogParam(g_hSendSS, MAKEINTRESOURCE(IDD_UMain_CaptureWindow), m_hWnd, DlgProc_CaptureTabPage, IDD_UMain_CaptureWindow);
+		itab.hwndTabPage = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_UMain_CaptureWindow), m_hWnd, DlgProc_CaptureTabPage, IDD_UMain_CaptureWindow);
 		TabCtrl_InsertItem(m_hwndTab, 0, &itab);
-		/// get tab boundaries (required after 1st tab)
+		
+		// get tab boundaries (required after 1st tab)
 		GetClientRect(m_hwndTab, &rcTab);
 		MapWindowPoints(m_hwndTab, m_hWnd, (POINT*)&rcTab, 2);
 		TabCtrl_AdjustRect(m_hwndTab, 0, &rcTab);
 		rcTab.bottom -= rcTab.top; rcTab.right -= rcTab.left;
-		///
+
 		SetWindowPos(itab.hwndTabPage, HWND_TOP, rcTab.left, rcTab.top, rcTab.right, rcTab.bottom, 0);
 		CheckDlgButton(itab.hwndTabPage, ID_chkIndirectCapture, m_opt_chkIndirectCapture ? BST_CHECKED : BST_UNCHECKED);
 		CheckDlgButton(itab.hwndTabPage, ID_chkClientArea, m_opt_chkClientArea ? BST_CHECKED : BST_UNCHECKED);
 
 		itab.tcih.pszText = TranslateT("Desktop");
 		itab.tcih.iImage = 1;
-		itab.hwndTabPage = CreateDialogParam(g_hSendSS, MAKEINTRESOURCE(IDD_UMain_CaptureDesktop), m_hWnd, DlgProc_CaptureTabPage, IDD_UMain_CaptureDesktop);
+		itab.hwndTabPage = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_UMain_CaptureDesktop), m_hWnd, DlgProc_CaptureTabPage, IDD_UMain_CaptureDesktop);
 		TabCtrl_InsertItem(m_hwndTab, 1, &itab);
 		SetWindowPos(itab.hwndTabPage, HWND_TOP, rcTab.left, rcTab.top, rcTab.right, rcTab.bottom, 0);
 
@@ -248,42 +243,43 @@ void TfrmMain::wmInitdialog(WPARAM, LPARAM)
 		ComboBox_SetCurSel(hCtrl, 0);
 		if (m_MonitorCount > 1) {
 			wchar_t tszTemp[120];
-			for (size_t mon = 0; mon < m_MonitorCount; ++mon) { /// @todo : fix format for non MSVC compilers
+			for (size_t mon = 0; mon < m_MonitorCount; ++mon) { // @todo : fix format for non MSVC compilers
 				mir_snwprintf(tszTemp, L"%Iu. %s%s",
 					mon + 1, TranslateT("Monitor"),
 					(m_Monitors[mon].dwFlags & MONITORINFOF_PRIMARY) ? TranslateT(" (primary)") : L""
 					);
 				ComboBox_SetItemData(hCtrl, ComboBox_AddString(hCtrl, tszTemp), mon + 1);
 			}
-			ComboBox_SelectItemData(hCtrl, m_opt_cboxDesktop);	//use Workaround for MS bug ComboBox_SelectItemData
+			ComboBox_SelectItemData(hCtrl, m_opt_cboxDesktop);	// use Workaround for MS bug ComboBox_SelectItemData
 		}
 		PostMessage(m_hWnd, WM_COMMAND, MAKEWPARAM(ID_edtCaption, CBN_SELCHANGE), (LPARAM)hCtrl);
 
 		itab.tcih.pszText = TranslateT("File");
 		itab.tcih.iImage = 2;
-		itab.hwndTabPage = CreateDialogParam(g_hSendSS, MAKEINTRESOURCE(IDD_UMain_CaptureFile), m_hWnd, DlgProc_CaptureTabPage, IDD_UMain_CaptureFile);
+		itab.hwndTabPage = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_UMain_CaptureFile), m_hWnd, DlgProc_CaptureTabPage, IDD_UMain_CaptureFile);
 		TabCtrl_InsertItem(m_hwndTab, 2, &itab);
 		SetWindowPos(itab.hwndTabPage, HWND_TOP, rcTab.left, rcTab.top, rcTab.right, rcTab.bottom, 0);
 
-		/// select tab and set m_hwndTabPage
+		// select tab and set m_hwndTabPage
 		TabCtrl_SetCurSel(m_hwndTab, m_opt_tabCapture);
 		itab.tcih.mask = TCIF_PARAM;
 		TabCtrl_GetItem(m_hwndTab, m_opt_tabCapture, &itab);
 		m_hwndTabPage = itab.hwndTabPage;
 		ShowWindow(m_hwndTabPage, SW_SHOW);
 
-		/// enable Drag&Drop for local file pane
+		// enable Drag&Drop for local file pane
 		typedef BOOL(WINAPI *ChangeWindowMessageFilterEx_t)(HWND hwnd, UINT message, DWORD action, PCHANGEFILTERSTRUCT pChangeFilterStruct);
 		ChangeWindowMessageFilterEx_t pChangeWindowMessageFilterEx;
 		pChangeWindowMessageFilterEx = (ChangeWindowMessageFilterEx_t)GetProcAddress(GetModuleHandleA("user32"), "ChangeWindowMessageFilterEx");
-		if (pChangeWindowMessageFilterEx) { /// Win7+, UAC fix
+		if (pChangeWindowMessageFilterEx) { // Win7+, UAC fix
 			pChangeWindowMessageFilterEx(m_hWnd, WM_DROPFILES, MSGFLT_ALLOW, nullptr);
 			pChangeWindowMessageFilterEx(m_hWnd, WM_COPYDATA, MSGFLT_ALLOW, nullptr);
 			pChangeWindowMessageFilterEx(m_hWnd, 0x0049/*WM_COPYGLOBALDATA*/, MSGFLT_ALLOW, nullptr);
 		}
 		DragAcceptFiles(m_hWnd, 1);
 	}
-	/// init Format combo box
+	
+	// init Format combo box
 	{
 		hCtrl = GetDlgItem(m_hWnd, ID_cboxFormat);
 		ComboBox_ResetContent(hCtrl);
@@ -292,9 +288,10 @@ void TfrmMain::wmInitdialog(WPARAM, LPARAM)
 		ComboBox_SetItemData(hCtrl, ComboBox_AddString(hCtrl, L"BMP"), 2);
 		ComboBox_SetItemData(hCtrl, ComboBox_AddString(hCtrl, L"TIF"), 3);
 		ComboBox_SetItemData(hCtrl, ComboBox_AddString(hCtrl, L"GIF"), 4);
-		ComboBox_SelectItemData(hCtrl, m_opt_cboxFormat);	//use Workaround for MS bug ComboBox_SelectItemData
+		ComboBox_SelectItemData(hCtrl, m_opt_cboxFormat);// use Workaround for MS bug ComboBox_SelectItemData
 	}
-	/// init SendBy combo box
+	
+	// init SendBy combo box
 	{
 		hCtrl = GetDlgItem(m_hWnd, ID_cboxSendBy);
 		ComboBox_ResetContent(hCtrl);
@@ -329,17 +326,11 @@ void TfrmMain::wmInitdialog(WPARAM, LPARAM)
 		ComboBox_SetItemData(hCtrl, ComboBox_AddString(hCtrl, TranslateT("Upload Pie (1d)")), new UPLOAD_INFO(SS_UPLOADPIE, (void*)4));
 		ComboBox_SetItemData(hCtrl, ComboBox_AddString(hCtrl, TranslateT("Upload Pie (1w)")), new UPLOAD_INFO(SS_UPLOADPIE, (void*)5));
 		ComboBox_SetItemData(hCtrl, ComboBox_AddString(hCtrl, L"Imgur"), new UPLOAD_INFO(SS_IMGUR));
-		ComboBox_SelectItemData(hCtrl, m_opt_cboxSendBy);	//use Workaround for MS bug ComboBox_SelectItemData
+		ComboBox_SelectItemData(hCtrl, m_opt_cboxSendBy); // use Workaround for MS bug ComboBox_SelectItemData
 	}
-	/// init footer options
+	
+	// init footer options
 	CheckDlgButton(m_hWnd, ID_chkOpenAgain, m_opt_chkOpenAgain ? BST_CHECKED : BST_UNCHECKED);
-
-	if (hCtrl = GetDlgItem(m_hWnd, ID_btnAbout)) {
-		SendDlgItemMessage(m_hWnd, ID_btnAbout, BUTTONADDTOOLTIP, (WPARAM)TranslateT("Information"), MBBF_TCHAR);
-		HICON hIcon = GetIconBtn(ICO_BTN_HELP);
-		SendMessage(hCtrl, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hIcon);
-		SetWindowText(hCtrl, hIcon ? L"" : L"?");
-	}
 
 	if (hCtrl = GetDlgItem(m_hWnd, ID_btnExplore)) {
 		SendDlgItemMessage(m_hWnd, ID_btnExplore, BUTTONADDTOOLTIP, (WPARAM)TranslateT("Open Folder"), MBBF_TCHAR);
@@ -379,7 +370,7 @@ void TfrmMain::wmInitdialog(WPARAM, LPARAM)
 		SetWindowText(hCtrl, TranslateT("&Capture"));
 		SendMessage(hCtrl, BUTTONSETDEFAULT, 1, NULL);
 	}
-	cboxSendByChange(nullptr);		//enable disable controls
+	cboxSendByChange(nullptr); // enable disable controls
 
 	TranslateDialogDefault(m_hWnd);
 }
@@ -389,9 +380,11 @@ void TfrmMain::wmInitdialog(WPARAM, LPARAM)
 
 void TfrmMain::wmCommand(WPARAM wParam, LPARAM lParam)
 {
+	HICON hIcon;
+
 	int IDControl = LOWORD(wParam);
 	switch (HIWORD(wParam)) {
-	case BN_CLICKED:		//Button controls
+	case BN_CLICKED: // Button controls
 		switch (IDControl) {
 		case IDCANCEL: // ESC pressed
 			this->Close();
@@ -413,52 +406,48 @@ void TfrmMain::wmCommand(WPARAM wParam, LPARAM lParam)
 			m_hLastWin = nullptr;
 			SetTimer(m_hWnd, ID_imgTarget, BUTTON_POLLDELAY, nullptr);
 			break;
-		case ID_btnAbout:
-			TfrmMain::btnAboutClick();
-			break;
 		case ID_btnExplore:
 			TfrmMain::btnExploreClick();
 			break;
-		case ID_chkDesc:{
-				m_opt_btnDesc = !m_opt_btnDesc;
-				HICON hIcon = GetIconBtn(m_opt_btnDesc ? ICO_BTN_DESCON : ICO_BTN_DESC);
-				SendMessage((HWND)lParam, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hIcon);
-				break; }
-		case ID_chkDeleteAfterSend:{
-				m_opt_btnDeleteAfterSend = !m_opt_btnDeleteAfterSend;
-				HICON hIcon = GetIconBtn(m_opt_btnDeleteAfterSend ? ICO_BTN_DELON : ICO_BTN_DEL);
-				SendMessage((HWND)lParam, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hIcon);
-				if (m_cSend) m_cSend->m_bDeleteAfterSend = m_opt_btnDeleteAfterSend;
-				break; }
-		case ID_chkEditor:{
-				m_opt_chkEditor = !m_opt_chkEditor;
-				HICON hIcon = GetIconBtn(m_opt_chkEditor ? ICO_BTN_EDITON : ICO_BTN_EDIT);
-				SendMessage((HWND)lParam, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hIcon);
-				break; }
+		case ID_chkDesc:
+			m_opt_btnDesc = !m_opt_btnDesc;
+			hIcon = GetIconBtn(m_opt_btnDesc ? ICO_BTN_DESCON : ICO_BTN_DESC);
+			SendMessage((HWND)lParam, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hIcon);
+			break;
+		case ID_chkDeleteAfterSend:
+			m_opt_btnDeleteAfterSend = !m_opt_btnDeleteAfterSend;
+			hIcon = GetIconBtn(m_opt_btnDeleteAfterSend ? ICO_BTN_DELON : ICO_BTN_DEL);
+			SendMessage((HWND)lParam, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hIcon);
+			if (m_cSend) m_cSend->m_bDeleteAfterSend = m_opt_btnDeleteAfterSend;
+			break;
+		case ID_chkEditor:
+			m_opt_chkEditor = !m_opt_chkEditor;
+			hIcon = GetIconBtn(m_opt_chkEditor ? ICO_BTN_EDITON : ICO_BTN_EDIT);
+			SendMessage((HWND)lParam, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hIcon);
+			break;
 		case ID_chkOpenAgain:
 			m_opt_chkOpenAgain = Button_GetCheck((HWND)lParam);
 			break;
 		case ID_btnCapture:
 			TfrmMain::btnCaptureClick();
 			break;
-		default:
-			break;
 		}
 		break;
-	case CBN_SELCHANGE:		//ComboBox controls
-		switch (IDControl) {
-			//lParam = Handle to the control
-		case ID_cboxFormat:			//not finish
+
+	case CBN_SELCHANGE: // ComboBox controls
+		switch (IDControl) { // lParam = Handle to the control
+		case ID_cboxFormat:  // not finish
 			m_opt_cboxFormat = (BYTE)ComboBox_GetItemData((HWND)lParam, ComboBox_GetCurSel((HWND)lParam));
 			break;
 		case ID_cboxSendBy:
-		{
-			UPLOAD_INFO *upload = (UPLOAD_INFO*)ComboBox_GetItemData((HWND)lParam, ComboBox_GetCurSel((HWND)lParam));
-			m_opt_cboxSendBy = upload->sendBy;
-			cboxSendByChange(upload->param);
+			{
+				UPLOAD_INFO *upload = (UPLOAD_INFO*)ComboBox_GetItemData((HWND)lParam, ComboBox_GetCurSel((HWND)lParam));
+				m_opt_cboxSendBy = upload->sendBy;
+				cboxSendByChange(upload->param);
+			}
 			break;
-		}
-		case ID_edtCaption:			//cboxDesktopChange
+
+		case ID_edtCaption: // cboxDesktopChange
 			m_opt_cboxDesktop = (BYTE)ComboBox_GetItemData((HWND)lParam, ComboBox_GetCurSel((HWND)lParam));
 			m_hTargetWindow = nullptr;
 			if (m_opt_cboxDesktop > 0) {
@@ -468,29 +457,23 @@ void TfrmMain::wmCommand(WPARAM wParam, LPARAM lParam)
 				edtSizeUpdate(m_VirtualScreen, GetParent((HWND)lParam), ID_edtSize);
 			}
 			break;
-		default:
-			break;
 		}
 		break;
-	case EN_CHANGE:			//Edit controls
-		switch (IDControl) {
-			//lParam = Handle to the control
+
+	case EN_CHANGE: // Edit controls
+		switch (IDControl) { // lParam = Handle to the control
 		case ID_edtQuality:
 			m_opt_edtQuality = (BYTE)GetDlgItemInt(m_hWnd, ID_edtQuality, nullptr, FALSE);
 			break;
 		case ID_edtTimed:
 			m_opt_edtTimed = (BYTE)GetDlgItemInt(m_hWnd, ID_edtTimed, nullptr, FALSE);
 			break;
-		default:
-			break;
 		}
-		break;
-	default:
 		break;
 	}
 }
 
-//WM_CLOSE:
+// WM_CLOSE:
 void TfrmMain::wmClose(WPARAM, LPARAM)
 {
 	HWND hCtrl = GetDlgItem(m_hWnd, ID_cboxSendBy);
@@ -503,15 +486,15 @@ void TfrmMain::wmClose(WPARAM, LPARAM)
 	return;
 }
 
-//WM_TIMER:
+// WM_TIMER:
 const int g_iTargetBorder = 7;
 void TfrmMain::SetTargetWindow(HWND hwnd)
 {
 	if (!hwnd) {
 		POINT point; GetCursorPos(&point);
 		hwnd = WindowFromPoint(point);
-		//		if(!((GetAsyncKeyState(VK_SHIFT)|GetAsyncKeyState(VK_MENU))&0x8000))
-		for (HWND hTMP; (hTMP = GetParent(hwnd)); hwnd = hTMP);
+		for (HWND hTMP; (hTMP = GetParent(hwnd)); hwnd = hTMP)
+			;
 	}
 	m_hTargetWindow = hwnd;
 	int len = GetWindowTextLength(m_hTargetWindow) + 1;
@@ -520,7 +503,7 @@ void TfrmMain::SetTargetWindow(HWND hwnd)
 		lpTitle = (wchar_t*)mir_alloc(len*sizeof(wchar_t));
 		GetWindowText(m_hTargetWindow, lpTitle, len);
 	}
-	else {//no WindowText present, use WindowClass
+	else { // no WindowText present, use WindowClass
 		lpTitle = (wchar_t*)mir_alloc(64 * sizeof(wchar_t));
 		RealGetWindowClass(m_hTargetWindow, lpTitle, 64);
 	}
@@ -531,14 +514,14 @@ void TfrmMain::SetTargetWindow(HWND hwnd)
 
 void TfrmMain::wmTimer(WPARAM wParam, LPARAM)
 {
-	if (wParam == ID_imgTarget) {// Timer for Target selector
+	if (wParam == ID_imgTarget) { // Timer for Target selector
 		static int primarymouse;
 		if (!m_hTargetHighlighter) {
 			primarymouse = GetSystemMetrics(SM_SWAPBUTTON) ? VK_RBUTTON : VK_LBUTTON;
-			m_hTargetHighlighter = CreateWindowEx(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW, (wchar_t*)g_clsTargetHighlighter, nullptr, WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, g_hSendSS, nullptr);
+			m_hTargetHighlighter = CreateWindowEx(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW, (wchar_t*)g_clsTargetHighlighter, nullptr, WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, g_plugin.getInst(), nullptr);
 			if (!m_hTargetHighlighter) return;
 			SetLayeredWindowAttributes(m_hTargetHighlighter, 0, 123, LWA_ALPHA);
-			SetSystemCursor(CopyCursor(GetIcon(ICO_TARGET)), OCR_IBEAM);//text cursor
+			SetSystemCursor(CopyCursor(GetIcon(ICO_TARGET)), OCR_IBEAM); // text cursor
 			SetSystemCursor(CopyCursor(GetIcon(ICO_TARGET)), OCR_NORMAL);
 			SetActiveWindow(m_hTargetHighlighter); // activate highlighter to fix focus problems with UAC (unelevated GetAsyncKeyState() fails if an elevated app got focus)
 			Hide();
@@ -580,7 +563,7 @@ void TfrmMain::wmTimer(WPARAM wParam, LPARAM)
 					HRGN hRgnHole = CreateRectRgn(g_iTargetBorder, g_iTargetBorder, width - g_iTargetBorder, height - g_iTargetBorder);
 					CombineRgn(hRegnNew, hRegnNew, hRgnHole, RGN_XOR);
 					DeleteObject(hRgnHole);
-					SetWindowRgn(m_hTargetHighlighter, hRegnNew, FALSE);//cleans up hRegnNew
+					SetWindowRgn(m_hTargetHighlighter, hRegnNew, FALSE); // cleans up hRegnNew
 				}
 				else SetWindowRgn(m_hTargetHighlighter, nullptr, FALSE);
 			}
@@ -588,11 +571,11 @@ void TfrmMain::wmTimer(WPARAM wParam, LPARAM)
 		}
 		return;
 	}
-	if (wParam == ID_chkTimed) {// Timer for Screenshot
+	if (wParam == ID_chkTimed) { // Timer for Screenshot
 #ifdef _DEBUG
 		OutputDebugStringA("SS Bitmap Timer Start\r\n");
 #endif
-		if (!m_bCapture) {		//only start once
+		if (!m_bCapture) { // only start once
 			if (m_Screenshot) {
 				FreeImage_Unload(m_Screenshot);
 				m_Screenshot = nullptr;
@@ -605,7 +588,7 @@ void TfrmMain::wmTimer(WPARAM wParam, LPARAM)
 			case 1:
 				m_Screenshot = CaptureMonitor((m_opt_cboxDesktop > 0) ? m_Monitors[m_opt_cboxDesktop - 1].szDevice : nullptr);
 				break;
-			case 2: /// edge case, existing local file
+			case 2: // edge case, existing local file
 				break;
 #ifdef _DEBUG
 			default:
@@ -613,7 +596,7 @@ void TfrmMain::wmTimer(WPARAM wParam, LPARAM)
 #endif
 			}
 			m_bCapture = false;
-			if (m_Screenshot || m_opt_tabCapture == 2) { /// @note : test without "if"
+			if (m_Screenshot || m_opt_tabCapture == 2) { // @note : test without "if"
 				KillTimer(m_hWnd, ID_chkTimed);
 #ifdef _DEBUG
 				OutputDebugStringA("SS Bitmap Timer Stop (CaptureDone)\r\n");
@@ -624,56 +607,40 @@ void TfrmMain::wmTimer(WPARAM wParam, LPARAM)
 	}
 }
 
-//WM_NOTIFY:
+// WM_NOTIFY:
 void TfrmMain::wmNotify(WPARAM, LPARAM lParam)
 {
 	switch (((LPNMHDR)lParam)->idFrom) {
-	case IDC_CAPTURETAB:				//TabControl IDC_CAPTURETAB
+	case IDC_CAPTURETAB:
+		// HWND hwndFrom; = member is handle to the tab control
+		// UINT_PTR idFrom; = member is the child window identifier of the tab control.
+		// UINT code; = member is TCN_SELCHANGE
 		switch (((LPNMHDR)lParam)->code) {
-			//    HWND hwndFrom;	= member is handle to the tab control
-			//    UINT_PTR idFrom;	= member is the child window identifier of the tab control.
-			//    UINT code;		= member is TCN_SELCHANGE
-		case TCN_SELCHANGING:{
-				if (!m_hwndTabPage) break;
+		case TCN_SELCHANGING:
+			if (m_hwndTabPage) {
 				ShowWindow(m_hwndTabPage, SW_HIDE);
 				m_hwndTabPage = nullptr;
-				break; }
-		case TCN_SELCHANGE:{
+			}
+			break;
+
+		case TCN_SELCHANGE:
+			{
 				TAB_INFO itab = { TCIF_PARAM };
 				m_opt_tabCapture = TabCtrl_GetCurSel(m_hwndTab);
 				TabCtrl_GetItem(m_hwndTab, m_opt_tabCapture, &itab);
 				m_hwndTabPage = itab.hwndTabPage;
-				ShowWindow(m_hwndTabPage, SW_SHOW);
-				break; }
-		default:
+			}
+			ShowWindow(m_hwndTabPage, SW_SHOW);
 			break;
 		}
 		break;
-	default:
-		break;
 	}
 }
 
-//UM_CLOSING:
-void TfrmMain::UMClosing(WPARAM wParam, LPARAM lParam)
-{
-	HWND hWnd = (HWND)wParam;
-	switch (lParam) {
-	case IDD_UAboutForm:
-		btnAboutOnCloseWindow(hWnd);
-		break;
-	case IDD_UEditForm:
-		;
-		break;
-	default:
-		break;
-	}
-}
-
-//UM_EVENT:
+// UM_EVENT:
 void TfrmMain::UMevent(WPARAM, LPARAM lParam)
 {
-	//HWND hWnd = (HWND)wParam;
+	// HWND hWnd = (HWND)wParam;
 	switch (lParam) {
 	case EVT_CaptureDone:
 		if (!m_Screenshot && m_opt_tabCapture != 2) {
@@ -684,8 +651,10 @@ void TfrmMain::UMevent(WPARAM, LPARAM lParam)
 		}
 		FormClose();
 		break;
+
 	case EVT_SendFileDone:
 		break;
+
 	case EVT_CheckOpenAgain:
 		if (m_opt_chkOpenAgain) {
 			if (m_Screenshot) {
@@ -698,8 +667,6 @@ void TfrmMain::UMevent(WPARAM, LPARAM lParam)
 			SaveOptions();
 			Close();
 		}
-		break;
-	default:
 		break;
 	}
 }
@@ -714,7 +681,6 @@ TfrmMain::TfrmMain()
 
 	m_hWnd = nullptr;
 	m_hContact = NULL;
-	m_bFormAbout = false;
 	m_hTargetWindow = m_hLastWin = nullptr;
 	m_hTargetHighlighter = nullptr;
 	m_FDestFolder = m_pszFile = nullptr;
@@ -749,54 +715,52 @@ TfrmMain::~TfrmMain()
 
 void TfrmMain::LoadOptions(void)
 {
-	DWORD rgb = db_get_dw(NULL, SZ_SENDSS, "AlphaColor", 16777215);
+	DWORD rgb = db_get_dw(NULL, MODULENAME, "AlphaColor", 16777215);
 	m_AlphaColor.rgbRed = GetRValue(rgb);
 	m_AlphaColor.rgbGreen = GetGValue(rgb);
 	m_AlphaColor.rgbBlue = GetBValue(rgb);
 	m_AlphaColor.rgbReserved = 0;
 
-	//	m_opt_chkEmulateClick		= db_get_b(NULL, SZ_SENDSS, "AutoSend", 1);
-	m_opt_edtQuality = db_get_b(NULL, SZ_SENDSS, "JpegQuality", 75);
+	m_opt_edtQuality = db_get_b(NULL, MODULENAME, "JpegQuality", 75);
 
-	m_opt_tabCapture = db_get_b(NULL, SZ_SENDSS, "Capture", 0);
-	m_opt_chkIndirectCapture = db_get_b(NULL, SZ_SENDSS, "IndirectCapture", 0);
-	m_opt_chkClientArea = db_get_b(NULL, SZ_SENDSS, "ClientArea", 0);
-	m_opt_cboxDesktop = db_get_b(NULL, SZ_SENDSS, "Desktop", 0);
+	m_opt_tabCapture = db_get_b(NULL, MODULENAME, "Capture", 0);
+	m_opt_chkIndirectCapture = db_get_b(NULL, MODULENAME, "IndirectCapture", 0);
+	m_opt_chkClientArea = db_get_b(NULL, MODULENAME, "ClientArea", 0);
+	m_opt_cboxDesktop = db_get_b(NULL, MODULENAME, "Desktop", 0);
 
-	m_opt_chkTimed = db_get_b(NULL, SZ_SENDSS, "TimedCap", 0);
-	m_opt_edtTimed = db_get_b(NULL, SZ_SENDSS, "CapTime", 3);
-	m_opt_cboxFormat = db_get_b(NULL, SZ_SENDSS, "OutputFormat", 0);
-	m_opt_cboxSendBy = db_get_b(NULL, SZ_SENDSS, "SendBy", 0);
+	m_opt_chkTimed = db_get_b(NULL, MODULENAME, "TimedCap", 0);
+	m_opt_edtTimed = db_get_b(NULL, MODULENAME, "CapTime", 3);
+	m_opt_cboxFormat = db_get_b(NULL, MODULENAME, "OutputFormat", 0);
+	m_opt_cboxSendBy = db_get_b(NULL, MODULENAME, "SendBy", 0);
 
-	m_opt_btnDesc = db_get_b(NULL, SZ_SENDSS, "AutoDescription", 1);
-	m_opt_btnDeleteAfterSend = db_get_b(NULL, SZ_SENDSS, "DelAfterSend", 1) != 0;
-	m_opt_chkEditor = db_get_b(NULL, SZ_SENDSS, "Preview", 0);
-	m_opt_chkOpenAgain = db_get_b(NULL, SZ_SENDSS, "OpenAgain", 0);
+	m_opt_btnDesc = db_get_b(NULL, MODULENAME, "AutoDescription", 1);
+	m_opt_btnDeleteAfterSend = db_get_b(NULL, MODULENAME, "DelAfterSend", 1) != 0;
+	m_opt_chkEditor = db_get_b(NULL, MODULENAME, "Preview", 0);
+	m_opt_chkOpenAgain = db_get_b(NULL, MODULENAME, "OpenAgain", 0);
 }
 
 void TfrmMain::SaveOptions(void)
 {
 	if (m_bOnExitSave) {
-		db_set_dw(NULL, SZ_SENDSS, "AlphaColor",
+		db_set_dw(NULL, MODULENAME, "AlphaColor",
 			(DWORD)RGB(m_AlphaColor.rgbRed, m_AlphaColor.rgbGreen, m_AlphaColor.rgbBlue));
 
-		//		db_set_b(NULL, SZ_SENDSS, "AutoSend", m_opt_chkEmulateClick);
-		db_set_b(NULL, SZ_SENDSS, "JpegQuality", m_opt_edtQuality);
+		db_set_b(NULL, MODULENAME, "JpegQuality", m_opt_edtQuality);
 
-		db_set_b(NULL, SZ_SENDSS, "Capture", m_opt_tabCapture);
-		db_set_b(NULL, SZ_SENDSS, "IndirectCapture", m_opt_chkIndirectCapture);
-		db_set_b(NULL, SZ_SENDSS, "ClientArea", m_opt_chkClientArea);
-		db_set_b(NULL, SZ_SENDSS, "Desktop", m_opt_cboxDesktop);
+		db_set_b(NULL, MODULENAME, "Capture", m_opt_tabCapture);
+		db_set_b(NULL, MODULENAME, "IndirectCapture", m_opt_chkIndirectCapture);
+		db_set_b(NULL, MODULENAME, "ClientArea", m_opt_chkClientArea);
+		db_set_b(NULL, MODULENAME, "Desktop", m_opt_cboxDesktop);
 
-		db_set_b(NULL, SZ_SENDSS, "TimedCap", m_opt_chkTimed);
-		db_set_b(NULL, SZ_SENDSS, "CapTime", m_opt_edtTimed);
-		db_set_b(NULL, SZ_SENDSS, "OutputFormat", m_opt_cboxFormat);
-		db_set_b(NULL, SZ_SENDSS, "SendBy", m_opt_cboxSendBy);
+		db_set_b(NULL, MODULENAME, "TimedCap", m_opt_chkTimed);
+		db_set_b(NULL, MODULENAME, "CapTime", m_opt_edtTimed);
+		db_set_b(NULL, MODULENAME, "OutputFormat", m_opt_cboxFormat);
+		db_set_b(NULL, MODULENAME, "SendBy", m_opt_cboxSendBy);
 
-		db_set_b(NULL, SZ_SENDSS, "AutoDescription", m_opt_btnDesc);
-		db_set_b(NULL, SZ_SENDSS, "DelAfterSend", m_opt_btnDeleteAfterSend);
-		db_set_b(NULL, SZ_SENDSS, "Preview", m_opt_chkEditor);
-		db_set_b(NULL, SZ_SENDSS, "OpenAgain", m_opt_chkOpenAgain);
+		db_set_b(NULL, MODULENAME, "AutoDescription", m_opt_btnDesc);
+		db_set_b(NULL, MODULENAME, "DelAfterSend", m_opt_btnDeleteAfterSend);
+		db_set_b(NULL, MODULENAME, "Preview", m_opt_chkEditor);
+		db_set_b(NULL, MODULENAME, "OpenAgain", m_opt_chkOpenAgain);
 	}
 }
 
@@ -808,11 +772,12 @@ void TfrmMain::Init(wchar_t* DestFolder, MCONTACT Contact)
 	m_hContact = Contact;
 
 	// create window
-	m_hWnd = CreateDialogParam(g_hSendSS, MAKEINTRESOURCE(IDD_UMainForm), nullptr, DlgTfrmMain, (LPARAM)this);
-	//register object
+	m_hWnd = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_UMainForm), nullptr, DlgTfrmMain, (LPARAM)this);
+	
+	// register object
 	_HandleMapping.insert(CHandleMapping::value_type(m_hWnd, this));
 
-	//check Contact
+	// check Contact
 	if (m_cSend)
 		m_cSend->SetContact(Contact);
 }
@@ -842,11 +807,11 @@ void TfrmMain::btnCaptureClick()
 	TfrmMain::Hide();
 
 	if (m_opt_chkTimed) {
-		SetTimer(m_hWnd, ID_chkTimed, m_opt_edtTimed ? m_opt_edtTimed * 1000 : 500, nullptr); /// calls EVT_CaptureDone
+		SetTimer(m_hWnd, ID_chkTimed, m_opt_edtTimed ? m_opt_edtTimed * 1000 : 500, nullptr); // calls EVT_CaptureDone
 		return;
 	}
-	if (m_opt_tabCapture == 1) { /// desktop needs always time to update from TfrmMain::Hide()
-		SetTimer(m_hWnd, ID_chkTimed, 500, nullptr); /// calls EVT_CaptureDone
+	if (m_opt_tabCapture == 1) { // desktop needs always time to update from TfrmMain::Hide()
+		SetTimer(m_hWnd, ID_chkTimed, 500, nullptr); // calls EVT_CaptureDone
 		return;
 	}
 	if (m_opt_tabCapture != 2) {
@@ -870,35 +835,35 @@ void TfrmMain::cboxSendByChange(void *param)
 {
 	BOOL bState;
 	HICON hIcon;
-	BYTE itemFlag = SS_DLG_DESCRIPTION;		//SS_DLG_AUTOSEND | SS_DLG_DELETEAFTERSSEND |
+	BYTE itemFlag = SS_DLG_DESCRIPTION;
 	if (m_cSend)
 		delete m_cSend;
 	switch (m_opt_cboxSendBy) {
-	case SS_FILESEND:		//"File Transfer"
+	case SS_FILESEND: // "File Transfer"
 		m_cSend = new CSendFile(m_hWnd, m_hContact, true);
 		break;
-	case SS_EMAIL:			//"E-mail"
+	case SS_EMAIL: // "E-mail"
 		m_cSend = new CSendEmail(m_hWnd, m_hContact, true);
 		break;
-	case SS_HTTPSERVER:		//"HTTP Server"
+	case SS_HTTPSERVER: // "HTTP Server"
 		m_cSend = new CSendHTTPServer(m_hWnd, m_hContact, true);
 		break;
-	case SS_FTPFILE:		//"FTP File"
+	case SS_FTPFILE: // "FTP File"
 		m_cSend = new CSendFTPFile(m_hWnd, m_hContact, true);
 		break;
-	case SS_CLOUDFILE:		//"CloudFile"
+	case SS_CLOUDFILE: // "CloudFile"
 		m_cSend = new CSendCloudFile(m_hWnd, m_hContact, false, (char*)param);
 		break;
-	case SS_IMAGESHACK:		//"ImageShack"
+	case SS_IMAGESHACK: // "ImageShack"
 		m_cSend = new CSendHost_ImageShack(m_hWnd, m_hContact, true);
 		break;
-	case SS_UPLOADPIE:		//"Upload Pie"
-		m_cSend = new CSendHost_UploadPie(m_hWnd, m_hContact, true, (int)param);
+	case SS_UPLOADPIE: // "Upload Pie"
+		m_cSend = new CSendHost_UploadPie(m_hWnd, m_hContact, true, (INT_PTR)param);
 		break;
 	case SS_IMGUR:
 		m_cSend = new CSendHost_Imgur(m_hWnd, m_hContact, true);
 		break;
-	default:				//SS_JUSTSAVE - "Just save it "
+	default:
 		m_cSend = nullptr;
 		break;
 	}
@@ -915,25 +880,6 @@ void TfrmMain::cboxSendByChange(void *param)
 	hIcon = GetIconBtn(m_opt_btnDesc ? ICO_BTN_DESCON : ICO_BTN_DESC);
 	SendDlgItemMessage(m_hWnd, ID_chkDesc, BM_SETIMAGE, IMAGE_ICON, (LPARAM)(bState ? hIcon : nullptr));
 	Button_Enable(GetDlgItem(m_hWnd, ID_chkDesc), bState);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-void TfrmMain::btnAboutClick()
-{
-	if (m_bFormAbout) return;
-
-	TfrmAbout *frmAbout = new TfrmAbout(m_hWnd);
-	frmAbout->Show();
-	m_bFormAbout = true;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-// Edit window call this event before it closes
-
-void TfrmMain::btnAboutOnCloseWindow(HWND)
-{
-	m_bFormAbout = false;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -959,13 +905,12 @@ void TfrmMain::edtSizeUpdate(HWND hWnd, BOOL ClientArea, HWND hTarget, UINT Ctrl
 		pt.x = cliRect.left;
 		pt.y = cliRect.top;
 		ClientToScreen(hWnd, &pt);
-		pt.x = pt.x - rect.left;			//offset x for client area
-		pt.y = pt.y - rect.top;				//offset y for client area
+		pt.x = pt.x - rect.left; // offset x for client area
+		pt.y = pt.y - rect.top;  // offset y for client area
 		rect = cliRect;
 	}
-	//	_itow_s(rect.right - rect.left, B, 33, 10);
+
 	_itow(rect.right - rect.left, B, 10);
-	//	_itow_s(rect.bottom - rect.top, H, 16, 10);
 	_itow(rect.bottom - rect.top, H, 10);
 	mir_wstrncat(B, L"x", _countof(B) - mir_wstrlen(B));
 	mir_wstrncat(B, H, _countof(B) - mir_wstrlen(B));
@@ -975,9 +920,7 @@ void TfrmMain::edtSizeUpdate(HWND hWnd, BOOL ClientArea, HWND hTarget, UINT Ctrl
 void TfrmMain::edtSizeUpdate(RECT rect, HWND hTarget, UINT Ctrl)
 {
 	wchar_t B[33], H[16];
-	//	_itow_s(ABS(rect.right - rect.left), B, 33, 10);
 	_itow(ABS(rect.right - rect.left), B, 10);
-	//	_itow_s(ABS(rect.bottom - rect.top), H, 16, 10);
 	_itow(ABS(rect.bottom - rect.top), H, 10);
 	mir_wstrncat(B, L"x", _countof(B) - mir_wstrlen(B));
 	mir_wstrncat(B, H, _countof(B) - mir_wstrlen(B));
@@ -989,10 +932,10 @@ void TfrmMain::edtSizeUpdate(RECT rect, HWND hTarget, UINT Ctrl)
 INT_PTR TfrmMain::SaveScreenshot(FIBITMAP *dib)
 {
 	if (!dib)
-		return 1;		//error
+		return 1;
 
 	// generate file name
-	unsigned FileNumber = db_get_dw(NULL, SZ_SENDSS, "FileNumber", 0) + 1;
+	unsigned FileNumber = db_get_dw(NULL, MODULENAME, "FileNumber", 0) + 1;
 	if (FileNumber > 99999)
 		FileNumber = 1;
 	
@@ -1049,7 +992,7 @@ INT_PTR TfrmMain::SaveScreenshot(FIBITMAP *dib)
 		}
 		break;
 
-	case 3: //TIFF (miranda freeimage interface do not support save tiff, we udse GDI+)
+	case 3: // TIFF (miranda freeimage interface do not support save tiff, we udse GDI+)
 		wszFileName.Append(L".tif");
 		{
 			FIBITMAP *dib32 = FreeImage_Composite(dib_new, FALSE, &m_AlphaColor, nullptr);
@@ -1064,7 +1007,7 @@ INT_PTR TfrmMain::SaveScreenshot(FIBITMAP *dib)
 		ret = TRUE;
 		break;
 
-	case 4: //GIF
+	case 4: // GIF
 		wszFileName.Append(L".gif");
 		{
 			HBITMAP hBmp = FreeImage_CreateHBITMAPFromDIB(dib_new);
@@ -1078,9 +1021,9 @@ INT_PTR TfrmMain::SaveScreenshot(FIBITMAP *dib)
 	FreeImage_Unload(dib_new);
 
 	if (!ret)
-		return 1; // error
+		return 1;
 	
-	db_set_dw(NULL, SZ_SENDSS, "FileNumber", FileNumber);
+	db_set_dw(NULL, MODULENAME, "FileNumber", FileNumber);
 	replaceStrW(m_pszFile, wszFileName);
 
 	if (!IsWindowEnabled(GetDlgItem(m_hWnd, ID_chkDesc)) || !m_opt_btnDesc)
@@ -1090,7 +1033,7 @@ INT_PTR TfrmMain::SaveScreenshot(FIBITMAP *dib)
 		m_cSend->SetFile(m_pszFile);
 		m_cSend->SetDescription(wszFileDesc);
 	}
-	return 0; // OK
+	return 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -1098,20 +1041,20 @@ INT_PTR TfrmMain::SaveScreenshot(FIBITMAP *dib)
 void TfrmMain::FormClose()
 {
 	bool bCanDelete = m_opt_btnDeleteAfterSend;
-	if (m_opt_tabCapture == 2) { /// existing file
+	if (m_opt_tabCapture == 2) { // existing file
 		wchar_t description[1024];
 		GetDlgItemText(m_hwndTabPage, ID_edtCaption, description, _countof(description));
 		if (!IsWindowEnabled(GetDlgItem(m_hWnd, ID_chkDesc)) || !m_opt_btnDesc)
 			*description = '\0';
 		if (m_cSend) {
-			m_cSend->m_bDeleteAfterSend = false; /// well... guess it's better to not delete existing files for now...
+			m_cSend->m_bDeleteAfterSend = false; // well... guess it's better to not delete existing files for now...
 			m_cSend->SetFile(m_pszFile);
 			m_cSend->SetDescription(description);
 		}
 		bCanDelete = false;
 	}
-	else if (SaveScreenshot(m_Screenshot)) { /// Saving the screenshot
-		Show();		// Error from SaveScreenshot
+	else if (SaveScreenshot(m_Screenshot)) { // Saving the screenshot
+		Show(); // Error from SaveScreenshot
 		return;
 	}
 
@@ -1135,12 +1078,12 @@ void TfrmMain::FormClose()
 						PostMessage(nullptr, WM_QUIT, 0, 0); // forward for outer message loops
 						break;
 					}
+					
 					// process dialog messages (of unknown dialogs)
 					HWND hwndDlgModeless = GetActiveWindow();
-					//					HWND hwndDlgModeless = msg.hwnd;
-					//					for(HWND hTMP; (hTMP=GetAncestor(hwndDlgModeless,GA_PARENT)) && IsChild(hTMP,hwndDlgModeless); hwndDlgModeless=hTMP);
 					if (hwndDlgModeless != nullptr && IsDialogMessage(hwndDlgModeless, &msg)) /* Wine fix. */
 						continue;
+					
 					// process messages
 					TranslateMessage(&msg);
 					DispatchMessage(&msg);

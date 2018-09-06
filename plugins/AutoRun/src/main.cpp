@@ -1,8 +1,9 @@
 #include "stdafx.h"
 
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 HKEY ROOT_KEY = HKEY_CURRENT_USER;
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
@@ -17,11 +18,11 @@ PLUGININFOEX pluginInfoEx = {
 	{0xeb0465e2, 0xceee, 0x11db, {0x83, 0xef, 0xc1, 0xbf, 0x55, 0xd8, 0x95, 0x93}}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 void GetProfilePath(wchar_t *res, size_t resLen)
 {
@@ -41,7 +42,7 @@ static void SetAutorun(BOOL autorun)
 	DWORD dw;
 	switch (autorun) {
 	case TRUE:
-		if ( RegCreateKeyEx(ROOT_KEY, SUB_KEY, 0, nullptr, 0, KEY_CREATE_SUB_KEY|KEY_SET_VALUE,nullptr,&hKey,&dw) == ERROR_SUCCESS) {
+		if (RegCreateKeyEx(ROOT_KEY, SUB_KEY, 0, nullptr, 0, KEY_CREATE_SUB_KEY | KEY_SET_VALUE, nullptr, &hKey, &dw) == ERROR_SUCCESS) {
 			wchar_t result[MAX_PATH];
 			GetProfilePath(result, _countof(result));
 			RegSetValueEx(hKey, L"MirandaNG", 0, REG_SZ, (BYTE*)result, sizeof(wchar_t)*(DWORD)mir_wstrlen(result));
@@ -49,7 +50,7 @@ static void SetAutorun(BOOL autorun)
 		}
 		break;
 	case FALSE:
-		if ( RegOpenKey(ROOT_KEY, SUB_KEY, &hKey) == ERROR_SUCCESS) {
+		if (RegOpenKey(ROOT_KEY, SUB_KEY, &hKey) == ERROR_SUCCESS) {
 			RegDeleteValue(hKey, L"MirandaNG");
 			RegCloseKey(hKey);
 		}
@@ -60,14 +61,14 @@ static void SetAutorun(BOOL autorun)
 static BOOL CmpCurrentAndRegistry()
 {
 	HKEY hKey;
-	if ( RegOpenKeyEx(ROOT_KEY, SUB_KEY, 0, KEY_QUERY_VALUE, &hKey) != ERROR_SUCCESS)
+	if (RegOpenKeyEx(ROOT_KEY, SUB_KEY, 0, KEY_QUERY_VALUE, &hKey) != ERROR_SUCCESS)
 		return FALSE;
 
 	wchar_t result[MAX_PATH], dbpath[MAX_PATH];
 	DWORD dwBufLen = MAX_PATH;
-	if ( RegQueryValueEx(hKey, L"MirandaNG", nullptr, nullptr, (LPBYTE)dbpath, &dwBufLen) != ERROR_SUCCESS)
+	if (RegQueryValueEx(hKey, L"MirandaNG", nullptr, nullptr, (LPBYTE)dbpath, &dwBufLen) != ERROR_SUCCESS)
 		return FALSE;
-	
+
 	GetProfilePath(result, _countof(result));
 	return mir_wstrcmpi(result, dbpath) == 0;
 }
@@ -85,11 +86,11 @@ static INT_PTR CALLBACK DlgProcAutorunOpts(HWND hwndDlg, UINT msg, WPARAM, LPARA
 		return TRUE;
 
 	case WM_NOTIFY:
-		switch(((LPNMHDR)lParam)->idFrom) {
+		switch (((LPNMHDR)lParam)->idFrom) {
 		case 0:
 			switch (((LPNMHDR)lParam)->code) {
 			case PSN_APPLY: // if "Apply" pressed then...
-				SetAutorun(IsDlgButtonChecked(hwndDlg,IDC_AUTORUN)); //Save changes to registry;
+				SetAutorun(IsDlgButtonChecked(hwndDlg, IDC_AUTORUN)); //Save changes to registry;
 				return TRUE;
 			}
 			break;
@@ -99,33 +100,21 @@ static INT_PTR CALLBACK DlgProcAutorunOpts(HWND hwndDlg, UINT msg, WPARAM, LPARA
 	return FALSE;
 }
 
-static int AutorunOptInitialise(WPARAM wParam,LPARAM)
+static int AutorunOptInitialise(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 100100000;
-	odp.hInstance = hInst;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_AUTORUN);
-	odp.szTitle.a = ModuleName;
+	odp.szTitle.a = MODULENAME;
 	odp.szGroup.a = LPGEN("Services");
 	odp.pfnDlgProc = DlgProcAutorunOpts;
 	odp.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+int CMPlugin::Load()
 {
-	return &pluginInfoEx;
-}
-
-extern "C" __declspec(dllexport) int Load(void)
-{
-	mir_getLP(&pluginInfoEx);
 	HookEvent(ME_OPT_INITIALISE, AutorunOptInitialise);
-	return 0;
-}
-
-extern "C" __declspec(dllexport) int Unload(void)
-{
 	return 0;
 }

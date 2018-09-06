@@ -20,19 +20,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 
-char ModuleName[] = "ExchangeNotify";
-HINSTANCE hInstance;
 HICON hiMailIcon = nullptr;
 HWND hEmailsDlg = nullptr;
-int hLangpack=0;
+
+CMPlugin g_plugin;
 
 CExchangeServer exchangeServer;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx =
+{
 	sizeof(PLUGININFOEX),
-	__PLUGIN_DISPLAY_NAME,
+	__PLUGIN_NAME,
 	__VERSION_DWORD,
-	__DESC,
+	__DESCRIPTION,
 	__AUTHOR,
 	__COPYRIGHT,
 	__AUTHORWEB,
@@ -40,36 +42,25 @@ PLUGININFOEX pluginInfo = {
   {0x2fd0df15, 0x7098, 0x41ce, {0xaa, 0x92, 0xff, 0x62, 0x18, 0x06, 0xe3, 0x8b}} //{2fd0df15-7098-41ce-aa92-ff621806e38b}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX *MirandaPluginInfoEx(DWORD) 
-{
-	return &pluginInfo;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = {MIID_EXCHANGE, MIID_LAST};
+/////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Load()
+int CMPlugin::Load()
 {
-	mir_getLP( &pluginInfo );
-	hiMailIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MAIL));
+	hiMailIcon = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_MAIL));
 	InitServices();
 	HookEvents();
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload()
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	DestroyServices();
 	UnhookEvents();
 	return 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL,DWORD fdwReason,LPVOID)
-{
-	hInstance = hinstDLL; //save global instance
-	if (fdwReason == DLL_PROCESS_ATTACH)
-		DisableThreadLibraryCalls(hinstDLL);
-
-	return TRUE;
 }

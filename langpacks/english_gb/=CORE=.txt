@@ -53,16 +53,16 @@ Initialising...
 Timestamp has same colour as the event
 [Strip colors from messages in the log]
 Strip colours from messages in the log
-[Make the text italicized (CTRL+I)]
-Make the text italicised (CTRL+I)
+[Make the text italicized (Ctrl+I)]
+Make the text italicised (Ctrl+I)
 [&Color]
 &Colour
-[Select a foreground color for the text (CTRL+K)]
-Select a foreground colour for the text (CTRL+K)
+[Select a foreground color for the text (Ctrl+K)]
+Select a foreground colour for the text (Ctrl+K)
 [&Background color]
 &Background colour
-[Select a background color for the text (CTRL+L)]
-Select a background colour for the text (CTRL+L)
+[Select a background color for the text (Ctrl+L)]
+Select a background colour for the text (Ctrl+L)
 [Please authorize my request and add me to your contact list.]
 Please authorise my request and add me to your contact list.
 [%s requested authorization\n%u (%s) on %s]

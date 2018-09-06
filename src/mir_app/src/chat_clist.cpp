@@ -40,7 +40,7 @@ MCONTACT AddRoom(const char *pszModule, const wchar_t *pszRoom, const wchar_t *p
 		}
 	}
 
-	MCONTACT hContact = chatApi.FindRoom(pszModule, pszRoom);
+	MCONTACT hContact = g_chatApi.FindRoom(pszModule, pszRoom);
 	if (hContact) { //contact exist, make sure it is in the right group
 		if (pszGroup[0]) {
 			ptrW grpName(db_get_wsa(hContact, "CList", "Group"));
@@ -85,7 +85,7 @@ BOOL SetAllOffline(BOOL, const char *pszModule)
 {
 	for (auto &hContact : Contacts(pszModule)) {
 		char *szProto = GetContactProto(hContact);
-		if (!chatApi.MM_FindModule(szProto))
+		if (!g_chatApi.MM_FindModule(szProto))
 			continue;
 		int i = db_get_b(hContact, szProto, "ChatRoom", 0);
 		if (i != 0) {
@@ -103,7 +103,7 @@ int RoomDoubleclicked(WPARAM hContact, LPARAM)
 		return 0;
 
 	char *szProto = GetContactProto(hContact);
-	if (chatApi.MM_FindModule(szProto) == nullptr)
+	if (g_chatApi.MM_FindModule(szProto) == nullptr)
 		return 0;
 	if (db_get_b(hContact, szProto, "ChatRoom", 0) == 0)
 		return 0;
@@ -114,11 +114,11 @@ int RoomDoubleclicked(WPARAM hContact, LPARAM)
 
 	SESSION_INFO *si = SM_FindSession(roomid, szProto);
 	if (si) {
-		if (si->pDlg != nullptr && !cli.pfnGetEvent(hContact, 0) && IsWindowVisible(si->pDlg->GetHwnd()) && !IsIconic(si->pDlg->GetHwnd())) {
+		if (si->pDlg != nullptr && !g_clistApi.pfnGetEvent(hContact, 0) && IsWindowVisible(si->pDlg->GetHwnd()) && !IsIconic(si->pDlg->GetHwnd())) {
 			si->pDlg->CloseTab();
 			return 1;
 		}
-		chatApi.ShowRoom(si);
+		g_chatApi.ShowRoom(si);
 	}
 	return 1;
 }
@@ -209,13 +209,13 @@ BOOL AddEvent(MCONTACT hContact, HICON hIcon, MEVENT hEvent, int type, wchar_t* 
 		CreateServiceFunction(cle.pszService, &EventDoubleclicked);
 
 	if (type) {
-		if (!cli.pfnGetEvent(hContact, 0))
-			cli.pfnAddEvent(&cle);
+		if (!g_clistApi.pfnGetEvent(hContact, 0))
+			g_clistApi.pfnAddEvent(&cle);
 	}
 	else {
-		if (cli.pfnGetEvent(hContact, 0))
-			cli.pfnRemoveEvent(hContact, GC_FAKE_EVENT);
-		cli.pfnAddEvent(&cle);
+		if (g_clistApi.pfnGetEvent(hContact, 0))
+			g_clistApi.pfnRemoveEvent(hContact, GC_FAKE_EVENT);
+		g_clistApi.pfnAddEvent(&cle);
 	}
 	return TRUE;
 }

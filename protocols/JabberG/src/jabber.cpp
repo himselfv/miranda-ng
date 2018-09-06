@@ -37,16 +37,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 HMODULE hMsftedit;
 
-int hLangpack;
-unsigned int g_nTempFileId;
-CHAT_MANAGER *pci;
+CMPlugin g_plugin;
 
 int g_cbCountries;
 CountryListEntry *g_countries;
 
+unsigned int g_nTempFileId;
 wchar_t szCoreVersion[100];
-
-CLIST_INTERFACE* pcli;
 
 HANDLE hExtraActivity = nullptr;
 HANDLE hExtraMood = nullptr;
@@ -59,13 +56,7 @@ bool bSecureIM, bMirOTR, bNewGPG, bPlatform;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-CMPlugin g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-PLUGININFOEX pluginInfo = {
+static PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -77,9 +68,10 @@ PLUGININFOEX pluginInfo = {
 	{ 0x144e80a2, 0xd198, 0x428b, {0xac, 0xbe, 0x9d, 0x55, 0xda, 0xcc, 0x7f, 0xde }} // {144E80A2-D198-428b-ACBE-9D55DACC7FDE}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	ACCPROTOPLUGIN<CJabberProto>("JABBER", pluginInfoEx)
 {
-	return &pluginInfo;
+	SetUniqueId("jid");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -116,8 +108,7 @@ static int OnModulesLoaded(WPARAM, LPARAM)
 	}
 
 	// init fontservice for info frame
-	FontIDW fontid = { 0 };
-	fontid.cbSize = sizeof(fontid);
+	FontIDW fontid = {};
 	wcsncpy_s(fontid.group, LPGENW("Jabber"), _TRUNCATE);
 	strncpy_s(fontid.dbSettingsGroup, GLOBAL_SETTING_MODULE, _TRUNCATE);
 	wcsncpy_s(fontid.backgroundGroup, L"Jabber", _TRUNCATE);
@@ -131,38 +122,31 @@ static int OnModulesLoaded(WPARAM, LPARAM)
 	fontid.deffontsettings.style = 0;
 
 	wcsncpy_s(fontid.name, LPGENW("Frame title"), _TRUNCATE);
-	strncpy_s(fontid.prefix, "fntFrameTitle", _TRUNCATE);
+	strncpy_s(fontid.setting, "fntFrameTitle", _TRUNCATE);
 	fontid.deffontsettings.style = DBFONTF_BOLD;
-	Font_RegisterW(&fontid);
+	g_plugin.addFont(&fontid);
 
 	wcsncpy_s(fontid.name, LPGENW("Frame text"), _TRUNCATE);
-	strncpy_s(fontid.prefix, "fntFrameClock", _TRUNCATE);
+	strncpy_s(fontid.setting, "fntFrameClock", _TRUNCATE);
 	fontid.deffontsettings.style = 0;
-	Font_RegisterW(&fontid);
+	g_plugin.addFont(&fontid);
 
-	ColourIDW colourid = {0};
-	colourid.cbSize = sizeof(colourid);
+	ColourIDW colourid = {};
 	wcsncpy_s(colourid.group, L"Jabber", _TRUNCATE);
 	strncpy_s(colourid.dbSettingsGroup, GLOBAL_SETTING_MODULE, _TRUNCATE);
 
 	wcsncpy_s(colourid.name, L"Background", _TRUNCATE);
 	strncpy_s(colourid.setting, "clFrameBack", _TRUNCATE);
 	colourid.defcolour = GetSysColor(COLOR_WINDOW);
-	Colour_RegisterW(&colourid);
-
+	g_plugin.addColor(&colourid);
 	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // OnLoad - initialize the plugin instance
 
-extern "C" int __declspec(dllexport) Load()
+int CMPlugin::Load()
 {
-	// set the memory, lists & utf8 managers
-	mir_getLP(&pluginInfo);
-	pci = Chat_GetInterface();
-	pcli = Clist_GetInterface();
-
 	char mirVer[100];
 	Miranda_GetVersionText(mirVer, _countof(mirVer));
 	mir_wstrcpy(szCoreVersion, _A2T(mirVer));
@@ -189,7 +173,7 @@ extern "C" int __declspec(dllexport) Load()
 ///////////////////////////////////////////////////////////////////////////////
 // Unload - destroy the plugin instance
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	g_XstatusIconsUninit();
 	JabberUserInfoUninit();

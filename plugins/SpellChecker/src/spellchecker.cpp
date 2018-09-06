@@ -21,22 +21,7 @@ Boston, MA 02111-1307, USA.
 
 // Prototypes ///////////////////////////////////////////////////////////////////////////
 
-PLUGININFOEX pluginInfo = {
-	sizeof(PLUGININFOEX),
-	__PLUGIN_NAME,
-	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
-	__DESCRIPTION,
-	__AUTHOR,
-	__COPYRIGHT,
-	__AUTHORWEB,
-	UNICODE_AWARE,
-	// {36753AE3-840B-4797-94A5-FD9F5852B942}
-	{ 0x36753ae3, 0x840b, 0x4797, { 0x94, 0xa5, 0xfd, 0x9f, 0x58, 0x52, 0xb9, 0x42 } }
-};
-
-HINSTANCE hInst;
-
-int hLangpack = 0;
+CMPlugin g_plugin;
 
 HANDLE hDictionariesFolder = nullptr;
 wchar_t *dictionariesFolder;
@@ -55,23 +40,32 @@ BOOL loaded = FALSE;
 
 LIST<Dictionary> languages(1);
 
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx =
+{
+	sizeof(PLUGININFOEX),
+	__PLUGIN_NAME,
+	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
+	__DESCRIPTION,
+	__AUTHOR,
+	__COPYRIGHT,
+	__AUTHORWEB,
+	UNICODE_AWARE,
+	// {36753AE3-840B-4797-94A5-FD9F5852B942}
+	{ 0x36753ae3, 0x840b, 0x4797, { 0x94, 0xa5, 0xfd, 0x9f, 0x58, 0x52, 0xb9, 0x42 }}
+};
+
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
 // Functions ////////////////////////////////////////////////////////////////////////////
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
 
 static int IconsChanged(WPARAM, LPARAM)
 {
 	StatusIconData sid = {};
-	sid.szModule = MODULE_NAME;
+	sid.szModule = MODULENAME;
 	sid.hIconDisabled = IcoLib_GetIcon("spellchecker_disabled");
 	sid.flags = MBF_HIDDEN | MBF_UNICODE;
 
@@ -137,7 +131,7 @@ static int ModulesLoaded(WPARAM, LPARAM)
 		HMODULE hFlagsDll = LoadLibraryEx(flag_file, nullptr, LOAD_LIBRARY_AS_DATAFILE);
 
 		wchar_t path[MAX_PATH];
-		GetModuleFileName(hInst, path, MAX_PATH);
+		GetModuleFileName(g_plugin.getInst(), path, MAX_PATH);
 
 		SKINICONDESC sid = {};
 		sid.flags = SIDF_ALL_UNICODE | SIDF_SORTED;
@@ -168,7 +162,7 @@ static int ModulesLoaded(WPARAM, LPARAM)
 			}
 
 			// Oki, lets add to IcoLib, then
-			p->hIcolib = IcoLib_AddIcon(&sid);
+			p->hIcolib = g_plugin.addIcon(&sid);
 
 			if (hFlag != nullptr)
 				DestroyIcon(hFlag);
@@ -193,7 +187,7 @@ static int ModulesLoaded(WPARAM, LPARAM)
 	HookEvent(ME_MSG_ICONPRESSED, IconPressed);
 
 	StatusIconData sid = {};
-	sid.szModule = MODULE_NAME;
+	sid.szModule = MODULENAME;
 	sid.hIconDisabled = IcoLib_GetIcon("spellchecker_disabled");
 	sid.flags = MBF_UNICODE | MBF_HIDDEN;
 
@@ -204,7 +198,7 @@ static int ModulesLoaded(WPARAM, LPARAM)
 		mir_snwprintf(tmp, L"%s - %s", TranslateT("Spell Checker"), languages[i]->full_name);
 		sid.tszTooltip = tmp;
 		sid.hIcon = (opts.use_flags) ? IcoLib_GetIconByHandle(languages[i]->hIcolib) : IcoLib_GetIcon("spellchecker_enabled");
-		Srmm_AddIcon(&sid);
+		Srmm_AddIcon(&sid, &g_plugin);
 	}
 
 	HOTKEYDESC hkd = {};
@@ -213,7 +207,7 @@ static int ModulesLoaded(WPARAM, LPARAM)
 	hkd.szDescription.a = LPGEN("Enable/disable spell checker");
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_SHIFT | HOTKEYF_ALT, 'S');
 	hkd.lParam = HOTKEY_ACTION_TOGGLE;
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	loaded = TRUE;
 
@@ -229,12 +223,10 @@ static IconItem iconList[] =
 	{ LPGEN("Unknown"), "spellchecker_unknown", IDI_UNKNOWN_FLAG }
 };
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	// icons
-	Icon_Register(hInst, LPGEN("Spell Checker"), iconList, _countof(iconList));
+	g_plugin.registerIcon(LPGEN("Spell Checker"), iconList);
 
 	// hooks
 	HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoaded);
@@ -253,7 +245,7 @@ extern "C" int __declspec(dllexport) Load(void)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	DeleteObject(hCheckedBmp);
 	FreeDictionaries(languages);

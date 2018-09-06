@@ -47,7 +47,7 @@ static IconItem iconList[] =
 
 void MsnInitIcons(void)
 {
-	Icon_Register(g_plugin.getInst(), "Protocols/MSN", iconList, _countof(iconList), "MSN");
+	g_plugin.registerIcon("Protocols/MSN", iconList, "MSN");
 }
 
 HICON LoadIconEx(const char* name, bool big)
@@ -99,7 +99,7 @@ static INT_PTR CALLBACK DlgProcMsnOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			HWND wnd = GetDlgItem(hwndDlg, IDC_HANDLE2);
 			DBVARIANT dbv;
 			if (!proto->getWString("Nick", &dbv)) {
-				SetWindowText(wnd, dbv.ptszVal);
+				SetWindowText(wnd, dbv.pwszVal);
 				db_free(&dbv);
 			}
 			EnableWindow(wnd, proto->msnLoggedIn);
@@ -491,7 +491,7 @@ static INT_PTR CALLBACK DlgProcAccMgrUI(HWND hwndDlg, UINT msg, WPARAM wParam, L
 
 			DBVARIANT dbv;
 			if (!proto->getWString("Place", &dbv)) {
-				SetDlgItemText(hwndDlg, IDC_PLACE, dbv.ptszVal);
+				SetDlgItemText(hwndDlg, IDC_PLACE, dbv.pwszVal);
 				db_free(&dbv);
 			}
 		}
@@ -591,9 +591,8 @@ INT_PTR CALLBACK DlgDeleteContactUI(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 
 int CMsnProto::OnOptionsInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -790000000;
-	odp.hInstance = g_plugin.getInst();
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_MSN);
 	odp.szTitle.w = m_tszUserName;
 	odp.szGroup.w = LPGENW("Network");
@@ -601,22 +600,22 @@ int CMsnProto::OnOptionsInit(WPARAM wParam, LPARAM)
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE | ODPF_DONTTRANSLATE;
 	odp.pfnDlgProc = DlgProcMsnOpts;
 	odp.dwInitParam = (LPARAM)this;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.w = LPGENW("Connection");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_MSN_CONN);
 	odp.pfnDlgProc = DlgProcMsnConnOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.w = LPGENW("Server list");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_LISTSMGR);
 	odp.pfnDlgProc = DlgProcMsnServLists;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.w = LPGENW("Notifications");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_NOTIFY);
 	odp.pfnDlgProc = DlgProcHotmailPopupOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	return 0;
 }

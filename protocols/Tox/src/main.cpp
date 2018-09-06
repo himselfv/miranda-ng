@@ -1,11 +1,12 @@
 #include "stdafx.h"
 
-int hLangpack;
-CHAT_MANAGER *pci;
-CLIST_INTERFACE *pcli;
+CMPlugin g_plugin;
+
 HANDLE hProfileFolderPath;
 
-PLUGININFOEX pluginInfo =
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -19,16 +20,11 @@ PLUGININFOEX pluginInfo =
 	{0x272a3e, 0xf5fa, 0x4090, {0x8b, 0x67, 0x3e, 0x62, 0xac, 0x1e, 0xe0, 0xb4}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	ACCPROTOPLUGIN<CToxProto>("TOX", pluginInfoEx)
 {
-	return &pluginInfo;
+	SetUniqueId(TOX_SETTINGS_ID);
 }
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-CMPlugin g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -50,20 +46,8 @@ int OnModulesLoaded(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pci = Chat_GetInterface();
-	pcli = Clist_GetInterface();
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, OnModulesLoaded);
-
-	return 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

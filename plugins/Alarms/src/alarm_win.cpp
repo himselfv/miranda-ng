@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "alarm_win.h"
 
 #define ID_TIMER_SOUND				10101
 #define SOUND_REPEAT_PERIOD			5000	// milliseconds
@@ -38,7 +37,7 @@ INT_PTR CALLBACK DlgProcAlarm(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
 	case WM_INITDIALOG:
 		TranslateDialogDefault(hwndDlg);
 
-		Utils_RestoreWindowPositionNoSize(hwndDlg, 0, MODULE, "Notify");
+		Utils_RestoreWindowPositionNoSize(hwndDlg, 0, MODULENAME, "Notify");
 		SetFocus(GetDlgItem(hwndDlg, IDC_SNOOZE));
 
 		wd = new WindowData;
@@ -53,7 +52,7 @@ INT_PTR CALLBACK DlgProcAlarm(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
 			r.left += 20;
 
 			SetWindowPos(hwndDlg, nullptr, r.left, r.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-			Utils_SaveWindowPosition(hwndDlg, 0, MODULE, "Notify");
+			Utils_SaveWindowPosition(hwndDlg, 0, MODULENAME, "Notify");
 		}
 		SetWindowLongPtr(hwndDlg, GWLP_USERDATA, (LONG_PTR)wd);
 
@@ -192,7 +191,7 @@ INT_PTR CALLBACK DlgProcAlarm(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
 		return TRUE;
 
 	case WM_MOVE:
-		Utils_SaveWindowPosition(hwndDlg, 0, MODULE, "Notify");
+		Utils_SaveWindowPosition(hwndDlg, 0, MODULENAME, "Notify");
 		break;
 
 	case WMU_ADDSNOOZER:
@@ -348,30 +347,27 @@ int ReloadFonts(WPARAM, LPARAM)
 
 int AlarmWinModulesLoaded(WPARAM, LPARAM)
 {
-	title_font_id.cbSize = sizeof(FontIDW);
 	wcsncpy_s(title_font_id.group, LPGENW("Alarms"), _TRUNCATE);
 	wcsncpy_s(title_font_id.name, LPGENW("Title"), _TRUNCATE);
-	strncpy_s(title_font_id.dbSettingsGroup, MODULE, _TRUNCATE);
-	strncpy_s(title_font_id.prefix, "FontTitle", _TRUNCATE);
+	strncpy_s(title_font_id.dbSettingsGroup, MODULENAME, _TRUNCATE);
+	strncpy_s(title_font_id.setting, "FontTitle", _TRUNCATE);
 	wcsncpy_s(title_font_id.backgroundGroup, LPGENW("Alarms"), _TRUNCATE);
 	wcsncpy_s(title_font_id.backgroundName, LPGENW("Background"), _TRUNCATE);
 	title_font_id.flags = 0;
 	title_font_id.order = 0;
-	Font_RegisterW(&title_font_id);
+	g_plugin.addFont(&title_font_id);
 
-	window_font_id.cbSize = sizeof(FontIDW);
 	wcsncpy_s(window_font_id.group, LPGENW("Alarms"), _TRUNCATE);
 	wcsncpy_s(window_font_id.name, LPGENW("Window"), _TRUNCATE);
-	strncpy_s(window_font_id.dbSettingsGroup, MODULE, _TRUNCATE);
-	strncpy_s(window_font_id.prefix, "FontWindow", _TRUNCATE);
+	strncpy_s(window_font_id.dbSettingsGroup, MODULENAME, _TRUNCATE);
+	strncpy_s(window_font_id.setting, "FontWindow", _TRUNCATE);
 	wcsncpy_s(window_font_id.backgroundGroup, LPGENW("Alarms"), _TRUNCATE);
 	wcsncpy_s(window_font_id.backgroundName, LPGENW("Background"), _TRUNCATE);
 	window_font_id.flags = 0;
 	window_font_id.order = 1;
-	Font_RegisterW(&window_font_id);
+	g_plugin.addFont(&window_font_id);
 
-	bk_colour_id.cbSize = sizeof(ColourIDW);
-	strncpy_s(bk_colour_id.dbSettingsGroup, MODULE, _TRUNCATE);
+	strncpy_s(bk_colour_id.dbSettingsGroup, MODULENAME, _TRUNCATE);
 	wcsncpy_s(bk_colour_id.group, LPGENW("Alarms"), _TRUNCATE);
 	wcsncpy_s(bk_colour_id.name, LPGENW("Background"), _TRUNCATE);
 	strncpy_s(bk_colour_id.setting, "BkColour", _TRUNCATE);
@@ -379,7 +375,7 @@ int AlarmWinModulesLoaded(WPARAM, LPARAM)
 	bk_colour_id.flags = 0;
 	bk_colour_id.order = 0;
 
-	Colour_RegisterW(&bk_colour_id);
+	g_plugin.addColor(&bk_colour_id);
 
 	ReloadFonts(0, 0);
 	HookEvent(ME_FONT_RELOAD, ReloadFonts);

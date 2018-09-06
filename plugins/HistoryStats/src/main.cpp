@@ -11,12 +11,11 @@
 #include "iconlib.h"
 #include "dlgconfigure.h"
 
-HINSTANCE g_hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
 static const int g_pluginFileListID = 2535;
 
-PLUGININFOEX g_pluginInfoEx = {
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -29,22 +28,26 @@ PLUGININFOEX g_pluginInfoEx = {
 	{0xf184f5a0, 0xc198, 0x4454, {0xa9, 0xb4, 0xf6, 0xe2, 0xfd, 0x53, 0x41, 0x33}},
 };
 
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>("HistoryStats", pluginInfoEx)
+{}
+
 SettingsSerializer* g_pSettings = nullptr;
 
-bool g_bMainMenuExists    = false;
+bool g_bMainMenuExists = false;
 bool g_bContactMenuExists = false;
-bool g_bExcludeLock       = false;
-bool g_bConfigureLock     = false;
+bool g_bExcludeLock = false;
+bool g_bConfigureLock = false;
 
 static HGENMENU g_hMenuCreateStatistics = nullptr;
-static HGENMENU g_hMenuShowStatistics   = nullptr;
-static HGENMENU g_hMenuConfigure        = nullptr;
-static HGENMENU g_hMenuToggleExclude    = nullptr;
+static HGENMENU g_hMenuShowStatistics = nullptr;
+static HGENMENU g_hMenuConfigure = nullptr;
+static HGENMENU g_hMenuToggleExclude = nullptr;
 
 #if defined(HISTORYSTATS_HISTORYCOPY)
-	static HGENMENU g_hMenuHistoryCopy    = NULL;
-	static HGENMENU g_hMenuHistoryPaste   = NULL;
-	static HGENMENU g_hHistoryCopyContact = NULL;
+static HGENMENU g_hMenuHistoryCopy = NULL;
+static HGENMENU g_hMenuHistoryPaste = NULL;
+static HGENMENU g_hHistoryCopyContact = NULL;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -108,7 +111,7 @@ static void MenuIconsChanged(LPARAM)
 
 static INT_PTR MenuCreateStatistics(WPARAM, LPARAM)
 {
-	Statistic::run(*g_pSettings, Statistic::fromMenu, g_hInst);
+	Statistic::run(*g_pSettings, Statistic::fromMenu, g_plugin.getInst());
 	return 0;
 }
 
@@ -143,7 +146,7 @@ void AddMainMenu()
 	CreateServiceFunction(con::SvcShowStatistics, MenuShowStatistics);
 	CreateServiceFunction(con::SvcConfigure, MenuConfigure);
 
-	HGENMENU hRoot = bInPopup ? Menu_CreateRoot(MO_MAIN, LPGENW("Statistics"), 1910000000) : nullptr;
+	HGENMENU hRoot = bInPopup ? g_plugin.addRootMenu(MO_MAIN, LPGENW("Statistics"), 1910000000) : nullptr;
 	Menu_ConfigureItem(hRoot, MCI_OPT_UID, "7F116B24-9D84-4D04-B6AA-EED95051A184");
 
 	g_hMenuCreateStatistics = mu::clist::addMainMenuItem(
@@ -202,64 +205,64 @@ static INT_PTR MenuHistoryPaste(WPARAM wParam, LPARAM lParam)
 		% L"#{target_name}" * mu::clist::getContactDisplayName(hTarget)
 		% L"#{target_proto}" * utils::fromA(GetContactProto(hTarget)));
 
-	if (MessageBox(0, strConfirm.c_str(), TranslateT("HistoryStats - Confirm")), MB_ICONQUESTION | MB_YESNO | MB_DEFBUTTON2) != IDYES)
+		if (MessageBox(0, strConfirm.c_str(), TranslateT("HistoryStats - Confirm")), MB_ICONQUESTION | MB_YESNO | MB_DEFBUTTON2) != IDYES)
 	{
-		return 0;
-	}
-
-	// turn off safety mode
-	mu::db::setSafetyMode(false);
-
-	// copy history
-	DWORD dwCountSuccess = 0, dwCountFailRead = 0, dwCountFailAdd = 0;
-	DBEVENTINFO dbe;
-	int blobBuffer = 4096;
-	HANDLE hEvent = mu::db_event::findFirst(g_hHistoryCopyContact);
-
-	memset(&dbe, 0, sizeof(dbe));
-	dbe.cbSize = sizeof(dbe);
-	dbe.pBlob = reinterpret_cast<BYTE*>(malloc(blobBuffer));
-
-	while (hEvent)
-	{
-		dbe.cbBlob = db_event_getBlobSize(hEvent);
-
-		if (blobBuffer < dbe.cbBlob)
-		{
-			blobBuffer = 4096 * ((4095 + dbe.cbBlob) / 4096);
-			dbe.pBlob = reinterpret_cast<BYTE*>(realloc(dbe.pBlob, blobBuffer));
-		}
-
-		if (db_event_get(hEvent, &dbe) == 0) {
-			++dwCountSuccess;
-
-			// clear "first" flag
-			dbe.flags &= ~DBEF_FIRST;
-
-			if (mu::db_event::add(hTarget, &dbe) == NULL)
-				++dwCountFailAdd;
-		}
-		else ++dwCountFailRead;
-
-		hEvent = db_event_findNext(hEvent);
-	}
-
-	free(dbe.pBlob);
-
-	// turn safety mode back on
-	mu::db::setSafetyMode(true);
-
-	// output summary
-	ext::string strSummary = ext::str(ext::kformat(TranslateT("Successfully read #{success} events of which #{fail_add} couldn't be added to the target history. #{fail} events couldn't be read from the source history.")))
-		% L"#{success}" * dwCountSuccess
-		% L"#{fail}" * dwCountFailRead
-		% L"#{fail_add}" * dwCountFailAdd);
-
-	MessageBox(0, strSummary.c_str(), TranslateT("HistoryStats - Information")), MB_ICONINFORMATION);
-
-	g_hHistoryCopyContact = NULL;
-
 	return 0;
+	}
+
+		// turn off safety mode
+		mu::db::setSafetyMode(false);
+
+		// copy history
+		DWORD dwCountSuccess = 0, dwCountFailRead = 0, dwCountFailAdd = 0;
+		DBEVENTINFO dbe;
+		int blobBuffer = 4096;
+		HANDLE hEvent = mu::db_event::findFirst(g_hHistoryCopyContact);
+
+		memset(&dbe, 0, sizeof(dbe));
+		dbe.cbSize = sizeof(dbe);
+		dbe.pBlob = reinterpret_cast<BYTE*>(malloc(blobBuffer));
+
+		while (hEvent)
+		{
+			dbe.cbBlob = db_event_getBlobSize(hEvent);
+
+			if (blobBuffer < dbe.cbBlob)
+			{
+				blobBuffer = 4096 * ((4095 + dbe.cbBlob) / 4096);
+				dbe.pBlob = reinterpret_cast<BYTE*>(realloc(dbe.pBlob, blobBuffer));
+			}
+
+			if (db_event_get(hEvent, &dbe) == 0) {
+				++dwCountSuccess;
+
+				// clear "first" flag
+				dbe.flags &= ~DBEF_FIRST;
+
+				if (mu::db_event::add(hTarget, &dbe) == NULL)
+					++dwCountFailAdd;
+			}
+			else ++dwCountFailRead;
+
+			hEvent = db_event_findNext(hEvent);
+		}
+
+		free(dbe.pBlob);
+
+		// turn safety mode back on
+		mu::db::setSafetyMode(true);
+
+		// output summary
+		ext::string strSummary = ext::str(ext::kformat(TranslateT("Successfully read #{success} events of which #{fail_add} couldn't be added to the target history. #{fail} events couldn't be read from the source history.")))
+			% L"#{success}" * dwCountSuccess
+			% L"#{fail}" * dwCountFailRead
+			% L"#{fail_add}" * dwCountFailAdd);
+
+			MessageBox(0, strSummary.c_str(), TranslateT("HistoryStats - Information")), MB_ICONINFORMATION);
+
+			g_hHistoryCopyContact = NULL;
+
+			return 0;
 }
 #endif
 
@@ -317,15 +320,15 @@ void AddContactMenu()
 		NULL,
 		con::SvcHistoryCopy);
 
-	g_hMenuHistoryPaste = mu::clist::addContactMenuItem(
-		LPGENW("Paste history...")), // MEMO: implicit translation
-		0,
-		800002,
-		NULL,
-		con::SvcHistoryPaste);
+		g_hMenuHistoryPaste = mu::clist::addContactMenuItem(
+			LPGENW("Paste history...")), // MEMO: implicit translation
+			0,
+			800002,
+			NULL,
+			con::SvcHistoryPaste);
 #endif
 
-	HookEvent(ME_CLIST_PREBUILDCONTACTMENU, EventPreBuildContactMenu);
+			HookEvent(ME_CLIST_PREBUILDCONTACTMENU, EventPreBuildContactMenu);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -333,15 +336,12 @@ void AddContactMenu()
 
 static int EventOptInitialise(WPARAM wParam, LPARAM)
 {
-	mu::opt::addPage(
-		wParam,
-		TranslateT("History"),
-		TranslateT("Statistics"),
-		nullptr,
-		DlgOption::staticDlgProc,
-		MAKEINTRESOURCEA(IDD_OPTIONS),
-		g_hInst);
-
+	OPTIONSDIALOGPAGE odp = {};
+	odp.szGroup.a = LPGEN("History");
+	odp.szTitle.a = LPGEN("Statistics");
+	odp.pfnDlgProc = DlgOption::staticDlgProc;
+	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -370,7 +370,7 @@ static int EventModulesLoaded(WPARAM, LPARAM)
 
 	// create statistics on startup, if activated
 	if (g_pSettings->m_OnStartup)
-		Statistic::run(*g_pSettings, Statistic::fromStartup, g_hInst);
+		Statistic::run(*g_pSettings, Statistic::fromStartup, g_plugin.getInst());
 
 	return 0;
 }
@@ -378,30 +378,8 @@ static int EventModulesLoaded(WPARAM, LPARAM)
 /////////////////////////////////////////////////////////////////////////////////////////
 // external interface
 
-extern "C" BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID)
+int CMPlugin::Load()
 {
-	switch (fdwReason) {
-	case DLL_PROCESS_ATTACH:
-		DisableThreadLibraryCalls(hinstDLL);
-		g_hInst = hinstDLL;
-		break;
-	}
-
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) const PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	OutputDebugString(L"HistoryStats: MirandaPluginInfoEx() was called.\n");
-
-	// MEMO: (don't) fail, if version is below minimum
-	return &g_pluginInfoEx;
-}
-
-extern "C" __declspec(dllexport) int Load()
-{
-	mir_getLP(&g_pluginInfoEx);
-
 	// init COM, needed for GUID generation
 	CoInitialize(nullptr);
 
@@ -416,7 +394,7 @@ extern "C" __declspec(dllexport) int Load()
 
 		return 1;
 	}
-    
+
 	// load "mu" system (includes version check)
 	if (!mu::load())
 	{
@@ -437,7 +415,7 @@ extern "C" __declspec(dllexport) int Load()
 
 	// load rtfconv.dll if available
 	RTFFilter::init();
-	
+
 	// init global variables
 	g_bMainMenuExists = false;
 	g_bContactMenuExists = false;
@@ -452,7 +430,7 @@ extern "C" __declspec(dllexport) int Load()
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload()
+int CMPlugin::Unload()
 {
 	// free global settings object
 	delete g_pSettings;

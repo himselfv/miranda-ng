@@ -17,6 +17,13 @@
 
 #define MODULENAME "Change Skype Status"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
+
 class COptions
 {
 	enum
@@ -162,7 +169,3 @@ struct CMirandaStatus2SkypeStatus
 };
 
 extern const CMirandaStatus2SkypeStatus g_aStatusCode[10];
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-extern HINSTANCE g_hModule;

@@ -82,6 +82,10 @@ Přenos souborů
 Ostatní
 [Choose appropriate accounts for import]
 Zvolte požadované účty pro import
+[Enter file name for import:]
+
+[Check duplicates]
+
 ;file \plugins\Import\src\import.cpp
 [<New account>]
 <Nový účet>
@@ -168,6 +172,11 @@ Databáze Mirandy NG
 [All Files]
 Všechny soubory
 [You cannot import your current profile into itself]
+
+;file \plugins\Import\src\ui.cpp
+[Import history for %s]
+
+[JSON file]
 
 ;file \plugins\Import\src\utils.cpp
 [Skipping duplicate group %s.]

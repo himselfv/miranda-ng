@@ -124,7 +124,7 @@ INT_PTR CALLBACK MainOptDlg(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam
 			DBVARIANT dbVar;
 			SendDlgItemMessage(hwndDlg, IDC_MAINOPT_STATMSG, EM_LIMITTEXT, 1024, 0);
 			if (!db_get_ws(NULL, MOD_NAME, "statmsg", &dbVar)) {
-				SetDlgItemText(hwndDlg, IDC_MAINOPT_STATMSG, dbVar.ptszVal);
+				SetDlgItemText(hwndDlg, IDC_MAINOPT_STATMSG, dbVar.pwszVal);
 				db_free(&dbVar);
 			}
 		}
@@ -184,7 +184,7 @@ INT_PTR CALLBACK MainOptDlg(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam
 				return true;
 
 			case IDC_MAINOPT_LNK_HOTKEY:
-				Options_Open(L"Customize", L"Hotkeys");
+				g_plugin.openOptions(L"Customize", L"Hotkeys");
 				return true;
 			}
 			return 0;
@@ -318,16 +318,15 @@ int OptsDlgInit(WPARAM wParam, LPARAM)
 	optDi.position = 920000000;
 	optDi.pfnDlgProc = MainOptDlg;
 	optDi.pszTemplate = MAKEINTRESOURCEA(IDD_OPTDIALOGMAIN);
-	optDi.hInstance = g_hInstance;
 	optDi.szTitle.a = LPGEN("BossKey");
 	optDi.szGroup.a = LPGEN("Events");
 	optDi.szTab.a = LPGEN("Main");
 	optDi.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &optDi);
+	g_plugin.addOptions(wParam, &optDi);
 
 	optDi.pfnDlgProc = AdvOptDlg;
 	optDi.pszTemplate = MAKEINTRESOURCEA(IDD_OPTDIALOGADV);
 	optDi.szTab.a = LPGEN("Advanced");
-	Options_AddPage(wParam, &optDi);
+	g_plugin.addOptions(wParam, &optDi);
 	return 0;
 }

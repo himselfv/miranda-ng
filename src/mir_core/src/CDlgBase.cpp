@@ -45,16 +45,13 @@ static int CompareTimerId(const CTimer *t1, const CTimer *t2)
 	return t1->GetEventId() - t2->GetEventId();
 }
 
-CDlgBase::CDlgBase(HINSTANCE hInst, int idDialog)
+CDlgBase::CDlgBase(CMPluginBase &pPlug, int idDialog)
 	: m_controls(1, CompareControlId),
-	m_timers(1, CompareTimerId)
+	m_timers(1, CompareTimerId),
+	m_pPlugin(pPlug)
 {
-	m_hInst = hInst;
 	m_idDialog = idDialog;
-	m_hwnd = m_hwndParent = nullptr;
-	m_isModal = m_initialized = m_bExiting = false;
 	m_autoClose = CLOSE_ON_OK | CLOSE_ON_CANCEL;
-	m_forceResizable = false;
 }
 
 CDlgBase::~CDlgBase()
@@ -63,6 +60,36 @@ CDlgBase::~CDlgBase()
 	if (m_hwnd)
 		DestroyWindow(m_hwnd);
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// events
+
+bool CDlgBase::OnInitDialog()
+{
+	return true;
+}
+
+bool CDlgBase::OnClose()
+{
+	return true;
+}
+
+bool CDlgBase::OnApply()
+{
+	return true;
+}
+
+void CDlgBase::OnChange()
+{}
+
+void CDlgBase::OnDestroy()
+{}
+
+void CDlgBase::OnReset()
+{}
+
+void CDlgBase::OnTimer(CTimer*)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // methods
@@ -74,13 +101,13 @@ void CDlgBase::Close()
 
 void CDlgBase::Create()
 {
-	CreateDialogParam(m_hInst, MAKEINTRESOURCE(m_idDialog), m_hwndParent, GlobalDlgProc, (LPARAM)this);
+	CreateDialogParam(GetInst(), MAKEINTRESOURCE(m_idDialog), m_hwndParent, GlobalDlgProc, (LPARAM)this);
 }
 
 int CDlgBase::DoModal()
 {
 	m_isModal = true;
-	return DialogBoxParam(m_hInst, MAKEINTRESOURCE(m_idDialog), m_hwndParent, GlobalDlgProc, (LPARAM)this);
+	return DialogBoxParam(GetInst(), MAKEINTRESOURCE(m_idDialog), m_hwndParent, GlobalDlgProc, (LPARAM)this);
 }
 
 void CDlgBase::EndModal(INT_PTR nResult)
@@ -115,6 +142,18 @@ void CDlgBase::Show(int nCmdShow)
 	if (m_hwnd == nullptr)
 		Create();
 	ShowWindow(m_hwnd, nCmdShow);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+void CDlgBase::CreateLink(CCtrlData& ctrl, const char *szSetting, BYTE type, DWORD iValue)
+{
+	ctrl.CreateDbLink(m_pPlugin.getModule(), szSetting, type, iValue);
+}
+
+void CDlgBase::CreateLink(CCtrlData& ctrl, const char *szSetting, wchar_t *szValue)
+{
+	ctrl.CreateDbLink(m_pPlugin.getModule(), szSetting, szValue);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -164,12 +203,13 @@ INT_PTR CDlgBase::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	switch (msg) {
 	case WM_INITDIALOG:
 		m_initialized = false;
-		TranslateDialog_LP(m_hwnd, GetPluginLangByInstance(m_hInst));
+		TranslateDialog_LP(m_hwnd, &m_pPlugin);
 
 		::EnumChildWindows(m_hwnd, &GlobalFieldEnum, LPARAM(this));
 
 		NotifyControls(&CCtrlBase::OnInit);
-		OnInitDialog();
+		if (!OnInitDialog())
+			return FALSE;
 
 		m_initialized = true;
 		return TRUE;
@@ -232,16 +272,15 @@ INT_PTR CDlgBase::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				// close dialog automatically if 'OK' button is pressed
 				if (idCtrl == IDOK && (m_autoClose & CLOSE_ON_OK)) {
 					// validate dialog data first
-					m_bExiting = true;
-					m_lresult = TRUE;
-					NotifyControls(&CCtrlBase::OnApply);
-					OnApply();
+					if (VerifyControls(&CCtrlBase::OnApply)) {
+						m_bExiting = true;
 
-					// everything ok? good, let's close it
-					if (m_lresult == TRUE)
-						PostMessage(m_hwnd, WM_CLOSE, 0, 0);
-					else
-						m_bExiting = false;
+						// everything ok? good, let's close it
+						if (OnApply())
+							PostMessage(m_hwnd, WM_CLOSE, 0, 0);
+						else
+							m_bExiting = false;
+					}
 				}
 			}
 		}
@@ -257,10 +296,10 @@ INT_PTR CDlgBase::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 					if (LPPSHNOTIFY(lParam)->lParam != 3) // IDC_APPLY
 						m_bExiting = true;
 
-					m_lresult = true;
-					NotifyControls(&CCtrlBase::OnApply);
-					if (m_lresult)
-						OnApply();
+					if (!VerifyControls(&CCtrlBase::OnApply))
+						m_bExiting = false;
+					else if (!OnApply())
+						m_bExiting = false;
 					break;
 
 				case PSN_RESET:
@@ -291,7 +330,7 @@ INT_PTR CDlgBase::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 
 	case WM_SIZE:
 		if (m_forceResizable || (GetWindowLongPtr(m_hwnd, GWL_STYLE) & WS_THICKFRAME))
-			Utils_ResizeDialog(m_hwnd, m_hInst, MAKEINTRESOURCEA(m_idDialog), GlobalDlgResizer);
+			Utils_ResizeDialog(m_hwnd, m_pPlugin.getInst(), MAKEINTRESOURCEA(m_idDialog), GlobalDlgResizer);
 		return TRUE;
 
 	case WM_TIMER:
@@ -300,10 +339,8 @@ INT_PTR CDlgBase::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		return FALSE;
 
 	case WM_CLOSE:
-		m_bExiting = true;
-		m_lresult = FALSE;
-		OnClose();
-		if (!m_lresult) {
+		if (OnClose()) {
+			m_bExiting = true;
 			if (m_isModal)
 				EndModal(0);
 			else
@@ -370,6 +407,15 @@ void CDlgBase::NotifyControls(void (CCtrlBase::*fn)())
 {
 	for (auto &it : m_controls)
 		(it->*fn)();
+}
+
+bool CDlgBase::VerifyControls(bool (CCtrlBase::*fn)())
+{
+	for (auto &it : m_controls)
+		if (!(it->*fn)())
+			return false;
+
+	return true;
 }
 
 CCtrlBase* CDlgBase::FindControl(int idCtrl)

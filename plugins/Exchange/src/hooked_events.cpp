@@ -54,7 +54,7 @@ int OnModulesLoaded(WPARAM, LPARAM)
 {
 	UpdateTimers();
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0xcbfbfd3d, 0x5002, 0x4c64, 0x92, 0xb, 0x9c, 0x12, 0x4b, 0x6, 0x51, 0x2a);
 	mi.hIcolibItem = hiMailIcon;
 	mi.position = 10000000;
@@ -63,7 +63,7 @@ int OnModulesLoaded(WPARAM, LPARAM)
 	mi.name.w = LPGENW("Check exchange mailbox");
 	Menu_AddMainMenuItem(&mi);
 	
-	hEmailsDlg = nullptr; //CreateDialog(hInstance, MAKEINTRESOURCE(IDD_EMAILS), NULL, DlgProcEmails); //create emails window
+	hEmailsDlg = nullptr; //CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(IDD_EMAILS), NULL, DlgProcEmails); //create emails window
 	FirstTimeCheck();	
 //	CheckEmail();
 	return 0;
@@ -72,15 +72,14 @@ int OnModulesLoaded(WPARAM, LPARAM)
 //add the exchange options dialog to miranda
 int OnOptionsInitialise(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 100000000;
-	odp.hInstance = hInstance;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_EXCHANGE);
 	odp.szTitle.w = LPGENW("Exchange notify");
 	odp.szGroup.w = LPGENW("Plugins");
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
 	odp.pfnDlgProc = DlgProcOptions;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -105,14 +104,14 @@ int UpdateTimers()
 {
 	KillTimers();
 	int interval;
-	interval = db_get_dw(NULL, ModuleName, "Interval", DEFAULT_INTERVAL);
+	interval = db_get_dw(NULL, MODULENAME, "Interval", DEFAULT_INTERVAL);
 	interval *= 1000; //go from miliseconds to seconds
 	hCheckTimer = SetTimer(nullptr, 0, interval, (TIMERPROC) OnCheckTimer);
 	
-	int bReconnect = db_get_b(NULL, ModuleName, "Reconnect", 0);
+	int bReconnect = db_get_b(NULL, MODULENAME, "Reconnect", 0);
 	if (bReconnect) //user wants to forcefully reconnect every x minutes
 		{
-			interval = db_get_dw(NULL, ModuleName, "ReconnectInterval", DEFAULT_RECONNECT_INTERVAL);
+			interval = db_get_dw(NULL, MODULENAME, "ReconnectInterval", DEFAULT_RECONNECT_INTERVAL);
 			interval *= 1000 * 60; //go from miliseconds to seconds to minutes
 			hReconnectTimer = SetTimer(nullptr, 0, interval, (TIMERPROC) OnReconnectTimer);
 		}
@@ -144,7 +143,7 @@ VOID CALLBACK OnCheckTimer(HWND, UINT, UINT_PTR, DWORD)
 		else{
 			exchangeServer.Connect();
 		}*/
-	int bCheck = db_get_b(NULL, ModuleName, "Check", 1);
+	int bCheck = db_get_b(NULL, MODULENAME, "Check", 1);
 	
 	if (bCheck) //only check if we were told to
 		{

@@ -72,10 +72,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "alphablend.h"
 #include "rowheight_funcs.h"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 // shared vars
-extern HINSTANCE g_hInst;
+
 extern LONG g_cxsmIcon, g_cysmIcon;
-extern PLUGININFOEX pluginInfo;
 extern LIST<StatusItems_t> arStatusItems;
 extern ImageItem *g_glyphItem;
 extern HIMAGELIST hCListImages;

@@ -1,5 +1,4 @@
 #include "StdAfx.h"
-#include "Miranda.h"
 #include "CConfig.h"
 
 #include "CAppletManager.h"
@@ -242,9 +241,8 @@ void CConfig::OnConnectionChanged()
 
 int CConfig::InitOptionsDialog(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 847000000;
-	odp.hInstance = hInstance;
 	odp.szGroup.a = LPGEN("MirandaG15");
 	odp.flags = ODPF_BOLDGROUPS;
 
@@ -253,25 +251,25 @@ int CConfig::InitOptionsDialog(WPARAM wParam, LPARAM)
 	odp.szTitle.a = LPGEN("Appearance");
 	odp.szGroup.a = LPGEN("MirandaG15");
 	odp.pfnDlgProc = CConfig::AppearanceDlgProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	// ---------------------
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_NOTIFICATIONS);
 	odp.szTitle.a = LPGEN("Notifications");
 	odp.pfnDlgProc = CConfig::NotificationsDlgProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	// ---------------------
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_CHAT);
 	odp.szTitle.a = LPGEN("Chat sessions");
 	odp.pfnDlgProc = CConfig::ChatDlgProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	// ---------------------
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_CLIST);
 	odp.szTitle.a = LPGEN("Contact list");
 	odp.pfnDlgProc = CConfig::ContactlistDlgProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -335,7 +333,7 @@ void CConfig::LoadFontSettings(int iFont)
 	if (db_get_ws(NULL, "MirandaG15", szSetting, &dbv))
 		mir_wstrcpy(m_logfont[iFont].lfFaceName, L"Small Fonts");
 	else {
-		mir_wstrcpy(m_logfont[iFont].lfFaceName, dbv.ptszVal);
+		mir_wstrcpy(m_logfont[iFont].lfFaceName, dbv.pwszVal);
 		db_free(&dbv);
 	}
 
@@ -573,8 +571,8 @@ INT_PTR CALLBACK CConfig::NotificationsDlgProc(HWND hwndDlg, UINT uMsg, WPARAM w
 
 			HIMAGELIST himlCheckBoxes;
 			himlCheckBoxes = ImageList_Create(GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), ILC_COLOR32 | ILC_MASK, 2, 2);
-			iRes = ImageList_AddIcon(himlCheckBoxes, LoadIcon(hInstance, MAKEINTRESOURCE(IDI_NOTICK)));
-			iRes = ImageList_AddIcon(himlCheckBoxes, LoadIcon(hInstance, MAKEINTRESOURCE(IDI_TICK)));
+			iRes = ImageList_AddIcon(himlCheckBoxes, LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_NOTICK)));
+			iRes = ImageList_AddIcon(himlCheckBoxes, LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_TICK)));
 			TreeView_SetImageList(GetDlgItem(hwndDlg, IDC_PROTOCOLS), himlCheckBoxes, TVSIL_NORMAL);
 
 			FillTree(GetDlgItem(hwndDlg, IDC_PROTOCOLS));
@@ -744,8 +742,8 @@ INT_PTR CALLBACK CConfig::ContactlistDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wPa
 
 			HIMAGELIST himlCheckBoxes;
 			himlCheckBoxes = ImageList_Create(GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), ILC_COLOR32 | ILC_MASK, 2, 2);
-			iRes = ImageList_AddIcon(himlCheckBoxes, LoadIcon(hInstance, MAKEINTRESOURCE(IDI_NOTICK)));
-			iRes = ImageList_AddIcon(himlCheckBoxes, LoadIcon(hInstance, MAKEINTRESOURCE(IDI_TICK)));
+			iRes = ImageList_AddIcon(himlCheckBoxes, LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_NOTICK)));
+			iRes = ImageList_AddIcon(himlCheckBoxes, LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_TICK)));
 			TreeView_SetImageList(GetDlgItem(hwndDlg, IDC_CLIST_PROTOFILTER), himlCheckBoxes, TVSIL_NORMAL);
 
 			FillTree(GetDlgItem(hwndDlg, IDC_CLIST_PROTOFILTER), true);

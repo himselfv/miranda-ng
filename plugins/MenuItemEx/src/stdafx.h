@@ -30,9 +30,15 @@
 
 #define MODULENAME "MenuItemEx"
 
-#define MIIM_STRING	0x00000040
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
 
-extern PLUGININFOEX pluginInfoEx;
+	int Load() override;
+	int Unload() override;
+};
+
+#define MIIM_STRING	0x00000040
 
 int OptionsInit(WPARAM, LPARAM);
 

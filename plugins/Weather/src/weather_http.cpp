@@ -26,7 +26,6 @@ from the web using netlib
 #include "stdafx.h"
 
 HNETLIBUSER hNetlibUser;
-HNETLIBCONN hNetlibHttp;
 
 static int findHeader(const NETLIBHTTPREQUEST *nlhrReply, const char *hdr)
 {
@@ -65,9 +64,8 @@ int InternetDownloadFile(char *szUrl, char *cookie, char *userAgent, wchar_t **s
 	// initialize the netlib request
 	NETLIBHTTPREQUEST nlhr = { sizeof(nlhr) };
 	nlhr.requestType = REQUEST_GET;
-	nlhr.flags = NLHRF_DUMPASTEXT | NLHRF_HTTP11 | NLHRF_PERSISTENT | NLHRF_REDIRECT;
+	nlhr.flags = NLHRF_DUMPASTEXT | NLHRF_HTTP11 | NLHRF_REDIRECT;
 	nlhr.szUrl = szUrl;
-	nlhr.nlc = hNetlibHttp;
 	nlhr.headers = headers;
 	nlhr.headersCount = _countof(headers);
 
@@ -81,7 +79,6 @@ int InternetDownloadFile(char *szUrl, char *cookie, char *userAgent, wchar_t **s
 		*szData = (wchar_t*)mir_alloc(512);
 		// store the error code in szData
 		mir_wstrcpy(*szData, L"NetLib error occurred!!");
-		hNetlibHttp = nullptr;
 		return NLHRF_REDIRECT;
 	}
 
@@ -136,13 +133,12 @@ int InternetDownloadFile(char *szUrl, char *cookie, char *userAgent, wchar_t **s
 	}
 	// return error code if the recieved code is neither 200 OK nor 302 Moved
 	else {
-		*szData = (wchar_t*)mir_alloc(512);
 		// store the error code in szData
-		mir_snwprintf(*szData, 512, L"Error occured! HTTP Error: %i\n", nlhrReply->resultCode);
+		CMStringW wszError(FORMAT, L"Error occured! HTTP Error: %i\n", nlhrReply->resultCode);
+		*szData = wszError.Detach();
 		result = nlhrReply->resultCode;
 	}
 
-	hNetlibHttp = nlhrReply->nlc;
 	// make a copy of the retrieved data, then free the memory of the http reply
 	Netlib_FreeHttpRequest(nlhrReply);
 	return result;
@@ -159,13 +155,3 @@ void NetlibInit(void)
 	nlu.szDescriptiveName.w = TranslateT("Weather HTTP connections");
 	hNetlibUser = Netlib_RegisterUser(&nlu);
 }
-
-void NetlibHttpDisconnect(void)
-{
-	if (hNetlibHttp) {
-		HANDLE hConn = hNetlibHttp;
-		hNetlibHttp = nullptr;
-		Netlib_CloseHandle(hConn);
-	}
-}
-

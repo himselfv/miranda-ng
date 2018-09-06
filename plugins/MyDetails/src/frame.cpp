@@ -73,9 +73,7 @@ char font_sizes[] = { 13, 8, 8, 8, 8 };
 BYTE font_styles[] = { DBFONTF_BOLD, 0, 0, DBFONTF_ITALIC, DBFONTF_ITALIC };
 COLORREF font_colors[] = { RGB(0, 0, 0), RGB(0, 0, 0), RGB(0, 0, 0), RGB(150, 150, 150), RGB(150, 150, 150) };
 
-static ColourID
-bg_colour = { sizeof(bg_colour), LPGEN("My details"), LPGEN("Background"), MODULE_NAME, "BackgroundColor", 0, GetSysColor(COLOR_BTNFACE) },
-av_colour = { sizeof(av_colour), LPGEN("My details"), LPGEN("Avatar border"), MODULE_NAME, "AvatarBorderColor", 0, RGB(0, 0, 0) };
+static ColourID bg_colour, av_colour;
 
 int CreateFrame();
 void FixMainMenu();
@@ -225,22 +223,31 @@ int CreateFrame()
 {
 	HDC hdc = GetDC(nullptr);
 
-	Colour_Register(&bg_colour);
-	Colour_Register(&av_colour);
+	strncpy_s(bg_colour.group, LPGEN("My details"), _TRUNCATE);
+	strncpy_s(bg_colour.name, LPGEN("Background"), _TRUNCATE);
+	strncpy_s(bg_colour.dbSettingsGroup, MODULENAME, _TRUNCATE);
+	strncpy_s(bg_colour.setting, "BackgroundColor", _TRUNCATE);
+	bg_colour.defcolour = GetSysColor(COLOR_BTNFACE);
+	g_plugin.addColor(&bg_colour);
+	
+	strncpy_s(av_colour.group, LPGEN("My details"), _TRUNCATE);
+	strncpy_s(av_colour.name, LPGEN("Avatar border"), _TRUNCATE);
+	strncpy_s(av_colour.dbSettingsGroup, MODULENAME, _TRUNCATE);
+	strncpy_s(av_colour.setting, "AvatarBorderColor", _TRUNCATE);
+	g_plugin.addColor(&av_colour);
+
 	ReloadColour(0, 0);
 	HookEvent(ME_COLOUR_RELOAD, ReloadColour);
 
 	for (int i = 0; i < NUM_FONTS; i++) {
 		memset(&font_id[i], 0, sizeof(font_id[i]));
 
-		font_id[i].cbSize = sizeof(FontIDW);
 		mir_wstrncpy(font_id[i].group, LPGENW("My details"), _countof(font_id[i].group));
 		mir_wstrncpy(font_id[i].name, font_names[i], _countof(font_id[i].name));
-		mir_strncpy(font_id[i].dbSettingsGroup, MODULE_NAME, _countof(font_id[i].dbSettingsGroup));
+		mir_strncpy(font_id[i].dbSettingsGroup, MODULENAME, _countof(font_id[i].dbSettingsGroup));
 		mir_wstrncpy(font_id[i].backgroundName, LPGENW("Background"), _countof(font_id[i].backgroundName));
 		mir_wstrncpy(font_id[i].backgroundGroup, LPGENW("My details"), _countof(font_id[i].backgroundGroup));
-
-		mir_strncpy(font_id[i].prefix, font_settings[i], _countof(font_id[i].prefix));
+		mir_strncpy(font_id[i].setting, font_settings[i], _countof(font_id[i].setting));
 
 		font_id[i].deffontsettings.colour = font_colors[i];
 		font_id[i].deffontsettings.size = -MulDiv(font_sizes[i], GetDeviceCaps(hdc, LOGPIXELSY), 72);
@@ -249,7 +256,7 @@ int CreateFrame()
 		mir_wstrncpy(font_id[i].deffontsettings.szFace, L"Tahoma", _countof(font_id[i].deffontsettings.szFace));
 		font_id[i].order = i;
 		font_id[i].flags = FIDF_DEFAULTVALID;
-		Font_RegisterW(&font_id[i]);
+		g_plugin.addFont(&font_id[i]);
 	}
 
 	ReleaseDC(nullptr, hdc);
@@ -262,7 +269,7 @@ int CreateFrame()
 	wndclass.lpfnWndProc = FrameWindowProc;
 	wndclass.cbClsExtra = 0;
 	wndclass.cbWndExtra = 0;
-	wndclass.hInstance = hInst;
+	wndclass.hInstance = g_plugin.getInst();
 	wndclass.hIcon = nullptr;
 	wndclass.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wndclass.hbrBackground = nullptr; //(HBRUSH)(COLOR_3DFACE+1);
@@ -272,19 +279,17 @@ int CreateFrame()
 
 	if (g_bFramesExist) {
 		hwnd_frame = CreateWindow(WINDOW_CLASS_NAME, TranslateT("My details"), WS_CHILD | WS_VISIBLE,
-			0, 0, 10, 10, pcli->hwndContactList, nullptr, hInst, nullptr);
+			0, 0, 10, 10, g_clistApi.hwndContactList, nullptr, g_plugin.getInst(), nullptr);
 
-		CLISTFrame Frame = { 0 };
-
+		CLISTFrame Frame = {};
 		Frame.cbSize = sizeof(Frame);
-		Frame.tname = TranslateT("My details");
-		Frame.cbSize = sizeof(CLISTFrame);
+		Frame.szName.a = LPGEN("My details");
 		Frame.hWnd = hwnd_frame;
 		Frame.align = alTop;
 		Frame.hIcon = Skin_LoadIcon(SKINICON_OTHER_FRAME);
-		Frame.Flags = F_VISIBLE | F_SHOWTB | F_SHOWTBTIP | F_NOBORDER | F_SKINNED | F_UNICODE;
+		Frame.Flags = F_VISIBLE | F_SHOWTB | F_SHOWTBTIP | F_NOBORDER | F_SKINNED;
 		Frame.height = 100;
-		frame_id = CallService(MS_CLIST_FRAMES_ADDFRAME, (WPARAM)&Frame, 0);
+		frame_id = g_plugin.addFrame(&Frame);
 
 		if (db_get_b(NULL, "MyDetails", "ForceHideFrame", 0)) {
 			int flags = CallService(MS_CLIST_FRAMES_GETFRAMEOPTIONS, MAKEWPARAM(FO_FLAGS, frame_id), 0);
@@ -303,32 +308,32 @@ int CreateFrame()
 		}
 	}
 	else {
-		wndclass.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;//CS_HREDRAW | CS_VREDRAW;
+		wndclass.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
 		wndclass.lpfnWndProc = FrameContainerWindowProc;
 		wndclass.cbClsExtra = 0;
 		wndclass.cbWndExtra = 0;
-		wndclass.hInstance = hInst;
+		wndclass.hInstance = g_plugin.getInst();
 		wndclass.hIcon = nullptr;
 		wndclass.hCursor = LoadCursor(nullptr, IDC_ARROW);
-		wndclass.hbrBackground = nullptr; //(HBRUSH)(COLOR_3DFACE+1);
+		wndclass.hbrBackground = nullptr;
 		wndclass.lpszMenuName = nullptr;
 		wndclass.lpszClassName = CONTAINER_CLASS_NAME;
 		RegisterClass(&wndclass);
 
 		hwnd_container = CreateWindowEx(WS_EX_TOOLWINDOW, CONTAINER_CLASS_NAME, TranslateT("My details"),
 			(WS_THICKFRAME | WS_CAPTION | WS_SYSMENU) & ~WS_VISIBLE,
-			0, 0, 200, 130, pcli->hwndContactList, nullptr, hInst, nullptr);
+			0, 0, 200, 130, g_clistApi.hwndContactList, nullptr, g_plugin.getInst(), nullptr);
 
 		hwnd_frame = CreateWindow(WINDOW_CLASS_NAME, TranslateT("My details"), WS_CHILD | WS_VISIBLE,
-			0, 0, 10, 10, hwnd_container, nullptr, hInst, nullptr);
+			0, 0, 10, 10, hwnd_container, nullptr, g_plugin.getInst(), nullptr);
 
 		SetWindowLongPtr(hwnd_container, GWLP_USERDATA, (LONG_PTR)hwnd_frame);
 		SendMessage(hwnd_container, WM_SIZE, 0, 0);
 
 		// Create menu item
 
-		CMenuItem mi;
-		mi.root = Menu_CreateRoot(MO_MAIN, LPGENW("My details"), 500010000);
+		CMenuItem mi(&g_plugin);
+		mi.root = g_plugin.addRootMenu(MO_MAIN, LPGENW("My details"), 500010000);
 		Menu_ConfigureItem(mi.root, MCI_OPT_UID, "8C1C981C-4F28-4C4C-9121-544156210CE9");
 
 		SET_UID(mi, 0x69a43f1d, 0x6ebd, 0x4e41, 0xa6, 0xbd, 0x18, 0xea, 0xc4, 0x3, 0x90, 0x35);
@@ -336,11 +341,11 @@ int CreateFrame()
 		mi.position = 1;
 		mi.hIcolibItem = Skin_LoadIcon(SKINICON_OTHER_USERDETAILS);
 		mi.name.w = LPGENW("Show my details");
-		mi.pszService = MODULE_NAME"/ShowHideMyDetails";
+		mi.pszService = MODULENAME"/ShowHideMyDetails";
 		hMenuShowHideFrame = Menu_AddMainMenuItem(&mi);
 		Menu_ConfigureItem(hMenuShowHideFrame, MCI_OPT_EXECPARAM, -0x7FFFFFFF);
 
-		if (db_get_b(0, MODULE_NAME, SETTING_FRAME_VISIBLE, 1) == 1) {
+		if (db_get_b(0, MODULENAME, SETTING_FRAME_VISIBLE, 1) == 1) {
 			ShowWindow(hwnd_container, SW_SHOW);
 			FixMainMenu();
 		}
@@ -365,9 +370,9 @@ LRESULT CALLBACK FrameContainerWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 	switch (msg) {
 	case WM_SHOWWINDOW:
 		if ((BOOL)wParam)
-			Utils_RestoreWindowPosition(hwnd, 0, MODULE_NAME, WINDOW_NAME_PREFIX);
+			Utils_RestoreWindowPosition(hwnd, 0, MODULENAME, WINDOW_NAME_PREFIX);
 		else
-			Utils_SaveWindowPosition(hwnd, 0, MODULE_NAME, WINDOW_NAME_PREFIX);
+			Utils_SaveWindowPosition(hwnd, 0, MODULENAME, WINDOW_NAME_PREFIX);
 		break;
 
 	case WM_ERASEBKGND:
@@ -386,7 +391,7 @@ LRESULT CALLBACK FrameContainerWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		return TRUE;
 
 	case WM_CLOSE:
-		db_set_b(0, MODULE_NAME, SETTING_FRAME_VISIBLE, 0);
+		db_set_b(0, MODULENAME, SETTING_FRAME_VISIBLE, 0);
 		ShowWindow(hwnd, SW_HIDE);
 		FixMainMenu();
 		return TRUE;
@@ -528,14 +533,14 @@ HWND CreateTooltip(HWND hwnd, RECT &rect)
 
 	/* CREATE A TOOLTIP WINDOW */
 	HWND hwndTT = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
-		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, hwnd, nullptr, hInst, nullptr);                 // handle to the ToolTip control
+		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, hwnd, nullptr, g_plugin.getInst(), nullptr);                 // handle to the ToolTip control
 
 	/* INITIALIZE MEMBERS OF THE TOOLINFO STRUCTURE */
 	TOOLINFO ti;
 	ti.cbSize = sizeof(TOOLINFO);
 	ti.uFlags = TTF_SUBCLASS;
 	ti.hwnd = hwnd;
-	ti.hinst = hInst;
+	ti.hinst = g_plugin.getInst();
 	ti.uId = uid;
 	ti.lpszText = LPSTR_TEXTCALLBACK;
 	// ToolTip control will cover the whole window
@@ -1187,7 +1192,7 @@ void Draw(HWND hwnd, HDC hdc_orig)
 
 		HICON icon = IcoLib_GetIcon("MYDETAILS_NEXT_PROTOCOL");
 		if (icon == nullptr)
-			icon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_RIGHT_ARROW));
+			icon = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_RIGHT_ARROW));
 		DrawIconEx(hdc, data->next_proto_rect.left, data->next_proto_rect.top, icon, ICON_SIZE, ICON_SIZE, 0, nullptr, DI_NORMAL);
 		IcoLib_ReleaseIcon(icon);
 
@@ -1200,7 +1205,7 @@ void Draw(HWND hwnd, HDC hdc_orig)
 
 		icon = IcoLib_GetIcon("MYDETAILS_PREV_PROTOCOL");
 		if (icon == nullptr)
-			icon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_RIGHT_ARROW));
+			icon = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_RIGHT_ARROW));
 		DrawIconEx(hdc, data->prev_proto_rect.left, data->prev_proto_rect.top, icon, ICON_SIZE, ICON_SIZE, 0, nullptr, DI_NORMAL);
 		IcoLib_ReleaseIcon(icon);
 
@@ -1324,7 +1329,7 @@ void Draw(HWND hwnd, HDC hdc_orig)
 
 			HICON icon = IcoLib_GetIcon("LISTENING_TO_ICON");
 			if (icon == nullptr)
-				icon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_LISTENINGTO));
+				icon = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_LISTENINGTO));
 			DrawIconEx(hdc, data->listening_to_icon_rect.left, data->listening_to_icon_rect.top, icon, ICON_SIZE, ICON_SIZE, 0, nullptr, DI_NORMAL);
 			IcoLib_ReleaseIcon(icon);
 
@@ -1448,7 +1453,7 @@ void ShowProtocolStatusMenu(HWND hwnd, MyDetailsFrameData *data, Protocol *proto
 		static unsigned statusModePf2List[] = { 0xFFFFFFFF, PF2_ONLINE, PF2_SHORTAWAY, PF2_LONGAWAY, PF2_LIGHTDND, PF2_HEAVYDND, PF2_FREECHAT,
 			PF2_INVISIBLE, PF2_ONTHEPHONE, PF2_OUTTOLUNCH };
 
-		menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU1));
+		menu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_MENU1));
 		submenu = GetSubMenu(menu, 0);
 		TranslateMenu(submenu);
 
@@ -1472,7 +1477,7 @@ void ShowProtocolStatusMenu(HWND hwnd, MyDetailsFrameData *data, Protocol *proto
 
 void ShowListeningToMenu(HWND hwnd, MyDetailsFrameData *data, Protocol *proto, POINT &p)
 {
-	HMENU menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU1));
+	HMENU menu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_MENU1));
 	HMENU submenu = GetSubMenu(menu, 5);
 	TranslateMenu(submenu);
 
@@ -1710,7 +1715,7 @@ LRESULT CALLBACK FrameWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
 			// In image?
 			if (data->draw_img && InsideRect(&p, &data->img_rect)) {
-				HMENU menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU1));
+				HMENU menu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_MENU1));
 				HMENU submenu = GetSubMenu(menu, 4);
 				TranslateMenu(submenu);
 
@@ -1750,7 +1755,7 @@ LRESULT CALLBACK FrameWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			}
 			// In nick?
 			else if (data->draw_nick && InsideRect(&p, &data->nick_rect)) {
-				HMENU menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU1));
+				HMENU menu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_MENU1));
 				HMENU submenu = GetSubMenu(menu, 2);
 				TranslateMenu(submenu);
 
@@ -1798,7 +1803,7 @@ LRESULT CALLBACK FrameWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			else if (data->draw_away_msg && InsideRect(&p, &data->away_msg_rect)) {
 				wchar_t tmp[128];
 
-				HMENU menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU1));
+				HMENU menu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_MENU1));
 				HMENU submenu = GetSubMenu(menu, 3);
 				TranslateMenu(submenu);
 
@@ -1875,7 +1880,7 @@ LRESULT CALLBACK FrameWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			}
 			// Default context menu
 			else {
-				HMENU menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU1));
+				HMENU menu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_MENU1));
 				HMENU submenu = GetSubMenu(menu, 1);
 				TranslateMenu(submenu);
 
@@ -2186,7 +2191,7 @@ INT_PTR ShowHideFrameFunc(WPARAM, LPARAM)
 			SendMessage(hwnd_container, WM_CLOSE, 0, 0);
 		else {
 			ShowWindow(hwnd_container, SW_SHOW);
-			db_set_b(0, MODULE_NAME, SETTING_FRAME_VISIBLE, 1);
+			db_set_b(0, MODULENAME, SETTING_FRAME_VISIBLE, 1);
 		}
 
 		FixMainMenu();
@@ -2204,7 +2209,7 @@ INT_PTR ShowFrameFunc(WPARAM, LPARAM)
 	else {
 		if (!MyDetailsFrameVisible()) {
 			ShowWindow(hwnd_container, SW_SHOW);
-			db_set_b(0, MODULE_NAME, SETTING_FRAME_VISIBLE, 1);
+			db_set_b(0, MODULENAME, SETTING_FRAME_VISIBLE, 1);
 
 			FixMainMenu();
 		}

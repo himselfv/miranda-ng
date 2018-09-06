@@ -78,15 +78,15 @@ CJabberInfoFrame::CJabberInfoFrame(CJabberProto *proto):
 	InitClass();
 
 	CLISTFrame frame = { sizeof(frame) };
-	HWND hwndClist = pcli->hwndContactList;
+	HWND hwndClist = g_clistApi.hwndContactList;
 	frame.hWnd = CreateWindowEx(0, L"JabberInfoFrameClass", nullptr, WS_CHILD|WS_VISIBLE, 0, 0, 100, 100, hwndClist, nullptr, g_plugin.getInst(), this);
 	frame.align = alBottom;
 	frame.height = 2 * SZ_FRAMEPADDING + GetSystemMetrics(SM_CYSMICON) + SZ_LINEPADDING; // compact height by default
-	frame.Flags = F_VISIBLE|F_LOCKED|F_NOBORDER|F_UNICODE;
-	frame.tname = mir_a2u(proto->m_szModuleName);
-	frame.TBtname = proto->m_tszUserName;
-	m_frameId = CallService(MS_CLIST_FRAMES_ADDFRAME, (WPARAM)&frame, 0);
-	mir_free(frame.tname);
+	frame.Flags = F_VISIBLE | F_LOCKED | F_NOBORDER | F_UNICODE;
+	frame.szName.w = mir_a2u(proto->m_szModuleName);
+	frame.szTBname.w = proto->m_tszUserName;
+	m_frameId = g_plugin.addFrame(&frame);
+	mir_free(frame.szName.w);
 	if (m_frameId == -1) {
 		DestroyWindow(frame.hWnd);
 		return;
@@ -182,7 +182,7 @@ LRESULT CJabberInfoFrame::WndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			POINT pt = { LOWORD(lParam), HIWORD(lParam) };
 			MapWindowPoints(m_hwnd, nullptr, &pt, 1);
 			HMENU hMenu = (HMENU)CallService(MS_CLIST_MENUBUILDFRAMECONTEXT, m_frameId, 0);
-			int res = TrackPopupMenu(hMenu, TPM_RETURNCMD, pt.x, pt.y, 0, pcli->hwndContactList, nullptr);
+			int res = TrackPopupMenu(hMenu, TPM_RETURNCMD, pt.x, pt.y, 0, g_clistApi.hwndContactList, nullptr);
 			Clist_MenuProcessCommand(res, 0, m_frameId);
 			return 0;
 		}

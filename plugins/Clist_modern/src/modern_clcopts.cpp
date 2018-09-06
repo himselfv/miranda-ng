@@ -35,23 +35,6 @@ INT_PTR CALLBACK DlgProcSBarOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM l
 #define FONTF_ITALIC	2
 #define FONTF_UNDERLINE	4
 
-struct FontOptionsList {
-	DWORD dwFlags;
-	int fontID;
-	wchar_t *szGroup;
-	wchar_t *szDescr;
-	COLORREF defColour;
-	wchar_t *szDefFace;
-	BYTE defCharset, defStyle;
-	char defSize;
-	FONTEFFECT defeffect;
-
-	COLORREF colour;
-	wchar_t szFace[LF_FACESIZE];
-	BYTE charset, style;
-	char size;
-};
-
 #define CLCGROUP			LPGENW("Contact list") L"/" LPGENW("Contact names")
 #define CLCLINESGROUP		LPGENW("Contact list") L"/" LPGENW("Row items")
 #define CLCFRAMESGROUP		LPGENW("Contact list") L"/" LPGENW("Frame texts")
@@ -67,7 +50,25 @@ struct FontOptionsList {
 #define DEFAULT_SIZE		-11
 #define DEFAULT_SMALLSIZE	-8
 
-static struct FontOptionsList fontOptionsList[] = {
+struct
+{
+	DWORD dwFlags;
+	int fontID;
+	const wchar_t *szGroup;
+	const wchar_t *szDescr;
+	COLORREF defColour;
+	const wchar_t *szDefFace;
+	BYTE defCharset, defStyle;
+	char defSize;
+	FONTEFFECT defeffect;
+
+	COLORREF colour;
+	wchar_t szFace[LF_FACESIZE];
+	BYTE charset, style;
+	char size;
+}
+static fontOptionsList[] =
+{
 	{ FIDF_CLASSGENERAL, FONTID_CONTACTS, CLCGROUP, LPGENW("Standard contacts"), DEFAULT_COLOUR, DEFAULT_FAMILY, DEFAULT_CHARSET, FONTF_NORMAL, DEFAULT_SIZE, DEFAULT_EFFECT },
 	{ FIDF_CLASSGENERAL, FONTID_AWAY, CLCGROUP, LPGENW("Away contacts"), DEFAULT_COLOUR, DEFAULT_FAMILY, DEFAULT_CHARSET, FONTF_NORMAL, DEFAULT_SIZE, DEFAULT_EFFECT },
 	{ FIDF_CLASSGENERAL, FONTID_DND, CLCGROUP, LPGENW("Do not disturb contacts"), DEFAULT_COLOUR, DEFAULT_FAMILY, DEFAULT_CHARSET, FONTF_NORMAL, DEFAULT_SIZE, DEFAULT_EFFECT },
@@ -96,15 +97,18 @@ static struct FontOptionsList fontOptionsList[] = {
 	{ FIDF_CLASSGENERAL, FONTID_VIEMODES, CLCFRAMESGROUP, LPGENW("Current view mode text"), DEFAULT_COLOUR, DEFAULT_FAMILY, DEFAULT_CHARSET, FONTF_NORMAL, DEFAULT_SIZE, DEFAULT_EFFECT },
 };
 
-struct ColourOptionsList {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+struct
+{
 	char *chGroup;
 	char *chName;
 	wchar_t *szGroup;
 	wchar_t *szDescr;
 	COLORREF defColour;
-};
-
-static struct ColourOptionsList colourOptionsList[] = {
+}
+static colourOptionsList[] =
+{
 	{ "CLC", "BkColour", CLCGROUP, LPGENW("Background"), CLCDEFAULT_BKCOLOUR },
 
 	{ "CLC", "HotTextColour", CLCCOLOURSGROUP, LPGENW("Hot text"), CLCDEFAULT_MODERN_HOTTEXTCOLOUR },
@@ -123,59 +127,57 @@ void RegisterCLUIFonts(void)
 	if (registered)
 		return;
 
-	FontIDW fontid = { 0 };
-	EffectIDW effectid = { 0 };
+	FontIDW fontid = {};
+	EffectIDW effectid = {};
 	char idstr[10];
-	int index = 0;
 
-	fontid.cbSize = sizeof(fontid);
-	mir_strncpy(fontid.dbSettingsGroup, "CLC", _countof(fontid.dbSettingsGroup));
+	strncpy_s(fontid.dbSettingsGroup, "CLC", _TRUNCATE);
+	strncpy_s(effectid.dbSettingsGroup, "CLC", _TRUNCATE);
 
-	effectid.cbSize = sizeof(effectid);
-	mir_strncpy(effectid.dbSettingsGroup, "CLC", _countof(effectid.dbSettingsGroup));
-
-	for (int i = 0; i < _countof(fontOptionsList); i++, index++) {
+	int index = 1;
+	for (auto &p : fontOptionsList) {
 		fontid.flags = FIDF_DEFAULTVALID | FIDF_APPENDNAME | FIDF_SAVEPOINTSIZE | FIDF_ALLOWEFFECTS | FIDF_ALLOWREREGISTER | FIDF_NOAS;
-		fontid.flags |= fontOptionsList[i].dwFlags;
+		fontid.flags |= p.dwFlags;
 
-		mir_wstrncpy(fontid.group, fontOptionsList[i].szGroup, _countof(fontid.group));
-		mir_wstrncpy(fontid.name, fontOptionsList[i].szDescr, _countof(fontid.name));
-		mir_snprintf(idstr, "Font%d", fontOptionsList[i].fontID);
-		mir_strncpy(fontid.prefix, idstr, _countof(fontid.prefix));
-		fontid.order = i + 1;
+		wcsncpy_s(fontid.group, p.szGroup, _TRUNCATE);
+		wcsncpy_s(fontid.name, p.szDescr, _TRUNCATE);
+		mir_snprintf(idstr, "Font%d", p.fontID);
+		strncpy_s(fontid.setting, idstr, _TRUNCATE);
+		fontid.order = index;
 
-		fontid.deffontsettings.charset = fontOptionsList[i].defCharset;
-		fontid.deffontsettings.colour = fontOptionsList[i].defColour;
-		fontid.deffontsettings.size = fontOptionsList[i].defSize;
-		fontid.deffontsettings.style = fontOptionsList[i].defStyle;
-		mir_wstrncpy(fontid.deffontsettings.szFace, fontOptionsList[i].szDefFace, _countof(fontid.deffontsettings.szFace));
+		fontid.deffontsettings.charset = p.defCharset;
+		fontid.deffontsettings.colour = p.defColour;
+		fontid.deffontsettings.size = p.defSize;
+		fontid.deffontsettings.style = p.defStyle;
+		wcsncpy_s(fontid.deffontsettings.szFace, p.szDefFace, _TRUNCATE);
 
-		Font_RegisterW(&fontid);
+		g_plugin.addFont(&fontid);
 
-		mir_wstrncpy(effectid.group, fontOptionsList[i].szGroup, _countof(effectid.group));
-		mir_wstrncpy(effectid.name, fontOptionsList[i].szDescr, _countof(effectid.name));
-		mir_snprintf(idstr, "Font%d", fontOptionsList[i].fontID);
-		mir_strncpy(effectid.setting, idstr, _countof(effectid.setting));
-		effectid.order = i + 1;
+		wcsncpy_s(effectid.group, p.szGroup, _TRUNCATE);
+		wcsncpy_s(effectid.name, p.szDescr, _TRUNCATE);
+		mir_snprintf(idstr, "Font%d", p.fontID);
+		strncpy_s(effectid.setting, idstr, _TRUNCATE);
+		effectid.order = index;
 
-		effectid.defeffect.effectIndex = fontOptionsList[i].defeffect.effectIndex;
-		effectid.defeffect.baseColour = fontOptionsList[i].defeffect.baseColour;
-		effectid.defeffect.secondaryColour = fontOptionsList[i].defeffect.secondaryColour;
+		effectid.defeffect.effectIndex = p.defeffect.effectIndex;
+		effectid.defeffect.baseColour = p.defeffect.baseColour;
+		effectid.defeffect.secondaryColour = p.defeffect.secondaryColour;
 
-		Effect_RegisterW(&effectid);
+		g_plugin.addEffect(&effectid);
+		index++;
 	}
 
-	ColourIDW colourid = { 0 };
-	colourid.cbSize = sizeof(colourid);
+	ColourIDW colourid = {};
 
-	for (int i = 0; i < _countof(colourOptionsList); i++) {
-		mir_wstrncpy(colourid.group, colourOptionsList[i].szGroup, _countof(colourid.group));
-		mir_wstrncpy(colourid.name, colourOptionsList[i].szDescr, _countof(colourid.group));
-		mir_strncpy(colourid.setting, colourOptionsList[i].chName, _countof(colourid.setting));
-		mir_strncpy(colourid.dbSettingsGroup, colourOptionsList[i].chGroup, _countof(colourid.dbSettingsGroup));
-		colourid.defcolour = colourOptionsList[i].defColour;
-		colourid.order = i + 1;
-		Colour_RegisterW(&colourid);
+	index = 1;
+	for (auto &p : colourOptionsList) {
+		wcsncpy_s(colourid.group, p.szGroup, _TRUNCATE);
+		wcsncpy_s(colourid.name, p.szDescr, _TRUNCATE);
+		strncpy_s(colourid.setting, p.chName, _TRUNCATE);
+		strncpy_s(colourid.dbSettingsGroup, p.chGroup, _TRUNCATE);
+		colourid.defcolour = p.defColour;
+		colourid.order = index++;
+		g_plugin.addColor(&colourid);
 	}
 	registered = true;
 }
@@ -193,38 +195,37 @@ DWORD GetDefaultExStyle(void)
 
 void GetFontSetting(int i, LOGFONT *lf, COLORREF *colour, BYTE *effect, COLORREF *eColour1, COLORREF *eColour2)
 {
-	char idstr[32];
+	for (auto &p : fontOptionsList) {
+		if (p.fontID == i) {
+			COLORREF col = Font_GetW(p.szGroup, p.szDescr, lf);
 
-	int index;
-	for (index = 0; index < _countof(fontOptionsList); index++)
-		if (fontOptionsList[index].fontID == i)
+			if (colour)
+				*colour = col;
+
+			if (effect) {
+				char idstr[32];
+				mir_snprintf(idstr, "Font%dEffect", i);
+				*effect = db_get_b(0, "CLC", idstr, 0);
+				mir_snprintf(idstr, "Font%dEffectCol1", i);
+				*eColour1 = db_get_dw(0, "CLC", idstr, 0);
+				mir_snprintf(idstr, "Font%dEffectCol2", i);
+				*eColour2 = db_get_dw(0, "CLC", idstr, 0);
+			}
 			break;
-
-	if (index == _countof(fontOptionsList))
-		return;
-
-	COLORREF col = Font_GetW(fontOptionsList[index].szGroup, fontOptionsList[index].szDescr, lf);
-
-	if (colour)
-		*colour = col;
-
-	if (effect) {
-		mir_snprintf(idstr, "Font%dEffect", i);
-		*effect = db_get_b(0, "CLC", idstr, 0);
-		mir_snprintf(idstr, "Font%dEffectCol1", i);
-		*eColour1 = db_get_dw(0, "CLC", idstr, 0);
-		mir_snprintf(idstr, "Font%dEffectCol2", i);
-		*eColour2 = db_get_dw(0, "CLC", idstr, 0);
+		}
 	}
 }
 
-struct CheckBoxToStyleEx_t {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+struct
+{
 	int id;
 	DWORD flag;
 	int neg;
-};
-
-static const struct CheckBoxToStyleEx_t checkBoxToStyleEx[] = {
+}
+static const checkBoxToStyleEx[] =
+{
 	{ IDC_DISABLEDRAGDROP, CLS_EX_DISABLEDRAGDROP, 0 },
 	{ IDC_NOTEDITLABELS, CLS_EX_EDITLABELS, 1 },
 	{ IDC_SHOWSELALWAYS, CLS_EX_SHOWSELALWAYS, 0 },
@@ -239,7 +240,10 @@ static const struct CheckBoxToStyleEx_t checkBoxToStyleEx[] = {
 	{ IDC_NOTNOSMOOTHSCROLLING, CLS_EX_NOSMOOTHSCROLLING, 1 }
 };
 
-struct CheckBoxValues_t {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+struct CheckBoxValues_t
+{
 	DWORD style;
 	wchar_t *szDescr;
 };
@@ -358,7 +362,7 @@ static INT_PTR CALLBACK DlgProcClistAdditionalOpts(HWND hwndDlg, UINT msg, WPARA
 				db_set_b(0, "CLC", "SubIndent", (BYTE)SendDlgItemMessage(hwndDlg, IDC_SUBINDENTSPIN, UDM_GETPOS, 0, 0));
 				ClcOptionsChanged();
 				CLUI_ReloadCLUIOptions();
-				PostMessage(pcli->hwndContactList, WM_SIZE, 0, 0);
+				PostMessage(g_clistApi.hwndContactList, WM_SIZE, 0, 0);
 				return TRUE;
 			}
 		}
@@ -408,7 +412,7 @@ static INT_PTR CALLBACK DlgProcClistListOpts(HWND hwndDlg, UINT msg, WPARAM wPar
 			EnableWindow(GetDlgItem(hwndDlg, IDC_SMOOTHTIME), IsDlgButtonChecked(hwndDlg, IDC_NOTNOSMOOTHSCROLLING));
 		if (LOWORD(wParam) == IDC_GREYOUT)
 			EnableWindow(GetDlgItem(hwndDlg, IDC_GREYOUTOPTS), IsDlgButtonChecked(hwndDlg, IDC_GREYOUT));
-		if ((/*LOWORD(wParam) == IDC_LEFTMARGIN  || */ LOWORD(wParam) == IDC_SMOOTHTIME || LOWORD(wParam) == IDC_GROUPINDENT) && (HIWORD(wParam) != EN_CHANGE || (HWND)lParam != GetFocus())) return 0;
+		if ((LOWORD(wParam) == IDC_SMOOTHTIME || LOWORD(wParam) == IDC_GROUPINDENT) && (HIWORD(wParam) != EN_CHANGE || (HWND)lParam != GetFocus())) return 0;
 		SendMessage(GetParent(hwndDlg), PSM_CHANGED, (WPARAM)hwndDlg, 0);
 		break;
 
@@ -492,7 +496,7 @@ static INT_PTR CALLBACK DlgProcClistOpts(HWND hwndDlg, UINT msg, WPARAM wParam, 
 		CheckDlgButton(hwndDlg, IDC_CONFIRMDELETE, db_get_b(0, "CList", "ConfirmDelete", SETTING_CONFIRMDELETE_DEFAULT) ? BST_CHECKED : BST_UNCHECKED);
 
 		CheckDlgButton(hwndDlg, IDC_GAMMACORRECT, db_get_b(0, "CLC", "GammaCorrect", CLCDEFAULT_GAMMACORRECT) ? BST_CHECKED : BST_UNCHECKED);
-		CheckDlgButton(hwndDlg, IDC_HILIGHTMODE, db_get_b(0, "CLC", "HiLightMode", SETTING_HILIGHTMODE_DEFAULT) == 0 ? BST_CHECKED : BST_UNCHECKED);
+		CheckDlgButton(hwndDlg, IDC_HILIGHTMODE4, db_get_b(0, "CLC", "HiLightMode", SETTING_HILIGHTMODE_DEFAULT) == 0 ? BST_CHECKED : BST_UNCHECKED);
 		CheckDlgButton(hwndDlg, IDC_HILIGHTMODE1, db_get_b(0, "CLC", "HiLightMode", SETTING_HILIGHTMODE_DEFAULT) == 1 ? BST_CHECKED : BST_UNCHECKED);
 		CheckDlgButton(hwndDlg, IDC_HILIGHTMODE2, db_get_b(0, "CLC", "HiLightMode", SETTING_HILIGHTMODE_DEFAULT) == 2 ? BST_CHECKED : BST_UNCHECKED);
 		CheckDlgButton(hwndDlg, IDC_HILIGHTMODE3, db_get_b(0, "CLC", "HiLightMode", SETTING_HILIGHTMODE_DEFAULT) == 3 ? BST_CHECKED : BST_UNCHECKED);
@@ -562,7 +566,7 @@ static INT_PTR CALLBACK DlgProcClistOpts(HWND hwndDlg, UINT msg, WPARAM wParam, 
 				db_set_b(0, "CList", "PlaceOfflineToRoot", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_OFFLINETOROOT));
 
 				Clist_LoadContactTree(); /* this won't do job properly since it only really works when changes happen */
-				Clist_InitAutoRebuild(pcli->hwndContactTree); /* force reshuffle */
+				Clist_InitAutoRebuild(g_clistApi.hwndContactTree); /* force reshuffle */
 				ClcOptionsChanged(); // Used to force loading avatar an list height related options
 				return TRUE;
 			}
@@ -593,10 +597,10 @@ static INT_PTR CALLBACK DlgProcTrayOpts(HWND hwndDlg, UINT msg, WPARAM wParam, L
 			EnableWindow(GetDlgItem(hwndDlg, IDC_SHOWNORMAL), IsDlgButtonChecked(hwndDlg, IDC_SHOWXSTATUS));
 			EnableWindow(GetDlgItem(hwndDlg, IDC_TRANSPARENTOVERLAY), IsDlgButtonChecked(hwndDlg, IDC_SHOWXSTATUS) && IsDlgButtonChecked(hwndDlg, IDC_SHOWNORMAL));
 		}
-		CheckDlgButton(hwndDlg, IDC_ALWAYSSTATUS, db_get_b(0, "CList", "AlwaysStatus", SETTING_ALWAYSSTATUS_DEFAULT) ? BST_CHECKED : BST_UNCHECKED);
 
+		CheckDlgButton(hwndDlg, IDC_ALWAYSSTATUS, db_get_b(0, "CList", "AlwaysStatus", SETTING_ALWAYSSTATUS_DEFAULT) ? BST_CHECKED : BST_UNCHECKED);
 		CheckDlgButton(hwndDlg, IDC_DISABLEBLINK, db_get_b(0, "CList", "DisableTrayFlash", SETTING_DISABLETRAYFLASH_DEFAULT) == 1 ? BST_CHECKED : BST_UNCHECKED);
-		SendDlgItemMessage(hwndDlg, IDC_BLINKSPIN, UDM_SETBUDDY, (WPARAM)GetDlgItem(hwndDlg, IDC_BLINKTIME), 0);		// set buddy
+
 		SendDlgItemMessage(hwndDlg, IDC_BLINKSPIN, UDM_SETRANGE, 0, MAKELONG(0x3FFF, 250));
 		SendDlgItemMessage(hwndDlg, IDC_BLINKSPIN, UDM_SETPOS, 0, MAKELONG(db_get_w(0, "CList", "IconFlashTime", SETTING_ICONFLASHTIME_DEFAULT), 0));
 
@@ -617,13 +621,12 @@ static INT_PTR CALLBACK DlgProcTrayOpts(HWND hwndDlg, UINT msg, WPARAM wParam, L
 
 					if (!mir_strcmp(pa->szModuleName, db_get_sa(0, "CList", "tiAccV")))
 						siV = item;
-
 				}
 			}
-			
+
 			// the empty list item must not be selected
 			if (siS < 0) siS = 0; if (siV < 0) siV = 0;
-			
+
 			SendDlgItemMessage(hwndDlg, IDC_PRIMARYSTATUS_S, CB_SETCURSEL, siS, 0);
 			SendDlgItemMessage(hwndDlg, IDC_PRIMARYSTATUS_V, CB_SETCURSEL, siV, 0);
 		}
@@ -726,7 +729,7 @@ static INT_PTR CALLBACK DlgProcTrayOpts(HWND hwndDlg, UINT msg, WPARAM wParam, L
 
 				// icon cycling timeout.
 				db_set_w(0, "CList", "CycleTime", (WORD)SendDlgItemMessage(hwndDlg, IDC_CYCLETIMESPIN, UDM_GETPOS, 0, 0));
-				
+
 				// icon modes
 				db_set_b(0, "CList", "tiModeS",
 					IsDlgButtonChecked(hwndDlg, IDC_ICON_GLOBAL_S) << 0
@@ -741,7 +744,7 @@ static INT_PTR CALLBACK DlgProcTrayOpts(HWND hwndDlg, UINT msg, WPARAM wParam, L
 
 				Clist_TrayIconIconsChanged();
 				Clist_LoadContactTree(); /* this won't do job properly since it only really works when changes happen */
-				Clist_InitAutoRebuild(pcli->hwndContactTree); /* force reshuffle */
+				Clist_InitAutoRebuild(g_clistApi.hwndContactTree); /* force reshuffle */
 				ClcOptionsChanged(); // Used to force loading avatar an list height related options
 				return TRUE;
 			}
@@ -905,7 +908,7 @@ static INT_PTR CALLBACK DlgProcClistBehaviourOpts(HWND hwndDlg, UINT msg, WPARAM
 			db_set_b(0, "CList", "AutoHide", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_AUTOHIDE));
 			db_set_w(0, "CList", "HideTime", (WORD)SendDlgItemMessage(hwndDlg, IDC_HIDETIMESPIN, UDM_GETPOS, 0, 0));
 			CLUI_ChangeWindowMode();
-			SendMessage(pcli->hwndContactTree, WM_SIZE, 0, 0);	//forces it to send a cln_listsizechanged
+			SendMessage(g_clistApi.hwndContactTree, WM_SIZE, 0, 0);	//forces it to send a cln_listsizechanged
 			CLUI_ReloadCLUIOptions();
 			EventArea_ConfigureEventArea();
 			cliShowHide(true);
@@ -992,7 +995,7 @@ static INT_PTR CALLBACK DlgProcClistWindowOpts(HWND hwndDlg, UINT msg, WPARAM wP
 			DBVARIANT dbv = { 0 };
 			wchar_t *s;
 			if (!db_get_ws(0, "CList", "TitleText", &dbv))
-				s = dbv.ptszVal;
+				s = dbv.pwszVal;
 			else
 				s = _A2W(MIRANDANAME);
 			SetDlgItemText(hwndDlg, IDC_TITLETEXT, s);
@@ -1097,16 +1100,16 @@ static INT_PTR CALLBACK DlgProcClistWindowOpts(HWND hwndDlg, UINT msg, WPARAM wP
 		break;
 
 	case WM_HSCROLL:
-	{
-		char str[10];
-		mir_snprintf(str, "%d%%", 100 * SendDlgItemMessage(hwndDlg, IDC_TRANSINACTIVE, TBM_GETPOS, 0, 0) / 255);
-		SetDlgItemTextA(hwndDlg, IDC_INACTIVEPERC, str);
-		mir_snprintf(str, "%d%%", 100 * SendDlgItemMessage(hwndDlg, IDC_TRANSACTIVE, TBM_GETPOS, 0, 0) / 255);
-		SetDlgItemTextA(hwndDlg, IDC_ACTIVEPERC, str);
-	}
-	if (wParam != 0x12345678)
-		SendMessage(GetParent(hwndDlg), PSM_CHANGED, (WPARAM)hwndDlg, 0);
-	break;
+		{
+			char str[10];
+			mir_snprintf(str, "%d%%", 100 * SendDlgItemMessage(hwndDlg, IDC_TRANSINACTIVE, TBM_GETPOS, 0, 0) / 255);
+			SetDlgItemTextA(hwndDlg, IDC_INACTIVEPERC, str);
+			mir_snprintf(str, "%d%%", 100 * SendDlgItemMessage(hwndDlg, IDC_TRANSACTIVE, TBM_GETPOS, 0, 0) / 255);
+			SetDlgItemTextA(hwndDlg, IDC_ACTIVEPERC, str);
+		}
+		if (wParam != 0x12345678)
+			SendMessage(GetParent(hwndDlg), PSM_CHANGED, (WPARAM)hwndDlg, 0);
+		break;
 
 	case WM_NOTIFY:
 		switch (((LPNMHDR)lParam)->code) {
@@ -1126,37 +1129,38 @@ static INT_PTR CALLBACK DlgProcClistWindowOpts(HWND hwndDlg, UINT msg, WPARAM wP
 			g_CluiData.dwKeyColor = db_get_dw(0, "ModernSettings", "KeyColor", (DWORD)SETTING_KEYCOLOR_DEFAULT);
 			db_set_b(0, "CList", "OnDesktop", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_ONDESKTOP));
 			db_set_b(0, "CList", "OnTop", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_ONTOP));
-			SetWindowPos(pcli->hwndContactList, IsDlgButtonChecked(hwndDlg, IDC_ONTOP) ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+			SetWindowPos(g_clistApi.hwndContactList, IsDlgButtonChecked(hwndDlg, IDC_ONTOP) ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 			db_set_b(0, "CLUI", "DragToScroll", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_DRAGTOSCROLL));
 
-			{ //======  Non-Layered Mode ======
-				db_set_b(0, "CList", "ToolWindow", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_TOOLWND));
-				db_set_b(0, "CLUI", "ShowCaption", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_SHOWCAPTION));
-				db_set_b(0, "CLUI", "ShowMainMenu", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_SHOWMAINMENU));
-				db_set_b(0, "CList", "ThinBorder", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_BORDER));
-				db_set_b(0, "CList", "NoBorder", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_NOBORDERWND));
-				{
-					wchar_t title[256];
-					GetDlgItemText(hwndDlg, IDC_TITLETEXT, title, _countof(title));
-					db_set_ws(0, "CList", "TitleText", title);
-				}
-				db_set_b(0, "CList", "Min2Tray", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_MIN2TRAY));
-				db_set_b(0, "CList", "WindowShadow", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_DROPSHADOW));
-				db_set_b(0, "CLC", "RoundCorners", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_ROUNDCORNERS));
-			} //======  End of Non-Layered Mode ======
+			//======  Non-Layered Mode ======
+			db_set_b(0, "CList", "ToolWindow", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_TOOLWND));
+			db_set_b(0, "CLUI", "ShowCaption", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_SHOWCAPTION));
+			db_set_b(0, "CLUI", "ShowMainMenu", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_SHOWMAINMENU));
+			db_set_b(0, "CList", "ThinBorder", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_BORDER));
+			db_set_b(0, "CList", "NoBorder", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_NOBORDERWND));
+			{
+				wchar_t title[256];
+				GetDlgItemText(hwndDlg, IDC_TITLETEXT, title, _countof(title));
+				db_set_ws(0, "CList", "TitleText", title);
+			}
+			db_set_b(0, "CList", "Min2Tray", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_MIN2TRAY));
+			db_set_b(0, "CList", "WindowShadow", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_DROPSHADOW));
+			db_set_b(0, "CLC", "RoundCorners", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_ROUNDCORNERS));
+			//======  End of Non-Layered Mode ======
+
 			g_mutex_bChangingMode = TRUE;
 
 			if (IsDlgButtonChecked(hwndDlg, IDC_ONDESKTOP)) {
 				HWND hProgMan = FindWindow(L"Progman", nullptr);
 				if (IsWindow(hProgMan)) {
-					SetParent(pcli->hwndContactList, hProgMan);
+					SetParent(g_clistApi.hwndContactList, hProgMan);
 					Sync(CLUIFrames_SetParentForContainers, (HWND)hProgMan);
 					g_CluiData.fOnDesktop = true;
 				}
 			}
 			else {
-				if (GetParent(pcli->hwndContactList)) {
-					SetParent(pcli->hwndContactList, nullptr);
+				if (GetParent(g_clistApi.hwndContactList)) {
+					SetParent(g_clistApi.hwndContactList, nullptr);
 					Sync(CLUIFrames_SetParentForContainers, (HWND)nullptr);
 				}
 				g_CluiData.fOnDesktop = false;
@@ -1170,7 +1174,7 @@ static INT_PTR CALLBACK DlgProcClistWindowOpts(HWND hwndDlg, UINT msg, WPARAM wP
 
 				db_set_dw(0, "CLUIFrames", "GapBetweenFrames", (DWORD)i1);
 				db_set_dw(0, "CLUIFrames", "GapBetweenTitleBar", (DWORD)i2);
-				Sync(CLUIFramesOnClistResize, (WPARAM)pcli->hwndContactList, 0);
+				Sync(CLUIFramesOnClistResize, (WPARAM)g_clistApi.hwndContactList, 0);
 			}
 			db_set_b(0, "CList", "Transparent", (BYTE)IsDlgButtonChecked(hwndDlg, IDC_TRANSPARENT));
 			db_set_b(0, "CList", "Alpha", (BYTE)SendDlgItemMessage(hwndDlg, IDC_TRANSACTIVE, TBM_GETPOS, 0, 0));
@@ -1180,7 +1184,7 @@ static INT_PTR CALLBACK DlgProcClistWindowOpts(HWND hwndDlg, UINT msg, WPARAM wP
 			ske_LoadSkinFromDB();
 			CLUI_UpdateLayeredMode();
 			CLUI_ChangeWindowMode();
-			SendMessage(pcli->hwndContactTree, WM_SIZE, 0, 0);	//forces it to send a cln_listsizechanged
+			SendMessage(g_clistApi.hwndContactTree, WM_SIZE, 0, 0);	//forces it to send a cln_listsizechanged
 			CLUI_ReloadCLUIOptions();
 			cliShowHide(true);
 			g_mutex_bChangingMode = FALSE;
@@ -1198,8 +1202,6 @@ static INT_PTR CALLBACK DlgProcClistWindowOpts(HWND hwndDlg, UINT msg, WPARAM wP
 #define DEFAULT_USEBITMAP     0
 #define DEFAULT_BKBMPUSE      CLB_STRETCH
 #define DEFAULT_SELBKCOLOUR   GetSysColor(COLOR_HIGHLIGHT)
-
-extern HINSTANCE g_hInst;
 
 char **bkgrList = nullptr;
 int bkgrCount = 0;
@@ -1264,7 +1266,7 @@ static INT_PTR CALLBACK DlgProcClcBkgOpts(HWND hwndDlg, UINT msg, WPARAM wParam,
 				if (!db_get_s(0, module, "BkBitmap", &dbv)) {
 					int retval = PathToAbsolute(dbv.pszVal, dat->item[indx].filename);
 					if (!retval || retval == CALLSERVICE_NOTFOUND)
-						mir_strncpy(dat->item[indx].filename, dbv.pszVal, _countof(dat->item[indx].filename));
+						strncpy_s(dat->item[indx].filename, dbv.pszVal, _TRUNCATE);
 					mir_free(dbv.pszVal);
 				}
 				else *dat->item[indx].filename = 0;
@@ -1287,72 +1289,72 @@ static INT_PTR CALLBACK DlgProcClcBkgOpts(HWND hwndDlg, UINT msg, WPARAM wParam,
 		return TRUE;
 
 	case M_BKGR_GETSTATE:
-	{
-		int indx = wParam;
-		if (indx == CB_ERR || indx >= dat->count)
-			break;
+		{
+			int indx = wParam;
+			if (indx == CB_ERR || indx >= dat->count)
+				break;
 
-		indx = SendDlgItemMessage(hwndDlg, IDC_BKGRLIST, CB_GETITEMDATA, indx, 0);
+			indx = SendDlgItemMessage(hwndDlg, IDC_BKGRLIST, CB_GETITEMDATA, indx, 0);
 
-		dat->item[indx].useBitmap = IsDlgButtonChecked(hwndDlg, IDC_BITMAP);
-		dat->item[indx].useWinColours = IsDlgButtonChecked(hwndDlg, IDC_USEWINCOL);
-		dat->item[indx].bkColor = SendDlgItemMessage(hwndDlg, IDC_BKGCOLOUR, CPM_GETCOLOUR, 0, 0);
-		dat->item[indx].selColor = SendDlgItemMessage(hwndDlg, IDC_SELCOLOUR, CPM_GETCOLOUR, 0, 0);
+			dat->item[indx].useBitmap = IsDlgButtonChecked(hwndDlg, IDC_BITMAP);
+			dat->item[indx].useWinColours = IsDlgButtonChecked(hwndDlg, IDC_USEWINCOL);
+			dat->item[indx].bkColor = SendDlgItemMessage(hwndDlg, IDC_BKGCOLOUR, CPM_GETCOLOUR, 0, 0);
+			dat->item[indx].selColor = SendDlgItemMessage(hwndDlg, IDC_SELCOLOUR, CPM_GETCOLOUR, 0, 0);
 
-		GetDlgItemTextA(hwndDlg, IDC_FILENAME, dat->item[indx].filename, _countof(dat->item[indx].filename));
+			GetDlgItemTextA(hwndDlg, IDC_FILENAME, dat->item[indx].filename, _countof(dat->item[indx].filename));
 
-		WORD flags = 0;
-		if (IsDlgButtonChecked(hwndDlg, IDC_STRETCHH)) flags |= CLB_STRETCHH;
-		if (IsDlgButtonChecked(hwndDlg, IDC_STRETCHV)) flags |= CLB_STRETCHV;
-		if (IsDlgButtonChecked(hwndDlg, IDC_TILEH)) flags |= CLBF_TILEH;
-		if (IsDlgButtonChecked(hwndDlg, IDC_TILEV)) flags |= CLBF_TILEV;
-		if (IsDlgButtonChecked(hwndDlg, IDC_SCROLL)) flags |= CLBF_SCROLL;
-		if (IsDlgButtonChecked(hwndDlg, IDC_PROPORTIONAL)) flags |= CLBF_PROPORTIONAL;
-		if (IsDlgButtonChecked(hwndDlg, IDC_TILEVROWH)) flags |= CLBF_TILEVTOROWHEIGHT;
-		dat->item[indx].flags = flags;
-	}
-	break;
+			WORD flags = 0;
+			if (IsDlgButtonChecked(hwndDlg, IDC_STRETCHH)) flags |= CLB_STRETCHH;
+			if (IsDlgButtonChecked(hwndDlg, IDC_STRETCHV)) flags |= CLB_STRETCHV;
+			if (IsDlgButtonChecked(hwndDlg, IDC_TILEH)) flags |= CLBF_TILEH;
+			if (IsDlgButtonChecked(hwndDlg, IDC_TILEV)) flags |= CLBF_TILEV;
+			if (IsDlgButtonChecked(hwndDlg, IDC_SCROLL)) flags |= CLBF_SCROLL;
+			if (IsDlgButtonChecked(hwndDlg, IDC_PROPORTIONAL)) flags |= CLBF_PROPORTIONAL;
+			if (IsDlgButtonChecked(hwndDlg, IDC_TILEVROWH)) flags |= CLBF_TILEVTOROWHEIGHT;
+			dat->item[indx].flags = flags;
+		}
+		break;
 
 	case M_BKGR_SETSTATE:
-	{
-		int flags;
-		int indx = wParam;
-		if (indx == -1) break;
-		flags = dat->item[indx].flags;
-		if (indx == CB_ERR || indx >= dat->count) break;
-		indx = SendDlgItemMessage(hwndDlg, IDC_BKGRLIST, CB_GETITEMDATA, indx, 0);
+		{
+			int indx = wParam;
+			if (indx == CB_ERR || indx >= dat->count)
+				break;
 
-		CheckDlgButton(hwndDlg, IDC_BITMAP, dat->item[indx].useBitmap ? BST_CHECKED : BST_UNCHECKED);
-		CheckDlgButton(hwndDlg, IDC_USEWINCOL, dat->item[indx].useWinColours ? BST_CHECKED : BST_UNCHECKED);
+			int flags = dat->item[indx].flags;
+			indx = SendDlgItemMessage(hwndDlg, IDC_BKGRLIST, CB_GETITEMDATA, indx, 0);
 
-		EnableWindow(GetDlgItem(hwndDlg, IDC_BKGCOLOUR), !dat->item[indx].useWinColours);
-		EnableWindow(GetDlgItem(hwndDlg, IDC_SELCOLOUR), !dat->item[indx].useWinColours);
+			CheckDlgButton(hwndDlg, IDC_BITMAP, dat->item[indx].useBitmap ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hwndDlg, IDC_USEWINCOL, dat->item[indx].useWinColours ? BST_CHECKED : BST_UNCHECKED);
 
-		SendDlgItemMessage(hwndDlg, IDC_BKGCOLOUR, CPM_SETDEFAULTCOLOUR, 0, DEFAULT_BKCOLOUR);
-		SendDlgItemMessage(hwndDlg, IDC_BKGCOLOUR, CPM_SETCOLOUR, 0, dat->item[indx].bkColor);
-		SendDlgItemMessage(hwndDlg, IDC_SELCOLOUR, CPM_SETDEFAULTCOLOUR, 0, DEFAULT_SELBKCOLOUR);
-		SendDlgItemMessage(hwndDlg, IDC_SELCOLOUR, CPM_SETCOLOUR, 0, dat->item[indx].selColor);
-		SetDlgItemTextA(hwndDlg, IDC_FILENAME, dat->item[indx].filename);
+			EnableWindow(GetDlgItem(hwndDlg, IDC_BKGCOLOUR), !dat->item[indx].useWinColours);
+			EnableWindow(GetDlgItem(hwndDlg, IDC_SELCOLOUR), !dat->item[indx].useWinColours);
 
-		CheckDlgButton(hwndDlg, IDC_STRETCHH, flags&CLB_STRETCHH ? BST_CHECKED : BST_UNCHECKED);
-		CheckDlgButton(hwndDlg, IDC_STRETCHV, flags&CLB_STRETCHV ? BST_CHECKED : BST_UNCHECKED);
-		CheckDlgButton(hwndDlg, IDC_TILEH, flags&CLBF_TILEH ? BST_CHECKED : BST_UNCHECKED);
-		CheckDlgButton(hwndDlg, IDC_TILEV, flags&CLBF_TILEV ? BST_CHECKED : BST_UNCHECKED);
-		CheckDlgButton(hwndDlg, IDC_SCROLL, flags&CLBF_SCROLL ? BST_CHECKED : BST_UNCHECKED);
-		CheckDlgButton(hwndDlg, IDC_PROPORTIONAL, flags&CLBF_PROPORTIONAL ? BST_CHECKED : BST_UNCHECKED);
-		CheckDlgButton(hwndDlg, IDC_TILEVROWH, flags&CLBF_TILEVTOROWHEIGHT ? BST_CHECKED : BST_UNCHECKED);
+			SendDlgItemMessage(hwndDlg, IDC_BKGCOLOUR, CPM_SETDEFAULTCOLOUR, 0, DEFAULT_BKCOLOUR);
+			SendDlgItemMessage(hwndDlg, IDC_BKGCOLOUR, CPM_SETCOLOUR, 0, dat->item[indx].bkColor);
+			SendDlgItemMessage(hwndDlg, IDC_SELCOLOUR, CPM_SETDEFAULTCOLOUR, 0, DEFAULT_SELBKCOLOUR);
+			SendDlgItemMessage(hwndDlg, IDC_SELCOLOUR, CPM_SETCOLOUR, 0, dat->item[indx].selColor);
+			SetDlgItemTextA(hwndDlg, IDC_FILENAME, dat->item[indx].filename);
 
-		SendMessage(hwndDlg, M_BKGR_UPDATE, 0, 0);
-	}
-	break;
+			CheckDlgButton(hwndDlg, IDC_STRETCHH, flags&CLB_STRETCHH ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hwndDlg, IDC_STRETCHV, flags&CLB_STRETCHV ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hwndDlg, IDC_TILEH, flags&CLBF_TILEH ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hwndDlg, IDC_TILEV, flags&CLBF_TILEV ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hwndDlg, IDC_SCROLL, flags&CLBF_SCROLL ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hwndDlg, IDC_PROPORTIONAL, flags&CLBF_PROPORTIONAL ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hwndDlg, IDC_TILEVROWH, flags&CLBF_TILEVTOROWHEIGHT ? BST_CHECKED : BST_UNCHECKED);
+
+			SendMessage(hwndDlg, M_BKGR_UPDATE, 0, 0);
+		}
+		break;
 
 	case M_BKGR_UPDATE:
-	{
-		int isChecked = IsDlgButtonChecked(hwndDlg, IDC_BITMAP);
-		for (auto &it : bitmapRelatedControls)
-			EnableWindow(GetDlgItem(hwndDlg, it), isChecked);
-	}
-	break;
+		{
+			int isChecked = IsDlgButtonChecked(hwndDlg, IDC_BITMAP);
+			for (auto &it : bitmapRelatedControls)
+				EnableWindow(GetDlgItem(hwndDlg, it), isChecked);
+		}
+		break;
 
 	case WM_COMMAND:
 		if (LOWORD(wParam) == IDC_BROWSE) {
@@ -1494,26 +1496,24 @@ int BackgroundsUnloadModule(void)
 
 struct
 {
-	char *name;			// Tab name
-	int id;					// Dialog id
-	DLGPROC wnd_proc;		// Dialog function
-	DWORD flag;				// Expertonly
+	char *name;          // Tab name
+	int id;              // Dialog id
+	DLGPROC wnd_proc;    // Dialog function
 }
 static clist_opt_items[] =
 {
-	{ LPGEN("General"), IDD_OPT_CLIST, DlgProcClistOpts, 0 },
-	{ LPGEN("Tray"), IDD_OPT_TRAY, DlgProcTrayOpts, 0 },
-	{ LPGEN("List"), IDD_OPT_CLC, DlgProcClistListOpts, 0 },
-	{ LPGEN("Window"), IDD_OPT_CLUI, DlgProcClistWindowOpts, 0 },
-	{ LPGEN("Behavior"), IDD_OPT_CLUI_2, DlgProcClistBehaviourOpts, 0 },
-	{ LPGEN("Status bar"), IDD_OPT_SBAR, DlgProcSBarOpts, 0 },
-	{ LPGEN("Additional stuff"), IDD_OPT_META_CLC, DlgProcClistAdditionalOpts, 0 }
+	{ LPGEN("General"), IDD_OPT_CLIST, DlgProcClistOpts },
+	{ LPGEN("Tray"), IDD_OPT_TRAY, DlgProcTrayOpts},
+	{ LPGEN("List"), IDD_OPT_CLC, DlgProcClistListOpts },
+	{ LPGEN("Window"), IDD_OPT_CLUI, DlgProcClistWindowOpts },
+	{ LPGEN("Behavior"), IDD_OPT_CLUI_2, DlgProcClistBehaviourOpts },
+	{ LPGEN("Status bar"), IDD_OPT_SBAR, DlgProcSBarOpts },
+	{ LPGEN("Additional stuff"), IDD_OPT_META_CLC, DlgProcClistAdditionalOpts }
 };
 
 int ClcOptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_CLC);
 	odp.szTitle.a = LPGEN("Contact list");
 	odp.pfnDlgProc = DlgProcClistListOpts;
@@ -1523,8 +1523,7 @@ int ClcOptInit(WPARAM wParam, LPARAM)
 		odp.pszTemplate = MAKEINTRESOURCEA(it.id);
 		odp.szTab.a = it.name;
 		odp.pfnDlgProc = it.wnd_proc;
-		odp.flags = ODPF_BOLDGROUPS | it.flag;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 
 	if (g_CluiData.fDisableSkinEngine) {
@@ -1534,7 +1533,7 @@ int ClcOptInit(WPARAM wParam, LPARAM)
 		odp.szTab.a = LPGEN("List background");
 		odp.pfnDlgProc = DlgProcClcBkgOpts;
 		odp.flags = ODPF_BOLDGROUPS;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }

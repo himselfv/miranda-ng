@@ -82,7 +82,7 @@ struct LISTELEMENT {
 	MEVENT hEvent;
 	int	linePos;
 	struct LISTELEMENT *nextElement;
-} ;
+};
 
 typedef struct {
 	BYTE openNewWindow;
@@ -127,6 +127,13 @@ typedef struct {
 #define LINKLIST_SHOW_DIRECTION		"ShowMessageDirection"
 #define LINKLIST_SHOW_TYPE		"ShowMessageType"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 #define _mstrlen(x) (_countof(x) - 1)
 #define MAKE_TXT_COL(BGCol) ((DWORD)~BGCol & 0x00FFFFFF)
@@ -147,8 +154,6 @@ typedef struct {
 } DIALOGPARAM;
 
 
-static INT_PTR LinkList_Main(WPARAM, LPARAM);
-int InitOptionsDlg(WPARAM, LPARAM);
 int DBUpdate(WPARAM, LPARAM);
 int ExtractURI(DBEVENTINFO*, MEVENT, LISTELEMENT*);
 int RemoveList(LISTELEMENT*);

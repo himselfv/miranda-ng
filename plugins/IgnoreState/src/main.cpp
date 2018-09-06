@@ -20,13 +20,11 @@
 
 #include "stdafx.h"
 
-HINSTANCE g_hInst;
-
 HANDLE hIcoLibIconsChanged = nullptr;
 HANDLE hHookExtraIconsRebuild = nullptr, hHookExtraIconsApply = nullptr, hContactSettingChanged = nullptr;
 HANDLE hPrebuildContactMenu = nullptr;
 HANDLE hExtraIcon = nullptr;
-int hLangpack;
+CMPlugin g_plugin;
 
 INT currentFilter = 0;
 
@@ -47,7 +45,7 @@ int nII = _countof(ii);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-PLUGININFOEX pluginInfo = {
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -60,16 +58,9 @@ PLUGININFOEX pluginInfo = {
 	{ 0xa6872bcd, 0xf2a1, 0x41b8, { 0xb2, 0xf1, 0xdd, 0x7c, 0xec, 0x05, 0x57, 0x34 } }
 };
 
-extern "C" BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	g_hInst = hinstDLL;
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -158,22 +149,15 @@ int onContactSettingChanged(WPARAM hContact, LPARAM lParam)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, onModulesLoaded);
 	HookEvent(ME_DB_CONTACT_SETTINGCHANGED, onContactSettingChanged);
 
 	//IcoLib support
-	Icon_Register(g_hInst, LPGEN("Ignore State"), iconList, _countof(iconList));
+	g_plugin.registerIcon(LPGEN("Ignore State"), iconList);
 
 	hExtraIcon = ExtraIcon_RegisterIcolib("ignore", LPGEN("Ignore State"), "ignore_full");
 
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

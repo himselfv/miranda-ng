@@ -217,7 +217,7 @@ int handleNewMessage(WPARAM hContact, LPARAM hDbEvent)
 	dbei.pBlob = (PBYTE)MEMALLOC(dbei.cbBlob);
 	if (!dbei.pBlob)
 		return 0;
-	memcpy(szServiceFunction, PROTOCOL_NAMEA, PROTOCOL_NAME_SIZE);
+	memcpy(szServiceFunction, MODULENAME, PROTOCOL_NAME_SIZE);
 	pszServiceFunctionName = szServiceFunction + PROTOCOL_NAME_LEN;
 
 	if (db_event_get(hDbEvent, &dbei) == 0)
@@ -240,7 +240,7 @@ int handleNewMessage(WPARAM hContact, LPARAM hDbEvent)
 				cle.hIcon = Skin_LoadIcon(SKINICON_OTHER_SMS);
 				cle.pszService = szServiceFunction;
 				cle.szTooltip.w = szToolTip;
-				pcli->pfnAddEvent(&cle);
+				g_clistApi.pfnAddEvent(&cle);
 			}
 		}
 	}
@@ -263,7 +263,7 @@ int handleNewMessage(WPARAM hContact, LPARAM hDbEvent)
 				cle.hIcon = (HICON)LoadImage(ssSMSSettings.hInstance, MAKEINTRESOURCE(iIcon), IMAGE_ICON, 0, 0, LR_SHARED);
 				cle.pszService = szServiceFunction;
 				cle.szTooltip.w = szToolTip;
-				pcli->pfnAddEvent(&cle);
+				g_clistApi.pfnAddEvent(&cle);
 			}
 		}
 	}

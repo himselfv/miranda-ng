@@ -119,7 +119,7 @@ static int clcHookSettingChanged(WPARAM hContact, LPARAM lParam)
 			cliCluiProtocolStatusChanged(0, cws->szModule);
 		else if (!strcmp(cws->szModule, "CList")) {
 			if (!strcmp(cws->szSetting, "OnTop"))
-				SetWindowPos(pcli->hwndContactList, cws->value.bVal ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+				SetWindowPos(g_clistApi.hwndContactList, cws->value.bVal ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 		}
 	}
 	else {
@@ -145,7 +145,7 @@ static int clcHookSettingChanged(WPARAM hContact, LPARAM lParam)
 			else if (!strcmp(cws->szSetting, "ListeningTo"))
 				Clist_Broadcast(INTM_STATUSMSGCHANGED, hContact, 0);
 			else if (!strcmp(cws->szSetting, "Transport") || !strcmp(cws->szSetting, "IsTransported")) {
-				pcli->pfnInvalidateDisplayNameCacheEntry(hContact);
+				g_clistApi.pfnInvalidateDisplayNameCacheEntry(hContact);
 				Clist_Broadcast(CLM_AUTOREBUILD, hContact, 0);
 			}
 		}
@@ -236,8 +236,8 @@ static int clcSearchNextContact(HWND hwnd, ClcData *dat, int index, const wchar_
 				int contactScanIndex = group->scanIndex;
 				int foundindex;
 				for (; group; group = group->parent)
-					pcli->pfnSetGroupExpand(hwnd, dat, group, 1);
-				foundindex = pcli->pfnGetRowsPriorTo(&dat->list, contactGroup, contactScanIndex);
+					g_clistApi.pfnSetGroupExpand(hwnd, dat, group, 1);
+				foundindex = g_clistApi.pfnGetRowsPriorTo(&dat->list, contactGroup, contactScanIndex);
 				if (fReturnAsFound)
 					return foundindex;
 				else if (nLastFound != -1 && fSearchUp && foundindex == index)
@@ -262,20 +262,26 @@ static int clcSearchNextContact(HWND hwnd, ClcData *dat, int index, const wchar_
 	return -1;
 }
 
-static BOOL clcItemNotHiddenOffline(ClcGroup *group, ClcContact *contact)
+static bool clcItemNotHiddenOffline(ClcGroup *group, ClcContact *contact)
 {
-	if (g_CluiData.bFilterEffective) return FALSE;
+	if (g_CluiData.bFilterEffective)
+		return false;
 
-	if (!contact) return FALSE;
+	if (!contact)
+		return false;
 
-	if (contact->pce->m_bNoHiddenOffline) return TRUE;
+	if (contact->pce->m_bNoHiddenOffline)
+		return true;
 
-	if (!group) return FALSE;
-	if (group->hideOffline) return FALSE;
+	if (!group)
+		return false;
+	if (group->hideOffline)
+		return false;
 
-	if (CLCItems_IsShowOfflineGroup(group)) return TRUE;
+	if (CLCItems_IsShowOfflineGroup(group))
+		return true;
 
-	return FALSE;
+	return false;
 }
 
 static LRESULT clcOnCreate(ClcData *dat, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -313,7 +319,7 @@ static LRESULT clcOnHitTest(ClcData *, HWND hwnd, UINT, WPARAM wParam, LPARAM lP
 static LRESULT clcOnCommand(ClcData *dat, HWND hwnd, UINT, WPARAM wParam, LPARAM lParam)
 {
 	ClcContact *contact;
-	int hit = pcli->pfnGetRowByIndex(dat, dat->selection, &contact, nullptr);
+	int hit = g_clistApi.pfnGetRowByIndex(dat, dat->selection, &contact, nullptr);
 	if (hit != -1 && contact->type == CLCIT_GROUP) {
 		switch (LOWORD(wParam)) {
 		case POPUP_GROUPSHOWOFFLINE:
@@ -384,7 +390,7 @@ static LRESULT clcOnChar(ClcData *dat, HWND hwnd, UINT msg, WPARAM wParam, LPARA
 static LRESULT clcOnPaint(ClcData *dat, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	if (IsWindowVisible(hwnd)) {
-		if (!g_CluiData.fLayered || GetParent(hwnd) != pcli->hwndContactList) {
+		if (!g_CluiData.fLayered || GetParent(hwnd) != g_clistApi.hwndContactList) {
 			PAINTSTRUCT ps;
 			HDC hdc = BeginPaint(hwnd, &ps);
 			g_clcPainter.cliPaintClc(hwnd, dat, hdc, &ps.rcPaint);
@@ -430,7 +436,7 @@ static LRESULT clcOnKeyDown(ClcData *dat, HWND hwnd, UINT, WPARAM wParam, LPARAM
 			}
 
 			dat->selection = index;
-			pcli->pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 			Clist_EnsureVisible(hwnd, dat, dat->selection, 0);
 			return 0;
 		}
@@ -443,7 +449,7 @@ static LRESULT clcOnKeyDown(ClcData *dat, HWND hwnd, UINT, WPARAM wParam, LPARAM
 	case VK_PRIOR: dat->selection -= pageSize; selMoved = 1; break;
 	case VK_NEXT: dat->selection += pageSize; selMoved = 1; break;
 	case VK_HOME: dat->selection = 0; selMoved = 1; break;
-	case VK_END: dat->selection = pcli->pfnGetGroupContentsCount(&dat->list, 1) - 1; selMoved = 1; break;
+	case VK_END: dat->selection = g_clistApi.pfnGetGroupContentsCount(&dat->list, 1) - 1; selMoved = 1; break;
 	case VK_LEFT: changeGroupExpand = 1; break;
 	case VK_RIGHT: changeGroupExpand = 2; break;
 	case VK_RETURN:
@@ -510,7 +516,7 @@ static LRESULT clcOnKeyDown(ClcData *dat, HWND hwnd, UINT, WPARAM wParam, LPARAM
 					db_set_b(contact->hContact, "CList", "Expanded", 0);
 					ht = contact;
 					dat->bNeedsResort = true;
-					pcli->pfnSortCLC(hwnd, dat, 1);
+					g_clistApi.pfnSortCLC(hwnd, dat, 1);
 					cliRecalcScrollBar(hwnd, dat);
 					hitcontact = nullptr;
 				}
@@ -525,7 +531,7 @@ static LRESULT clcOnKeyDown(ClcData *dat, HWND hwnd, UINT, WPARAM wParam, LPARAM
 					db_set_b(contact->hContact, "CList", "Expanded", 1);
 					ht = contact;
 					dat->bNeedsResort = true;
-					pcli->pfnSortCLC(hwnd, dat, 1);
+					g_clistApi.pfnSortCLC(hwnd, dat, 1);
 					cliRecalcScrollBar(hwnd, dat);
 					if (ht) {
 						ClcContact *contact2;
@@ -552,10 +558,10 @@ static LRESULT clcOnKeyDown(ClcData *dat, HWND hwnd, UINT, WPARAM wParam, LPARAM
 							dat->selection--;
 							selMoved = 1;
 						}
-						else pcli->pfnSetGroupExpand(hwnd, dat, contact->group, 0);
+						else g_clistApi.pfnSetGroupExpand(hwnd, dat, contact->group, 0);
 					}
 					else if (changeGroupExpand == 2) {
-						pcli->pfnSetGroupExpand(hwnd, dat, contact->group, 1);
+						g_clistApi.pfnSetGroupExpand(hwnd, dat, contact->group, 1);
 						dat->selection++;
 						selMoved = 1;
 					}
@@ -565,8 +571,8 @@ static LRESULT clcOnKeyDown(ClcData *dat, HWND hwnd, UINT, WPARAM wParam, LPARAM
 		}
 	}
 	if (selMoved) {
-		if (dat->selection >= pcli->pfnGetGroupContentsCount(&dat->list, 1))
-			dat->selection = pcli->pfnGetGroupContentsCount(&dat->list, 1) - 1;
+		if (dat->selection >= g_clistApi.pfnGetGroupContentsCount(&dat->list, 1))
+			dat->selection = g_clistApi.pfnGetGroupContentsCount(&dat->list, 1) - 1;
 		if (dat->selection < 0) dat->selection = 0;
 		if (dat->bCompactMode)
 			SendMessage(hwnd, WM_SIZE, 0, 0);
@@ -618,7 +624,7 @@ static LRESULT clcOnTimer(ClcData *dat, HWND hwnd, UINT msg, WPARAM wParam, LPAR
 			}
 
 			dat->bNeedsResort = true;
-			pcli->pfnSortCLC(hwnd, dat, 1);
+			g_clistApi.pfnSortCLC(hwnd, dat, 1);
 			cliRecalcScrollBar(hwnd, dat);
 			if (ht) {
 				int i = 0;
@@ -636,13 +642,13 @@ static LRESULT clcOnTimer(ClcData *dat, HWND hwnd, UINT msg, WPARAM wParam, LPAR
 	case TIMERID_DELAYEDRESORTCLC:
 		TRACE("Do sort on Timer\n");
 		KillTimer(hwnd, TIMERID_DELAYEDRESORTCLC);
-		pcli->pfnSortCLC(hwnd, dat, 1);
-		pcli->pfnInvalidateRect(hwnd, nullptr, FALSE);
+		g_clistApi.pfnSortCLC(hwnd, dat, 1);
+		g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		return 0;
 
 	case TIMERID_RECALCSCROLLBAR:
 		KillTimer(hwnd, TIMERID_RECALCSCROLLBAR);
-		pcli->pfnRecalcScrollBar(hwnd, dat);
+		g_clistApi.pfnRecalcScrollBar(hwnd, dat);
 		return 0;
 
 	default:
@@ -745,7 +751,7 @@ static LRESULT clcOnLButtonDown(ClcData *dat, HWND hwnd, UINT, WPARAM, LPARAM lP
 			ClcGroup *selgroup;
 			ClcContact *selcontact;
 			dat->selection = cliGetRowByIndex(dat, dat->selection, &selcontact, &selgroup);
-			pcli->pfnSetGroupExpand(hwnd, dat, contact->group, -1);
+			g_clistApi.pfnSetGroupExpand(hwnd, dat, contact->group, -1);
 			if (dat->selection != -1) {
 				dat->selection = cliGetRowsPriorTo(&dat->list, selgroup, selgroup->cl.indexOf(selcontact));
 				if (dat->selection == -1)
@@ -767,7 +773,7 @@ static LRESULT clcOnLButtonDown(ClcData *dat, HWND hwnd, UINT, WPARAM, LPARAM lP
 			if (contact->type == CLCIT_GROUP)
 				Clist_SetGroupChildCheckboxes(contact->group, bNewState);
 			else
-				pcli->pfnSetContactCheckboxes(contact, bNewState);
+				g_clistApi.pfnSetContactCheckboxes(contact, bNewState);
 			Clist_RecalculateGroupCheckboxes(dat);
 			cliInvalidateRect(hwnd, nullptr, FALSE);
 
@@ -956,7 +962,7 @@ static LRESULT clcOnMouseMove(ClcData *dat, HWND hwnd, UINT, WPARAM wParam, LPAR
 				if (!contSour->iSubNumber)
 					hNewCursor = LoadCursor(g_hMirApp, MAKEINTRESOURCE(IDC_DROPUSER));  /// Add to meta
 				else
-					hNewCursor = LoadCursor(g_hInst, MAKEINTRESOURCE(IDC_DROPMETA));
+					hNewCursor = LoadCursor(g_plugin.getInst(), MAKEINTRESOURCE(IDC_DROPMETA));
 			}
 			break;
 
@@ -969,9 +975,9 @@ static LRESULT clcOnMouseMove(ClcData *dat, HWND hwnd, UINT, WPARAM wParam, LPAR
 				if (!contSour->iSubNumber)
 					hNewCursor = LoadCursor(g_hMirApp, MAKEINTRESOURCE(IDC_DROPUSER));  /// Add to meta
 				else if (contSour->subcontacts == contDest)
-					hNewCursor = LoadCursor(g_hInst, MAKEINTRESOURCE(IDC_DEFAULTSUB)); ///MakeDefault
+					hNewCursor = LoadCursor(g_plugin.getInst(), MAKEINTRESOURCE(IDC_DEFAULTSUB)); ///MakeDefault
 				else
-					hNewCursor = LoadCursor(g_hInst, MAKEINTRESOURCE(IDC_REGROUP));
+					hNewCursor = LoadCursor(g_plugin.getInst(), MAKEINTRESOURCE(IDC_REGROUP));
 			}
 			break;
 
@@ -986,7 +992,7 @@ static LRESULT clcOnMouseMove(ClcData *dat, HWND hwnd, UINT, WPARAM wParam, LPAR
 				else if (contDest->subcontacts == contSour->subcontacts)
 					break;
 				else
-					hNewCursor = LoadCursor(g_hInst, MAKEINTRESOURCE(IDC_REGROUP));
+					hNewCursor = LoadCursor(g_plugin.getInst(), MAKEINTRESOURCE(IDC_REGROUP));
 			}
 			break;
 
@@ -1203,8 +1209,8 @@ static LRESULT clcOnLButtonUp(ClcData *dat, HWND hwnd, UINT msg, WPARAM wParam, 
 			{
 				BOOL NeedRename = FALSE;
 				wchar_t newName[128] = { 0 };
-				pcli->pfnGetRowByIndex(dat, dat->iDragItem, &contact, &group);
-				int i = pcli->pfnGetRowByIndex(dat, dat->iInsertionMark, &destcontact, &destgroup);
+				g_clistApi.pfnGetRowByIndex(dat, dat->iDragItem, &contact, &group);
+				int i = g_clistApi.pfnGetRowByIndex(dat, dat->iInsertionMark, &destcontact, &destgroup);
 				if (i != -1 && group->groupId != destgroup->groupId) {
 					wchar_t *groupName = mir_wstrdup(Clist_GroupGetName(contact->groupId, nullptr));
 					wchar_t *shortGroup = nullptr;
@@ -1222,7 +1228,7 @@ static LRESULT clcOnLButtonUp(ClcData *dat, HWND hwnd, UINT msg, WPARAM wParam, 
 						if (sourceGrName)
 							mir_snwprintf(newName, L"%s\\%s", sourceGrName, shortGroup);
 						else
-							mir_wstrncpy(newName, shortGroup, _countof(newName));
+							wcsncpy_s(newName, shortGroup, _TRUNCATE);
 					}
 					mir_free(groupName);
 					mir_free(sourceGrName);
@@ -1303,7 +1309,7 @@ static LRESULT clcOnIntmGroupChanged(ClcData *dat, HWND hwnd, UINT, WPARAM wPara
 	Clist_DeleteItemFromTree(hwnd, wParam);
 	if (GetWindowLongPtr(hwnd, GWL_STYLE) & CLS_SHOWHIDDEN || !db_get_b(wParam, "CList", "Hidden", 0)) {
 		NMCLISTCONTROL nm;
-		pcli->pfnAddContactToTree(hwnd, dat, wParam, 1, 1);
+		g_clistApi.pfnAddContactToTree(hwnd, dat, wParam, 1, 1);
 		if (Clist_FindItem(hwnd, dat, wParam, &contact, nullptr, nullptr)) {
 			memcpy(contact->iExtraImage, iExtraImage, sizeof(iExtraImage));
 			if (flags & CONTACTF_CHECKED)
@@ -1339,7 +1345,7 @@ static LRESULT clcOnIntmIconChanged(ClcData *dat, HWND hwnd, UINT, WPARAM wParam
 	DWORD style = GetWindowLongPtr(hwnd, GWL_STYLE);
 	bool isVisiblebyFilter = (((style & CLS_SHOWHIDDEN) && nHiddenStatus != -1) || !nHiddenStatus);
 	bool ifVisibleByClui = !Clist_IsHiddenMode(dat, status);
-	bool isVisible = (g_CluiData.bFilterEffective & CLVM_FILTER_STATUS) ? TRUE : ifVisibleByClui;
+	bool isVisible = (g_CluiData.bFilterEffective & CLVM_FILTER_STATUS) ? true : ifVisibleByClui;
 	bool isIconChanged = Clist_GetContactIcon(wParam) != LOWORD(lParam);
 
 	int shouldShow = isVisiblebyFilter && (isVisible || isIconChanged);
@@ -1350,9 +1356,9 @@ static LRESULT clcOnIntmIconChanged(ClcData *dat, HWND hwnd, UINT, WPARAM wParam
 	ClcContact *contact = nullptr;
 	if (!Clist_FindItem(hwnd, dat, wParam, &contact, &group, nullptr)) {
 		if (shouldShow && db_is_contact(wParam)) {
-			if (dat->selection >= 0 && pcli->pfnGetRowByIndex(dat, dat->selection, &selcontact, nullptr) != -1)
+			if (dat->selection >= 0 && g_clistApi.pfnGetRowByIndex(dat, dat->selection, &selcontact, nullptr) != -1)
 				hSelItem = Clist_ContactToHItem(selcontact);
-			pcli->pfnAddContactToTree(hwnd, dat, wParam, (style & CLS_CONTACTLIST) == 0, 0);
+			g_clistApi.pfnAddContactToTree(hwnd, dat, wParam, (style & CLS_CONTACTLIST) == 0, 0);
 			needRepaint = TRUE;
 			Clist_FindItem(hwnd, dat, wParam, &contact, nullptr, nullptr);
 			if (contact) {
@@ -1372,7 +1378,7 @@ static LRESULT clcOnIntmIconChanged(ClcData *dat, HWND hwnd, UINT, WPARAM wParam
 			shouldShow = TRUE;
 
 		if (!shouldShow && !(style & CLS_NOHIDEOFFLINE) && ((style & CLS_HIDEOFFLINE) || group->hideOffline || g_CluiData.bFilterEffective)) { // CLVM changed
-			if (dat->selection >= 0 && pcli->pfnGetRowByIndex(dat, dat->selection, &selcontact, nullptr) != -1)
+			if (dat->selection >= 0 && g_clistApi.pfnGetRowByIndex(dat, dat->selection, &selcontact, nullptr) != -1)
 				hSelItem = Clist_ContactToHItem(selcontact);
 			Clist_RemoveItemFromGroup(hwnd, group, contact, (style & CLS_CONTACTLIST) == 0);
 			needRepaint = TRUE;
@@ -1396,7 +1402,7 @@ static LRESULT clcOnIntmIconChanged(ClcData *dat, HWND hwnd, UINT, WPARAM wParam
 
 	if (hSelItem) {
 		if (Clist_FindItem(hwnd, dat, hSelItem, &selcontact, &selgroup, nullptr))
-			dat->selection = pcli->pfnGetRowsPriorTo(&dat->list, selgroup, selgroup->cl.indexOf(selcontact));
+			dat->selection = g_clistApi.pfnGetRowsPriorTo(&dat->list, selgroup, selgroup->cl.indexOf(selcontact));
 		else
 			dat->selection = -1;
 	}
@@ -1501,7 +1507,7 @@ static LRESULT clcOnIntmScrollBarChanged(ClcData *dat, HWND hwnd, UINT, WPARAM, 
 		if (dat->bNoVScrollbar)
 			ShowScrollBar(hwnd, SB_VERT, FALSE);
 		else
-			pcli->pfnRecalcScrollBar(hwnd, dat);
+			g_clistApi.pfnRecalcScrollBar(hwnd, dat);
 	}
 	return 0;
 }
@@ -1538,11 +1544,11 @@ static LRESULT clcOnIntmStatusChanged(ClcData *dat, HWND hwnd, UINT msg, WPARAM 
 static LRESULT clcOnIntmReloadOptions(ClcData *dat, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	corecli.pfnContactListControlWndProc(hwnd, msg, wParam, lParam);
-	pcli->pfnLoadClcOptions(hwnd, dat, FALSE);
+	g_clistApi.pfnLoadClcOptions(hwnd, dat, FALSE);
 	Clist_SaveStateAndRebuildList(hwnd, dat);
-	pcli->pfnSortCLC(hwnd, dat, 1);
+	g_clistApi.pfnSortCLC(hwnd, dat, 1);
 	if (IsWindowVisible(hwnd))
-		pcli->pfnInvalidateRect(GetParent(hwnd), nullptr, FALSE);
+		g_clistApi.pfnInvalidateRect(GetParent(hwnd), nullptr, FALSE);
 	return TRUE;
 }
 
@@ -1559,7 +1565,7 @@ static int clcHookModulesLoaded(WPARAM, LPARAM)
 
 	// Get icons
 	wchar_t szMyPath[MAX_PATH];
-	GetModuleFileName(g_hInst, szMyPath, _countof(szMyPath));
+	GetModuleFileName(g_plugin.getInst(), szMyPath, _countof(szMyPath));
 
 	// Menus
 	LoadFavoriteContactMenu();
@@ -1573,14 +1579,14 @@ static int clcHookModulesLoaded(WPARAM, LPARAM)
 	sid.description.a = LPGEN("Listening to");
 	sid.pszName = "LISTENING_TO_ICON";
 	sid.iDefaultIndex = -IDI_LISTENING_TO;
-	IcoLib_AddIcon(&sid);
+	g_plugin.addIcon(&sid);
 
 	sid.section.a = LPGEN("Contact list") "/" LPGEN("Avatar overlay");
 	for (auto &it : g_pAvatarOverlayIcons) {
 		sid.description.a = it.description;
 		sid.pszName = it.name;
 		sid.iDefaultIndex = -it.id;
-		IcoLib_AddIcon(&sid);
+		g_plugin.addIcon(&sid);
 	}
 
 	sid.section.a = LPGEN("Contact list") "/" LPGEN("Status overlay");
@@ -1588,7 +1594,7 @@ static int clcHookModulesLoaded(WPARAM, LPARAM)
 		sid.description.a = it.description;
 		sid.pszName = it.name;
 		sid.iDefaultIndex = -it.id;
-		IcoLib_AddIcon(&sid);
+		g_plugin.addIcon(&sid);
 	}
 
 	clcHookIconsChanged(0, 0);

@@ -27,6 +27,14 @@
 
 #define MODULENAME "TooltipNotify"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 #include "version.h"
 #include "TooltipNotify.h"
 #include "DbHelpers.h"
@@ -34,5 +42,3 @@
 #include "Settings.h"
 #include "resource.h"
 #include "Utils.h"
-
-extern HINSTANCE g_hInstDLL;

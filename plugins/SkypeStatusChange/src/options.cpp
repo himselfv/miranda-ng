@@ -204,7 +204,7 @@ class CImageListWrapper
 {
 public:
 	CImageListWrapper()
-		: m_hImageList(ImageList_LoadImage(g_hModule,MAKEINTRESOURCE(IDB_TREE_STATE),16,0,RGB(255,255,255),IMAGE_BITMAP,LR_DEFAULTCOLOR))
+		: m_hImageList(ImageList_LoadImage(g_plugin.getInst(),MAKEINTRESOURCE(IDB_TREE_STATE),16,0,RGB(255,255,255),IMAGE_BITMAP,LR_DEFAULTCOLOR))
 	{
 	}
 
@@ -299,13 +299,12 @@ static INT_PTR CALLBACK SettingsDlgProc(HWND hdlg,UINT msg,WPARAM wp,LPARAM lp)
 
 int SSC_OptInitialise(WPARAM wp, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 910000000;
-	odp.hInstance = g_hModule;
 	odp.szTitle.a = LPGEN("Change Skype status");
 	odp.szGroup.a = LPGEN("Plugins");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_DIALOG_SETTINGS);
 	odp.pfnDlgProc = SettingsDlgProc;
-	Options_AddPage(wp, &odp);
+	g_plugin.addOptions(wp, &odp);
 	return 0;
 }

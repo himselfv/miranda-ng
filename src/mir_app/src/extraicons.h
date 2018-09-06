@@ -22,13 +22,15 @@ Boston, MA 02111-1307, USA.
 #ifndef __EXTRAICONS_H__
 # define __EXTRAICONS_H__
 
-#define MODULE_NAME "ExtraIcons"
+#define EI_MODULE_NAME "ExtraIcons"
 
 // Global Variables
 
 #define ICON_SIZE 16
 
 #define EXTRAICON_TYPE_GROUP -1
+
+class ExtraIconGroup;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // ExtraIcon - base class for all extra icons
@@ -39,13 +41,21 @@ public:
 	ExtraIcon(const char *name);
 	virtual ~ExtraIcon();
 
+	__forceinline int getID() const { return m_id; }
+	__forceinline void setID(int _id) { m_id = _id; }
+
+	__forceinline ExtraIconGroup* getParent() const { return m_pParent; }
+	__forceinline void setParent(ExtraIconGroup *p) { m_pParent = p; }
+
+	void doApply(MCONTACT hContact);
+	void applyIcons();
+
 	virtual void rebuildIcons() = 0;
-	virtual void applyIcons();
 	virtual void applyIcon(MCONTACT hContact) = 0;
 	virtual void onClick(MCONTACT hContact) = 0;
 
-	virtual int  setIcon(int id, MCONTACT hContact, HANDLE icon) = 0;
-	virtual int  setIconByName(int id, MCONTACT hContact, const char* icon) = 0;
+	virtual int  setIcon(MCONTACT hContact, HANDLE icon) = 0;
+	virtual int  setIconByName(MCONTACT hContact, const char* icon) = 0;
 	virtual void storeIcon(MCONTACT, void*) {};
 
 	virtual const char *getName() const;
@@ -63,13 +73,16 @@ public:
 
 	virtual int ClistSetExtraIcon(MCONTACT hContact, HANDLE hImage) = 0;
 
-	int m_hLangpack;
+	HPLUGIN m_pPlugin = nullptr;
 
 protected:
 	ptrA m_szName;
 
-	int m_slot;
-	int m_position;
+	int m_id = 0;
+	int m_slot = -1;
+	int m_position = 1000;
+
+	ExtraIconGroup *m_pParent = nullptr;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -78,15 +91,14 @@ protected:
 class BaseExtraIcon : public ExtraIcon
 {
 public:
-	BaseExtraIcon(int id, const char *name, const wchar_t *description, const char *descIcon, MIRANDAHOOKPARAM OnClick, LPARAM param);
+	BaseExtraIcon(const char *name, const wchar_t *description, const char *descIcon, MIRANDAHOOKPARAM OnClick, LPARAM param);
 	virtual ~BaseExtraIcon();
 
-	virtual int getID() const;
-	virtual const wchar_t *getDescription() const;
+	virtual const wchar_t* getDescription() const;
 	virtual void setDescription(const wchar_t *desc);
-	virtual const char *getDescIcon() const;
+	virtual const char* getDescIcon() const;
 	virtual void setDescIcon(const char *icon);
-	virtual int getType() const =0;
+	virtual int getType() const = 0;
 
 	virtual void onClick(MCONTACT hContact);
 	virtual void setOnClick(MIRANDAHOOKPARAM OnClick, LPARAM param);
@@ -94,7 +106,6 @@ public:
 	virtual int ClistSetExtraIcon(MCONTACT hContact, HANDLE hImage);
 
 protected:
-	int m_id;
 	ptrW m_tszDescription;
 	ptrA m_szDescIcon;
 	MIRANDAHOOKPARAM m_OnClick;
@@ -107,7 +118,7 @@ protected:
 class CallbackExtraIcon : public BaseExtraIcon
 {
 public:
-	CallbackExtraIcon(int id, const char *name, const wchar_t *description, const char *descIcon,
+	CallbackExtraIcon(const char *name, const wchar_t *description, const char *descIcon,
 			MIRANDAHOOK RebuildIcons, MIRANDAHOOK ApplyIcon, MIRANDAHOOKPARAM OnClick, LPARAM param);
 	virtual ~CallbackExtraIcon();
 
@@ -116,8 +127,8 @@ public:
 	virtual void rebuildIcons();
 	virtual void applyIcon(MCONTACT hContact);
 
-	virtual int  setIcon(int id, MCONTACT hContact, HANDLE icon);
-	virtual int  setIconByName(int id, MCONTACT hContact, const char* icon);
+	virtual int  setIcon(MCONTACT hContact, HANDLE icon);
+	virtual int  setIconByName(MCONTACT hContact, const char* icon);
 
 private:
 	int (*m_pfnRebuildIcons)(WPARAM wParam, LPARAM lParam);
@@ -132,7 +143,7 @@ private:
 class IcolibExtraIcon : public BaseExtraIcon
 {
 public:
-	IcolibExtraIcon(int id, const char *name, const wchar_t *description, const char *descIcon, MIRANDAHOOKPARAM OnClick, LPARAM param);
+	IcolibExtraIcon(const char *name, const wchar_t *description, const char *descIcon, MIRANDAHOOKPARAM OnClick, LPARAM param);
 	virtual ~IcolibExtraIcon();
 
 	virtual int getType() const;
@@ -140,8 +151,8 @@ public:
 	virtual void rebuildIcons();
 	virtual void applyIcon(MCONTACT hContact);
 
-	virtual int  setIcon(int id, MCONTACT hContact, HANDLE icon);
-	virtual int  setIconByName(int id, MCONTACT hContact, const char* icon);
+	virtual int  setIcon(MCONTACT hContact, HANDLE icon);
+	virtual int  setIconByName(MCONTACT hContact, const char* icon);
 	virtual void storeIcon(MCONTACT hContact, void *icon);
 };
 
@@ -150,7 +161,6 @@ public:
 
 class ExtraIconGroup : public ExtraIcon
 {
-	int  internalSetIcon(int id, MCONTACT hContact, HANDLE icon, bool bByName);
 public:
 	ExtraIconGroup(const char *name);
 	virtual ~ExtraIconGroup();
@@ -161,8 +171,8 @@ public:
 	virtual void applyIcon(MCONTACT hContact);
 	virtual void onClick(MCONTACT hContact);
 
-	virtual int  setIcon(int id, MCONTACT hContact, HANDLE icon);
-	virtual int  setIconByName(int id, MCONTACT hContact, const char *icon);
+	virtual int  setIcon(MCONTACT hContact, HANDLE icon);
+	virtual int  setIconByName(MCONTACT hContact, const char *icon);
 
 	virtual const wchar_t* getDescription() const;
 	virtual const char* getDescIcon() const;
@@ -175,22 +185,24 @@ public:
 
 	virtual int ClistSetExtraIcon(MCONTACT hContact, HANDLE hImage);
 
+	int internalSetIcon(ExtraIcon *pChild, MCONTACT hContact, HANDLE icon, bool bByName);
+
 protected:
 	ptrW m_tszDescription;
-	bool m_setValidExtraIcon;
-	bool m_insideApply;
-
-	virtual ExtraIcon *getCurrentItem(MCONTACT hContact) const;
+	bool m_setValidExtraIcon = false;
+	bool m_insideApply = false;
+	
+	ExtraIcon *m_pCurrentItem = nullptr;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
 extern LIST<BaseExtraIcon> registeredExtraIcons;
-extern LIST<ExtraIcon> extraIconsByHandle, extraIconsBySlot;
 void RebuildListsBasedOnGroups(LIST<ExtraIconGroup> &groups);
-ExtraIcon * GetExtraIconBySlot(int slot);
+extern LIST<ExtraIcon> extraIconsBySlot;
 
-int GetNumberOfSlots();
+void eiOptionsRefresh(void);
+
 int ConvertToClistSlot(int slot);
 
 int Clist_SetExtraIcon(MCONTACT hContact, int slot, HANDLE hImage);

@@ -38,7 +38,7 @@ class CAuthReqDlg : public CDlgBase
 
 public:
 	CAuthReqDlg(MEVENT hEvent) :
-		CDlgBase(g_hInst, IDD_AUTHREQ),
+		CDlgBase(g_plugin, IDD_AUTHREQ),
 		m_hDbEvent(hEvent),
 		btnOk(this, IDOK),
 		btnCancel(this, IDCANCEL),
@@ -52,21 +52,21 @@ public:
 		btnDetails.OnClick = Callback(this, &CAuthReqDlg::onClick_Details);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		Button_SetIcon_IcoLib(m_hwnd, IDC_DETAILS, SKINICON_OTHER_USERDETAILS, LPGEN("View user's details"));
 		Button_SetIcon_IcoLib(m_hwnd, IDC_ADD, SKINICON_OTHER_ADDCONTACT, LPGEN("Add contact permanently to list"));
 
 		int iBlobSize = db_event_getBlobSize(m_hDbEvent);
 		if (iBlobSize == -1)
-			return;
+			return false;
 
 		// blob is: uin(DWORD), hcontact(DWORD), nick(ASCIIZ), first(ASCIIZ), last(ASCIIZ), email(ASCIIZ), reason(ASCIIZ)
 		DBEVENTINFO dbei = {};
 		dbei.cbBlob = iBlobSize;
 		dbei.pBlob = (PBYTE)alloca(dbei.cbBlob);
 		if (db_event_get(m_hDbEvent, &dbei))
-			return;
+			return false;
 
 		m_szProto = dbei.szModule;
 
@@ -81,11 +81,11 @@ public:
 		SendMessage(m_hwnd, WM_SETICON, ICON_SMALL, CallProtoService(dbei.szModule, PS_LOADICON, PLI_PROTOCOL | PLIF_SMALL, 0));
 		SendMessage(m_hwnd, WM_SETICON, ICON_BIG, CallProtoService(dbei.szModule, PS_LOADICON, PLI_PROTOCOL | PLIF_LARGE, 0));
 
-		ptrW lastT(dbei.flags & DBEF_UTF ? Utf8DecodeW(last) : mir_a2u(last));
-		ptrW firstT(dbei.flags & DBEF_UTF ? Utf8DecodeW(first) : mir_a2u(first));
-		ptrW nickT(dbei.flags & DBEF_UTF ? Utf8DecodeW(nick) : mir_a2u(nick));
-		ptrW emailT(dbei.flags & DBEF_UTF ? Utf8DecodeW(email) : mir_a2u(email));
-		ptrW reasonT(dbei.flags & DBEF_UTF ? Utf8DecodeW(reason) : mir_a2u(reason));
+		ptrW lastT(dbei.flags & DBEF_UTF ? mir_utf8decodeW(last) : mir_a2u(last));
+		ptrW firstT(dbei.flags & DBEF_UTF ? mir_utf8decodeW(first) : mir_a2u(first));
+		ptrW nickT(dbei.flags & DBEF_UTF ? mir_utf8decodeW(nick) : mir_a2u(nick));
+		ptrW emailT(dbei.flags & DBEF_UTF ? mir_utf8decodeW(email) : mir_a2u(email));
+		ptrW reasonT(dbei.flags & DBEF_UTF ? mir_utf8decodeW(reason) : mir_a2u(reason));
 
 		wchar_t name[128] = L"";
 		int off = 0;
@@ -131,9 +131,10 @@ public:
 			chkAdd.SetState(false);
 		}
 		else chkAdd.SetState(true);
+		return true;
 	}
 
-	virtual void OnDestroy() override
+	void OnDestroy() override
 	{
 		Button_FreeIcon_IcoLib(m_hwnd, IDC_ADD);
 		Button_FreeIcon_IcoLib(m_hwnd, IDC_DETAILS);
@@ -187,7 +188,7 @@ class CAddedDlg : public CDlgBase
 
 public:
 	CAddedDlg(MEVENT hEvent) :
-		CDlgBase(g_hInst, IDD_ADDED),
+		CDlgBase(g_plugin, IDD_ADDED),
 		m_hDbEvent(hEvent),
 		btnOk(this, IDOK),
 		btnAdd(this, IDC_ADD),
@@ -198,7 +199,7 @@ public:
 		btnDetails.OnClick = Callback(this, &CAddedDlg::onClick_Details);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		Button_SetIcon_IcoLib(m_hwnd, IDC_DETAILS, SKINICON_OTHER_USERDETAILS, LPGEN("View user's details"));
 		Button_SetIcon_IcoLib(m_hwnd, IDC_ADD, SKINICON_OTHER_ADDCONTACT, LPGEN("Add contact permanently to list"));
@@ -222,10 +223,10 @@ public:
 
 		PROTOACCOUNT* acc = Proto_GetAccount(dbei.szModule);
 
-		ptrW lastT(dbei.flags & DBEF_UTF ? Utf8DecodeW(last) : mir_a2u(last));
-		ptrW firstT(dbei.flags & DBEF_UTF ? Utf8DecodeW(first) : mir_a2u(first));
-		ptrW nickT(dbei.flags & DBEF_UTF ? Utf8DecodeW(nick) : mir_a2u(nick));
-		ptrW emailT(dbei.flags & DBEF_UTF ? Utf8DecodeW(email) : mir_a2u(email));
+		ptrW lastT(dbei.flags & DBEF_UTF ? mir_utf8decodeW(last) : mir_a2u(last));
+		ptrW firstT(dbei.flags & DBEF_UTF ? mir_utf8decodeW(first) : mir_a2u(first));
+		ptrW nickT(dbei.flags & DBEF_UTF ? mir_utf8decodeW(nick) : mir_a2u(nick));
+		ptrW emailT(dbei.flags & DBEF_UTF ? mir_utf8decodeW(email) : mir_a2u(email));
 
 		wchar_t name[128] = L"";
 		int off = 0;
@@ -255,9 +256,10 @@ public:
 
 		if (m_hContact == INVALID_CONTACT_ID || !db_get_b(m_hContact, "CList", "NotOnList", 0))
 			ShowWindow(GetDlgItem(m_hwnd, IDC_ADD), FALSE);
+		return true;
 	}
 			
-	virtual void OnDestroy() override
+	void OnDestroy() override
 	{
 		Button_FreeIcon_IcoLib(m_hwnd, IDC_ADD);
 		Button_FreeIcon_IcoLib(m_hwnd, IDC_DETAILS);
@@ -329,7 +331,7 @@ static int AuthEventAdded(WPARAM, LPARAM lParam)
 
 		cle.hIcon = Skin_LoadIcon(SKINICON_AUTH_REQUEST);
 		cle.pszService = MS_AUTH_SHOWREQUEST;
-		cli.pfnAddEvent(&cle);
+		g_clistApi.pfnAddEvent(&cle);
 	}
 	else if (dbei.eventType == EVENTTYPE_ADDED) {
 		Skin_PlaySound("AddedEvent");
@@ -340,7 +342,7 @@ static int AuthEventAdded(WPARAM, LPARAM lParam)
 
 		cle.hIcon = Skin_LoadIcon(SKINICON_AUTH_ADD);
 		cle.pszService = MS_AUTH_SHOWADDED;
-		cli.pfnAddEvent(&cle);
+		g_clistApi.pfnAddEvent(&cle);
 	}
 	return 0;
 }
@@ -356,7 +358,7 @@ int LoadSendRecvAuthModule(void)
 	CreateServiceFunction(MS_AUTH_SHOWADDED, ShowAddedWindow);
 	Miranda_WaitOnHandle(LaunchAuth);
 
-	Skin_AddSound("AuthRequest", LPGENW("Alerts"), LPGENW("Authorization request"));
-	Skin_AddSound("AddedEvent", LPGENW("Alerts"), LPGENW("Added event"));
+	g_plugin.addSound("AuthRequest", LPGENW("Alerts"), LPGENW("Authorization request"));
+	g_plugin.addSound("AddedEvent", LPGENW("Alerts"), LPGENW("Added event"));
 	return 0;
 }

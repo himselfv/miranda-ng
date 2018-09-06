@@ -2,7 +2,7 @@
 ;============================================================
 ;  File: MSN.dll
 ;  Plugin: MSN protocol
-;  Version: 0.14.0.2
+;  Version: 0.95.9.1
 ;  Authors: Boris Krasnovskiy, George Hazan, Richard Hughes, leecher
 ;============================================================
 [Microsoft Network (MSN) protocol support for Miranda NG.]
@@ -101,8 +101,8 @@
 [Setup Live &Alerts]
 ;file \protocols\MSN\src\msn_misc.cpp
 [Custom Smileys]
-[Notify]
-[Error]
+[Notifications]
+[Errors]
 [MSN Protocol]
 ;file \protocols\MSN\src\msn_opts.cpp
 [Protocol icon]
@@ -129,7 +129,6 @@
 [Account]
 [Connection]
 [Server list]
-[Notifications]
 ;file \protocols\MSN\src\msn_proto.cpp
 [Live Mail]
 [Live Alert]

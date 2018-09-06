@@ -24,20 +24,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-extern "C"
-{
-	MIR_CORE_DLL(int) Langpack_MarkPluginLoaded(const MUUID &uuid);
-	MIR_CORE_DLL(MUUID*) Langpack_LookupUuid(WPARAM wParam);
-};
-
 void UnloadLangPackModule(void);
 
 int  InitialiseModularEngine(void);
 void DestroyModularEngine(void);
 
 int  InitPathUtils(void);
-
-HINSTANCE ProtoGetInstance(const char *szModuleName);
 
 extern HINSTANCE g_hInst;
 extern HWND hAPCWindow;
@@ -83,13 +75,12 @@ struct THook
 	CRITICAL_SECTION csHook;
 };
 
-extern LIST<HINSTANCE__> pluginListAddr;
+extern LIST<CMPluginBase> pluginListAddr;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // langpack.cpp
 
-char*  LangPackTranslateString(MUUID* pUuid, const char *szEnglish, const int W);
-wchar_t* LangPackTranslateStringT(int hLangpack, const wchar_t* tszEnglish);
+char* LangPackTranslateString(const MUUID *pUuid, const char *szEnglish, const int W);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // threads.cpp

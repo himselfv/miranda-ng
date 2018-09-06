@@ -273,7 +273,7 @@ void CSendLater::processContacts()
 // @return 	0 on failure, 1 otherwise
 int CSendLater::addJob(const char *szSetting, void *lParam)
 {
-	MCONTACT	hContact = (MCONTACT)lParam;
+	MCONTACT	hContact = (UINT_PTR)lParam;
 	DBVARIANT dbv = { 0 };
 	char *szOrig_Utf = nullptr;
 
@@ -693,7 +693,7 @@ INT_PTR CALLBACK CSendLater::DlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 		if (((LPNMHDR)lParam)->hwndFrom == m_hwndList) {
 			switch (((LPNMHDR)lParam)->code) {
 			case NM_RCLICK:
-				HMENU hMenu = ::LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_TABCONTEXT));
+				HMENU hMenu = ::LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_TABCONTEXT));
 				HMENU hSubMenu = ::GetSubMenu(hMenu, 9);
 				::TranslateMenu(hSubMenu);
 
@@ -829,7 +829,7 @@ INT_PTR CALLBACK CSendLater::DlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 void CSendLater::invokeQueueMgrDlg()
 {
 	if (m_hwndDlg == nullptr)
-		m_hwndDlg = ::CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_SENDLATER_QMGR), nullptr, CSendLater::DlgProcStub, LPARAM(this));
+		m_hwndDlg = ::CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_SENDLATER_QMGR), nullptr, CSendLater::DlgProcStub, LPARAM(this));
 }
 
 // service function to invoke the queue manager

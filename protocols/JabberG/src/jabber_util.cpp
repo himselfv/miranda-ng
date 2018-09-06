@@ -452,9 +452,13 @@ void CJabberProto::SendPresenceTo(int status, const wchar_t* to, HXML extra, con
 	if (m_bEnableAvatars) {
 		HXML x = p << XCHILDNS(L"x", L"vcard-temp:x:update");
 
-		ptrA hashValue(getStringA("AvatarHash"));
+		ptrW vcardHash(getWStringA("VCardHash"));
+		if (vcardHash != nullptr)
+			x << XATTR(L"vcard", vcardHash);
+
+		ptrW hashValue(getWStringA("AvatarHash"));
 		if (hashValue != nullptr) // XEP-0153: vCard-Based Avatars
-			x << XCHILD(L"photo", _A2T(hashValue));
+			x << XCHILD(L"photo", hashValue);
 		else
 			x << XCHILD(L"photo");
 	}
@@ -585,18 +589,6 @@ wchar_t* __stdcall JabberStripJid(const wchar_t *jid, wchar_t *dest, size_t dest
 	}
 
 	return dest;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-// JabberGetPictureType - tries to autodetect the picture type from the buffer
-
-const wchar_t *__stdcall JabberGetPictureType(HXML node, const char *picBuf)
-{
-	if (const wchar_t *ptszType = XmlGetText(XmlGetChild(node, "TYPE")))
-		if (ProtoGetAvatarFormatByMimeType(ptszType) != PA_FORMAT_UNKNOWN)
-			return ptszType;
-
-	return ProtoGetAvatarMimeType(ProtoGetBufferFormat(picBuf));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

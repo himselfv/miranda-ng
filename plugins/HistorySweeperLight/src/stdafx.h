@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define __HISTORYSWEEPERLIGHT_H__
 
 #if !defined( _WIN64 )
-	#define _USE_32BIT_TIME_T
+#define _USE_32BIT_TIME_T
 #endif
 
 #include <windows.h>
@@ -44,8 +44,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // Plugin name
 #define ModuleName "History Sweeper Light"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 // main.c
-extern HINSTANCE hInst;
 extern LIST<void> g_hWindows;
 
 // options.c

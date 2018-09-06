@@ -2,11 +2,12 @@
 ;============================================================
 ;  File: Fingerprint.dll
 ;  Plugin: Fingerprint NG
-;  Version: 0.1.0.0
+;  Version: 0.2.0.1
 ;  Authors: faith_healer, ghazan, Mataes
 ;============================================================
 [Fingerprint NG (client version) icons module for Miranda NG.]
 Показує значки клієнтів, використовуваних вашими співрозмовниками.
+;file \plugins\FingerprintNG\res\resource.rc
 [Fingerprint overlays icons]
 Оверлеї значків клієнтів
 [Miranda clients]
@@ -27,6 +28,8 @@
 Оверлеї шифрування
 [Select protocols]
 Протоколи
+[Facebook clients]
+Клієнти Facebook
 [Gadu-Gadu clients]
 Клієнти Gadu-Gadu
 [ICQ clients]
@@ -43,14 +46,10 @@
 Клієнти QQ
 [RSS clients]
 Клієнти RSS
-[Weather clients]
-Клієнти погоди
-[Yahoo clients]
-Клієнти Yahoo
-[Facebook clients]
-Клієнти Facebook
 [VKontakte clients]
 Клієнти ВКонтакті
+[Weather clients]
+Клієнти погоди
 [Multi-protocol clients]
 Мультипротокольні клієнти
 [Other (rare) protocols]
@@ -59,8 +58,10 @@
 Інші значки
 [Show client icon in message window status bar]
 Показувати значок клієнта на панелі статусу вікна повідомлень
+;file \plugins\FingerprintNG\src\fingerprint.cpp
 [Fingerprint]
 Значки клієнтів
+;file \plugins\FingerprintNG\src\finger_groups.h
 [Client icons]
 Клієнти
 [Pack overlays]
@@ -79,6 +80,7 @@
 Безпека
 [Protocol]
 Протокол
+;file \plugins\FingerprintNG\src\masks.cpp
 [Miranda NG stable]
 Стабільна Miranda NG
 [Miranda IM (old versions)]
@@ -127,8 +129,6 @@ TM 2008 і вище
 Оверлей MSN
 [QQ overlay]
 Оверлей QQ
-[Yahoo overlay]
-Оверлей Yahoo
 [Mail.Ru Agent overlay]
 Оверлей Mail.Ru Agent
 [VK overlay]
@@ -147,12 +147,6 @@ TM 2008 і вище
 Оверлей ICQ v7.x
 [ICQ v8.x overlay]
 Оверлей ICQ v8.x
-[Yahoo v11.x overlay]
-Оверлей Yahoo v11.x
-[Yahoo v10.x overlay]
-Оверлей Yahoo v10.x
-[Yahoo v9.x overlay]
-Оверлей Yahoo v9.x
 [Gadu-Gadu v11 client]
 Gadu-Gadu v11 клієнт
 [Gadu-Gadu v10 client]
@@ -259,5 +253,6 @@ Gadu-Gadu v8 клієнт
 Оверлей MirOTR
 [SecureIM overlay]
 Оверлей SecureIM
+;file \plugins\FingerprintNG\src\options.cpp
 [Icons]
 Значки

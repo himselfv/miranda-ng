@@ -45,9 +45,16 @@
 #include "options.h"
 #include "version.h"
 
-#define MODULE_NAME     "BuddyExpectator"
+#define MODULENAME     "BuddyExpectator"
 
-extern HINSTANCE hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 extern HANDLE hExtraIcon;
 
 void CALLBACK TimerProc(HWND, UINT, UINT_PTR, DWORD);

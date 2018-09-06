@@ -27,7 +27,6 @@ Skin_GetIconName           @24
 ??0CProtoIntDlgBase@@QAE@PAUPROTO_INTERFACE@@H@Z @26 NONAME
 ??0PROTO_INTERFACE@@QAE@ABU0@@Z @27 NONAME
 ??1CProtoIntDlgBase@@UAE@XZ @29 NONAME
-??4CProtoIntDlgBase@@QAEAAV0@ABV0@@Z @30 NONAME
 ??4PROTO_INTERFACE@@QAEAAU0@ABU0@@Z @31 NONAME
 ??_7CProtoIntDlgBase@@6B@ @32 NONAME
 ??_7PROTO_INTERFACE@@6B@ @33 NONAME
@@ -105,7 +104,6 @@ Skin_GetIconName           @24
 ?setWString@PROTO_INTERFACE@@QAEXPBDPB_W@Z @107 NONAME
 ?setWord@PROTO_INTERFACE@@QAEXIPBDG@Z @108 NONAME
 ?setWord@PROTO_INTERFACE@@QAEXPBDG@Z @109 NONAME
-GetPluginLangByInstance @110
 ProtoBroadcastAck @111
 ProtoCreateHookableEvent @113
 ProtoCreateService @114
@@ -282,7 +280,7 @@ Profile_GetPathW @293
 Profile_SetDefault @294
 FindDatabasePlugin @296
 RegisterDatabasePlugin @298
-Chat_GetInterface @299
+Chat_CustomizeApi @299
 Chat_Event @300 
 Chat_GetInfo @301 
 Chat_NewSession @302 
@@ -384,7 +382,7 @@ Chat_UnescapeTags @399 NONAME
 ProtoGetAvatarFormatByMimeType @400
 ProtoGetAvatarMimeType @401
 ?set_uin@DB_AUTH_BLOB@@QAEXK@Z @402 NONAME
-??0CSrmmBaseDialog@@IAE@PAUHINSTANCE__@@HPAUSESSION_INFO@@@Z @403 NONAME
+??0CSrmmBaseDialog@@IAE@AAVCMPluginBase@@HPAUSESSION_INFO@@@Z @403 NONAME
 ??1CSrmmBaseDialog@@UAE@XZ @405 NONAME
 ??_7CSrmmBaseDialog@@6B@ @407 NONAME
 ?DlgProc@CSrmmBaseDialog@@MAEHIIJ@Z @408 NONAME
@@ -401,7 +399,7 @@ Chat_UpdateOptions @418 NONAME
 ?UpdateOptions@CSrmmBaseDialog@@UAEXXZ @420 NONAME
 ?ShowColorChooser@CSrmmBaseDialog@@QAEXH@Z @421 NONAME
 ?ShowFilterMenu@CSrmmBaseDialog@@UAEXXZ @422 NONAME
-?OnInitDialog@CSrmmBaseDialog@@MAEXXZ @423 NONAME
+?OnInitDialog@CSrmmBaseDialog@@MAE_NXZ @423 NONAME
 ?StreamInEvents@CSrmmBaseDialog@@UAEXPAULOGINFO@@_N@Z @424 NONAME
 ?AddLog@CSrmmBaseDialog@@UAEXXZ @425 NONAME
 ?RedrawLog2@CSrmmBaseDialog@@QAEXXZ @426 NONAME
@@ -438,19 +436,15 @@ Hotkey_Unsubclass @457
 Hotkey_Check @458
 ?SetStatusText@CSrmmBaseDialog@@UAEXPB_WPAUHICON__@@@Z @459 NONAME
 Srmm_SetStatusText @460
-Skin_AddSound @461
 Skin_PlaySound @462
 Skin_PlaySoundFile @463
 Clist_SetStatusMode @464
 ??0CProtoIntDlgBase@@QAE@$$QAV0@@Z @465 NONAME
 ??0MDatabaseCommon@@QAE@XZ @466 NONAME
-??0MDatabaseCommon@@QAE@ABV0@@Z @468 NONAME
 ??0MIDatabase@@QAE@$$QAU0@@Z @469 NONAME
 ??0MIDatabase@@QAE@ABU0@@Z @470 NONAME
 ??0MIDatabase@@QAE@XZ @471 NONAME
 ??1MDatabaseCommon@@UAE@XZ @472 NONAME
-??4CProtoIntDlgBase@@QAEAAV0@$$QAV0@@Z @474 NONAME
-??4MDatabaseCommon@@QAEAAV0@ABV0@@Z @476 NONAME
 ??4MIDatabase@@QAEAAU0@$$QAU0@@Z @477 NONAME
 ??4MIDatabase@@QAEAAU0@ABU0@@Z @478 NONAME
 ??_7MDatabaseCommon@@6B@ @480 NONAME
@@ -486,9 +480,8 @@ GetDatabasePlugin @508
 SetServiceModePlugin @510
 Proto_CreateAccount @511
 Proto_GetAverageStatus @512
-??0CMPluginBase@@IAE@PBD@Z @513 NONAME
+??0CMPluginBase@@IAE@PBDABUPLUGININFOEX@@@Z @513 NONAME
 ??1CMPluginBase@@IAE@XZ @514 NONAME
-??4CMPluginBase@@QAEAAV0@ABV0@@Z @515 NONAME
 ?debugLogA@CMPluginBase@@QAAXPBDZZ @516 NONAME
 ?debugLogW@CMPluginBase@@QAAXPB_WZZ @517 NONAME
 ?delSetting@CMPluginBase@@QAEHIPBD@Z @518 NONAME
@@ -523,7 +516,6 @@ Proto_GetAverageStatus @512
 ?RegisterProtocol@CMPluginBase@@IAEXHP6APAUPROTO_INTERFACE@@PBDPB_W@ZP6AHPAU2@@Z@Z @547 NONAME
 Proto_GetUniqueId @548
 Proto_SetUniqueId @549
-??4PROTOACCOUNT@@QAEAAU0@$$QAU0@@Z @550 NONAME
 ??4PROTOACCOUNT@@QAEAAU0@ABU0@@Z @551 NONAME
 ?IsEnabled@PROTOACCOUNT@@QBE_NXZ @552 NONAME
 ?IsLocked@PROTOACCOUNT@@QBE_NXZ @553 NONAME
@@ -594,3 +586,67 @@ Contact_GetStatus @609
 ?getMStringW@CMPluginBase@@QAE?AV?$CMStringT@_WV?$ChTraitsCRT@_W@@@@PBD@Z @618 NONAME
 ?getMStringW@PROTO_INTERFACE@@QAE?AV?$CMStringT@_WV?$ChTraitsCRT@_W@@@@IPBD@Z @619 NONAME
 ?getMStringW@PROTO_INTERFACE@@QAE?AV?$CMStringT@_WV?$ChTraitsCRT@_W@@@@PBD@Z @620 NONAME
+??0PROTOACCOUNT@@QAE@PBD@Z @621 NONAME
+??1PROTOACCOUNT@@QAE@XZ @622 NONAME
+?addSound@CMPluginBase@@QAEHPBDPB_W11@Z @623 NONAME
+GetInstByAddress @625
+GetPluginByInstance @626
+?addUserInfo@CMPluginBase@@QAEHIPAUOPTIONSDIALOGPAGE@@@Z @627 NONAME
+?addOptions@CMPluginBase@@QAEHIPAUOPTIONSDIALOGPAGE@@@Z @628 NONAME
+?openOptions@CMPluginBase@@QAEXPB_W00@Z @629 NONAME
+?openOptionsPage@CMPluginBase@@QAEXPB_W00@Z @630 NONAME
+?getInfo@CMPluginBase@@QBEABUPLUGININFOEX@@XZ @631 NONAME
+RegisterPlugin @632
+UnregisterPlugin @633
+?addHotkey@CMPluginBase@@QAEHPBUHOTKEYDESC@@@Z @634 NONAME
+?addIcon@CMPluginBase@@QAEPAXPBUSKINICONDESC@@@Z @635 NONAME
+?addRootMenu@CMPluginBase@@QAEPAUTMO_IntMenuItem@@HPB_WHPAX@Z @636 NONAME
+?addColor@CMPluginBase@@QAEHPAUColourID@@@Z @637 NONAME
+?addColor@CMPluginBase@@QAEHPAUColourIDW@@@Z @638 NONAME
+?addEffect@CMPluginBase@@QAEHPAUEffectID@@@Z @639 NONAME
+?addEffect@CMPluginBase@@QAEHPAUEffectIDW@@@Z @640 NONAME
+?addFont@CMPluginBase@@QAEHPAUFontID@@@Z @641 NONAME
+?addFont@CMPluginBase@@QAEHPAUFontIDW@@@Z @642 NONAME
+?addTTB@CMPluginBase@@QAEPAXPBUTTBButton@@@Z @643 NONAME
+?g_clistApi@@3UCLIST_INTERFACE@@A @644 NONAME
+?g_chatApi@@3UCHAT_MANAGER@@A @645 NONAME
+??_7CMPluginBase@@6B@ @646 NONAME
+?Load@CMPluginBase@@UAEHXZ @647 NONAME
+?Unload@CMPluginBase@@UAEHXZ @648 NONAME
+Srmm_ClickStatusIcon @649
+?getModule@CMPluginBase@@QBEPBDXZ @650 NONAME
+?LockName@MDatabaseCommon@@IAE_NPB_W@Z @651 NONAME
+?UnlockName@MDatabaseCommon@@IAEXXZ @652 NONAME
+Profile_CheckOpened @653
+Idle_Enter @654 NONAME
+Idle_GetInfo @655 NONAME
+Profile_GetSetting @656
+Profile_GetSettingInt @657
+Netlib_GetUserSettingsByName @658
+Netlib_SetUserSettingsByName @659
+?Backup@MDatabaseCommon@@UAGHPB_W@Z @660 NONAME
+?addFrame@CMPluginBase@@QAEHPBUCLISTFrame@@@Z @661 NONAME
+Menu_SetVisible @662
+Miranda_WaitOnHandleEx @663
+??1MDatabaseReadonly@@UAE@XZ @664 NONAME
+?AddContact@MDatabaseReadonly@@UAGIXZ @665 NONAME
+?AddEvent@MDatabaseReadonly@@UAGIIPAUDBEVENTINFO@@@Z @666 NONAME
+?DeleteContact@MDatabaseReadonly@@UAGJI@Z @667 NONAME
+?DeleteContactSetting@MDatabaseReadonly@@UAGHIPBD0@Z @668 NONAME
+?DeleteEvent@MDatabaseReadonly@@UAGHII@Z @669 NONAME
+?EnumContactSettings@MDatabaseReadonly@@UAGHIP6AHPBDPAX@Z01@Z @670 NONAME
+?EnumModuleNames@MDatabaseReadonly@@UAGHP6AHPBDPAX@Z1@Z @671 NONAME
+?FindFirstUnreadEvent@MDatabaseReadonly@@UAGII@Z @672 NONAME
+?GetBlobSize@MDatabaseReadonly@@UAGJI@Z @673 NONAME
+?GetContactSettingWorker@MDatabaseReadonly@@UAGHIPBD0PAUDBVARIANT@@H@Z @674 NONAME
+?GetContactSize@MDatabaseReadonly@@UAGJXZ @675 NONAME
+?GetEventContact@MDatabaseReadonly@@UAGII@Z @676 NONAME
+?IsDbContact@MDatabaseReadonly@@UAGHI@Z @677 NONAME
+?IsRelational@MDatabaseReadonly@@UAGHXZ @678 NONAME
+?MarkEventRead@MDatabaseReadonly@@UAGHII@Z @679 NONAME
+?MetaMergeHistory@MDatabaseReadonly@@UAGHPAUDBCachedContact@@0@Z @680 NONAME
+?MetaSplitHistory@MDatabaseReadonly@@UAGHPAUDBCachedContact@@0@Z @681 NONAME
+?SetCacheSafetyMode@MDatabaseReadonly@@UAGXH@Z @682 NONAME
+?WriteContactSetting@MDatabaseReadonly@@UAGHIPAUDBCONTACTWRITESETTING@@@Z @683 NONAME
+??0MDatabaseReadonly@@QAE@XZ @684 NONAME
+??_7MDatabaseReadonly@@6B@ @685 NONAME

@@ -21,9 +21,15 @@
 #include "resource.h"
 #include "version.h"
 
-extern HINSTANCE hInst;
+#define MODULENAME "NotifyAnything"
 
-const char PlugName[] = "NotifyAnything";
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 //---------------------------
 //---Internal Hooks (see main.c)

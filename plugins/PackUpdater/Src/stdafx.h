@@ -45,11 +45,19 @@ Boston, MA 02111-1307, USA.
 #include "resource.h"
 #include "Notifications.h"
 
-#define MODNAME					"PackUpdater"
-#define MODULEA					"Pack Updater"
-#define MODULE					L"Pack Updater"
+#define MODULENAME "PackUpdater"
+#define MODULEA "Pack Updater"
+#define MODULE L"Pack Updater"
 #define DEFAULT_UPDATES_FOLDER	L"Pack Updates"
 typedef std::wstring tString;
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 struct FILEURL
 {
@@ -89,7 +97,6 @@ struct FILEINFO
 using std::wstring;
 using namespace std;
 
-extern HINSTANCE hInst;
 extern INT FileCount, CurrentFile, Number, UpdatesCount, Period;
 extern BOOL Silent, DlgDld;
 extern BYTE Reminder, UpdateOnStartup, UpdateOnPeriod, OnlyOnceADay, PeriodMeasure;

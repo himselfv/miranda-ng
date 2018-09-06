@@ -18,8 +18,7 @@
 
 #include "stdafx.h"
 
-HINSTANCE hInstance = nullptr;
-int hLangpack = 0;
+CMPlugin g_plugin;
 
 MWindowList hInternalWindowList = nullptr;
 
@@ -27,7 +26,7 @@ MWindowList hInternalWindowList = nullptr;
 // Remember to update the Version in the resource !!!
 /////////////////////////////////////////////////////
 
-PLUGININFOEX pluginInfo = {
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -40,6 +39,9 @@ PLUGININFOEX pluginInfo = {
 	{ 0x46102b07, 0xc215, 0x4162, { 0x9c, 0x83, 0xd3, 0x77, 0x88, 0x1d, 0xa7, 0xcc } }
 };
 
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////
 // Member Function : ShowExportHistory
@@ -57,12 +59,10 @@ PLUGININFOEX pluginInfo = {
 
 static INT_PTR ShowExportHistory(WPARAM wParam, LPARAM /*lParam*/)
 {
-	if (bUseInternalViewer())
-	{
+	if (g_bUseIntViewer)
 		bShowFileViewer(wParam);
-		return 0;
-	}
-	bOpenExternaly(wParam);
+	else
+		bOpenExternaly(wParam);
 	return 0;
 }
 
@@ -109,11 +109,10 @@ int MainInit(WPARAM /*wparam*/, LPARAM /*lparam*/)
 	HookEvent(ME_DB_CONTACT_DELETED, nContactDeleted);
 	HookEvent(ME_OPT_INITIALISE, OptionsInitialize);
 
-	if (!bReplaceHistory)
-	{
-		CMenuItem mi;
+	if (!g_bReplaceHistory) {
+		CMenuItem mi(&g_plugin);
 		SET_UID(mi, 0x701c543, 0xd078, 0x41dd, 0x95, 0xe3, 0x96, 0x49, 0x8a, 0x72, 0xc7, 0x50);
-		mi.hIcolibItem = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_EXPORT_MESSAGE));
+		mi.hIcolibItem = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_EXPORT_MESSAGE));
 		mi.position = 1000090100;
 		mi.name.a = LPGEN("Open E&xported History");
 		mi.pszService = MS_SHOW_EXPORT_HISTORY;
@@ -122,48 +121,6 @@ int MainInit(WPARAM /*wparam*/, LPARAM /*lparam*/)
 
 	HookEvent(ME_SYSTEM_SHUTDOWN, nSystemShutdown);
 	return 0;
-}
-
-
-
-/////////////////////////////////////////////////////////////////////
-// Member Function : DllMain
-// Type            : Global
-// Parameters      : hinst       - ?
-//                   fdwReason   - ?
-//                   lpvReserved - ?
-// Returns         : BOOL WINAPI
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 020422, 22 April 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
-
-BOOL WINAPI DllMain(HINSTANCE hinst, DWORD /*fdwReason*/, LPVOID /*lpvReserved*/)
-{
-	hInstance = hinst;
-	return 1;
-}
-
-
-/////////////////////////////////////////////////////////////////////
-// Member Function : MirandaPluginInfo
-// Type            : Global
-// Parameters      : mirandaVersion - ?
-// Returns         : 
-// Description     : 
-//                   
-// References      : -
-// Remarks         : -
-// Created         : 020422, 22 April 2002
-// Developer       : KN   
-/////////////////////////////////////////////////////////////////////
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -179,34 +136,33 @@ extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
 // Developer       : KN   
 /////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, MainInit);
 
-	nMaxLineWidth = db_get_w(NULL, MODULE, "MaxLineWidth", nMaxLineWidth);
+	nMaxLineWidth = getWord("MaxLineWidth", nMaxLineWidth);
 	if (nMaxLineWidth > 0 && nMaxLineWidth < 5)
 		nMaxLineWidth = 5;
 
-	sExportDir = _DBGetString(NULL, MODULE, "ExportDir", L"%dbpath%\\MsgExport\\");
-	sDefaultFile = _DBGetString(NULL, MODULE, "DefaultFile", L"%nick%.txt");
+	g_sExportDir = _DBGetStringW(NULL, MODULENAME, "ExportDir", L"%dbpath%\\MsgExport\\");
+	g_sDefaultFile = _DBGetStringW(NULL, MODULENAME, "DefaultFile", L"%nick%.txt");
 
-	sTimeFormat = _DBGetString(NULL, MODULE, "TimeFormat", L"d s");
+	g_sTimeFormat = _DBGetStringW(NULL, MODULENAME, "TimeFormat", L"d s");
 
-	sFileViewerPrg = _DBGetString(NULL, MODULE, "FileViewerPrg", L"");
-	bUseInternalViewer(db_get_b(NULL, MODULE, "UseInternalViewer", bUseInternalViewer()) != 0);
+	sFileViewerPrg = _DBGetStringW(NULL, MODULENAME, "FileViewerPrg", L"");
+	g_bUseIntViewer = getBool("UseInternalViewer", true);
 
-	bReplaceHistory = db_get_b(NULL, MODULE, "ReplaceHistory", bReplaceHistory) != 0;
-	bAppendNewLine = db_get_b(NULL, MODULE, "AppendNewLine", bAppendNewLine) != 0;
-	bUseUtf8InNewFiles = db_get_b(NULL, MODULE, "UseUtf8InNewFiles", bUseUtf8InNewFiles) != 0;
-	bUseLessAndGreaterInExport = db_get_b(NULL, MODULE, "UseLessAndGreaterInExport", bUseLessAndGreaterInExport) != 0;
+	g_bUseJson = getBool("UseJson", false);
+	g_bAppendNewLine = getBool("AppendNewLine", true);
+	g_bReplaceHistory = getBool("ReplaceHistory", false);
+	g_bUseUtf8InNewFiles = getBool("UseUtf8InNewFiles", g_bUseUtf8InNewFiles);
+	g_bUseLessAndGreaterInExport = getBool("UseLessAndGreaterInExport", false);
 
-	enRenameAction = (ENDialogAction)db_get_b(NULL, MODULE, "RenameAction", enRenameAction);
-	enDeleteAction = (ENDialogAction)db_get_b(NULL, MODULE, "DeleteAction", enDeleteAction);
+	g_enRenameAction = (ENDialogAction)getByte("RenameAction", eDAPromptUser);
+	g_enDeleteAction = (ENDialogAction)getByte("DeleteAction", eDAPromptUser);
 
 	HANDLE hServiceFunc = nullptr;
-	if (bReplaceHistory)
+	if (g_bReplaceHistory)
 		hServiceFunc = CreateServiceFunction(MS_HISTORY_SHOWCONTACTHISTORY, ShowExportHistory); //this need new code
 
 	if (!hServiceFunc)
@@ -229,7 +185,7 @@ extern "C" __declspec(dllexport) int Load()
 // Developer       : KN   
 /////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	WindowList_Destroy(hInternalWindowList);
 	bUseInternalViewer(false);

@@ -60,7 +60,7 @@ public:
 	static INT_PTR ParseToxUri(WPARAM, LPARAM lParam);
 
 private:
-	CToxThread *m_toxThread;
+	Tox *m_tox;
 	mir_cs m_profileLock;
 	ptrW m_accountName;
 	ptrW m_defaultGroup;
@@ -68,11 +68,10 @@ private:
 	CTransferList transfers;
 	ULONG hMessageProcess;
 
-	bool isTerminated;
-	HANDLE hConnectingThread;
-	HANDLE hCheckingThread;
-	HANDLE hPollingThread;
-	HANDLE hTerminateEvent;
+	int m_retriesCount;
+	HANDLE m_hTimerQueue;
+	HANDLE m_hPollingTimer;
+	HANDLE m_hCheckingTimer;
 
 	static HANDLE hProfileFolderPath;
 
@@ -109,11 +108,11 @@ private:
 	// tox connection
 	bool IsOnline();
 
-	void TryConnect(Tox *tox);
-	void CheckConnection(Tox *tox, int &retriesCount);
+	void TryConnect();
+	void CheckConnection();
 
-	void __cdecl CheckingThread(void*);
-	void __cdecl PollingThread(void*);
+	static void __stdcall OnToxCheck(void*, BYTE);
+	static void __stdcall OnToxPoll(void*, BYTE);
 
 	// accounts
 	int __cdecl OnAccountRenamed(WPARAM, LPARAM);
@@ -125,7 +124,6 @@ private:
 	void UninitNetlib();
 
 	// icons
-	static IconItemT Icons[];
 	static HANDLE GetIconHandle(int iconId);
 	static HICON GetIcon(int iconId);
 
@@ -249,11 +247,9 @@ private:
 
 struct CMPlugin : public ACCPROTOPLUGIN<CToxProto>
 {
-	CMPlugin() :
-		ACCPROTOPLUGIN<CToxProto>("TOX")
-	{
-		SetUniqueId(TOX_SETTINGS_ID);
-	}
+	CMPlugin();
+
+	int Load() override;
 };
 
 #endif //_TOX_PROTO_H_

@@ -140,6 +140,17 @@ type
       true : (uuid :MUUID); // plugin's unique identifier
   end;
 
+type
+  PCMPlugin = ^CMPlugin;
+  CMPlugin = record
+    vft        : pointer;  // virtual function table
+    m_hInst    : THANDLE;
+    m_szModule : PAnsiChar;
+    m_pInfo    : PPLUGININFOEX;
+    m_hLogger  : THANDLE;
+    m_hLang    : int;
+  end;
+
 //----- Fork enchancement -----
 {
   Miranda/System/LoadModule event
@@ -180,6 +191,7 @@ var
   { has to be returned via MirandaPluginInfo and has to be statically allocated,
   this means only one module can return info, you shouldn't be merging them anyway! }
   PluginInfo: TPLUGININFOEX;
+  g_plugin: CMPlugin;
 
   {$include m_clist.inc}
   {$include m_genmenu.inc}
@@ -209,7 +221,6 @@ var
   {$include m_icolib.inc}
   {$include m_iconheader.inc}
   {$include m_icq.inc}
-  {$include m_idle.inc}
   {$include m_ignore.inc}
   {$include m_imgsrvc.inc}
   {$include m_json.inc}
@@ -242,5 +253,13 @@ implementation
 
 {$undef M_API_UNIT}
   {$include m_helpers.inc}
+
+initialization
+  g_plugin.m_hInst := hInstance;
+  g_plugin.m_pInfo := @PluginInfo;
+  RegisterPlugin(g_plugin);
+
+finalization
+  UnregisterPlugin(g_plugin);
 
 end.

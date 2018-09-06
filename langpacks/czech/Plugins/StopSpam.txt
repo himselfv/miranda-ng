@@ -2,14 +2,14 @@
 ;============================================================
 ;  File: StopSpam.dll
 ;  Plugin: StopSpam+
-;  Version: 0.1.0.1
+;  Version: 0.1.0.2
 ;  Authors: Roman Miklashevsky, A. Petkevich, Kosh&chka, persei
 ;============================================================
 [Anti-spam plugin for Miranda NG.]
 Anti-spamový doplněk pro Mirandu NG.
 ;file \plugins\StopSpamPlus\res\stopspam.rc
 [Question (Ctrl+Enter for carriage return):]
-Otázka (nový řádek pomocí CTRL+ENTER):
+Otázka (nový řádek pomocí Ctrl+Enter):
 [Restore defaults]
 Obnovit původní
 [Answer (Use divider to separate answers):]

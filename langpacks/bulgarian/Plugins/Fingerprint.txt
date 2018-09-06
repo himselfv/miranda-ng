@@ -2,11 +2,12 @@
 ;============================================================
 ;  File: Fingerprint.dll
 ;  Plugin: Fingerprint NG
-;  Version: 0.1.0.0
+;  Version: 0.2.0.1
 ;  Authors: faith_healer, ghazan, Mataes
 ;============================================================
 [Fingerprint NG (client version) icons module for Miranda NG.]
 Fingerprint NG (версия на клиенти) иконен модул за Miranda NG. Представя с икона кой клиент и коя версия ползват контактите Ви.
+;file \plugins\FingerprintNG\res\resource.rc
 [Fingerprint overlays icons]
 Fingerprint, икони за наслагване
 [Miranda clients]
@@ -27,6 +28,8 @@ Miranda клиенти
 за сигурност
 [Select protocols]
 Изберете протоколи
+[Facebook clients]
+Facebook клиенти
 [Gadu-Gadu clients]
 Gadu-Gadu клиенти
 [ICQ clients]
@@ -43,14 +46,10 @@ MSN клиенти
 QQ клиенти
 [RSS clients]
 RSS клиенти
-[Weather clients]
-Weather клиенти
-[Yahoo clients]
-Yahoo клиенти
-[Facebook clients]
-Facebook клиенти
 [VKontakte clients]
 VKontakte клиенти
+[Weather clients]
+Weather клиенти
 [Multi-protocol clients]
 Мултипротоколни клиенти
 [Other (rare) protocols]
@@ -59,8 +58,10 @@ VKontakte клиенти
 Други икони
 [Show client icon in message window status bar]
 Икона на клиента в лентата за състояние на прозореца за съобщения
+;file \plugins\FingerprintNG\src\fingerprint.cpp
 [Fingerprint]
 Fingerprint
+;file \plugins\FingerprintNG\src\finger_groups.h
 [Client icons]
 Икони за клиенти
 [Pack overlays]
@@ -79,6 +80,7 @@ Fingerprint
 Сигурност
 [Protocol]
 Протокол
+;file \plugins\FingerprintNG\src\masks.cpp
 [Miranda NG stable]
 Miranda NG (стабилна версия)
 [Miranda IM (old versions)]
@@ -127,8 +129,6 @@ Jabber
 MSN
 [QQ overlay]
 QQ
-[Yahoo overlay]
-Yahoo
 [Mail.Ru Agent overlay]
 Mail.Ru Agent
 [VK overlay]
@@ -147,12 +147,6 @@ ICQ v6.x
 ICQ v7.x
 [ICQ v8.x overlay]
 ICQ v8.x
-[Yahoo v11.x overlay]
-Yahoo v11.x
-[Yahoo v10.x overlay]
-Yahoo v10.x
-[Yahoo v9.x overlay]
-Yahoo v9.x
 [Gadu-Gadu v11 client]
 Gadu-Gadu v11 клиент
 [Gadu-Gadu v10 client]
@@ -259,5 +253,6 @@ NewGPG
 MirOTR
 [SecureIM overlay]
 SecureIM
+;file \plugins\FingerprintNG\src\options.cpp
 [Icons]
 Икони

@@ -1,6 +1,5 @@
 #include "stdafx.h"
 
-extern HINSTANCE hInst;
 void LoadDBSettings();
 
 static INT_PTR CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -58,13 +57,12 @@ static INT_PTR CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 
 int onOptInitialise(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szGroup.a = LPGEN("Contacts");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_LASTUC_OPT);
 	odp.szTitle.a = LPGEN("Recent Contacts");
 	odp.pfnDlgProc = DlgProcOptions;
 	odp.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

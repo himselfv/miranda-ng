@@ -184,7 +184,7 @@ INT_PTR CToxProto::OnRemovePassword(WPARAM, LPARAM)
 	int result = MessageBox(nullptr, message, TranslateT("Remove password"), MB_YESNO | MB_ICONQUESTION);
 	if (result == IDYES) {
 		delSetting(TOX_SETTINGS_PASSWORD);
-		SaveToxProfile(m_toxThread->Tox());
+		SaveToxProfile(m_tox);
 	}
 	return 0;
 }
@@ -200,9 +200,10 @@ CToxEnterPasswordDlg::CToxEnterPasswordDlg(CToxProto *proto)
 	m_ok.OnClick = Callback(this, &CToxEnterPasswordDlg::OnOk);
 }
 
-void CToxEnterPasswordDlg::OnInitDialog()
+bool CToxEnterPasswordDlg::OnInitDialog()
 {
 	m_ok.Disable();
+	return true;
 }
 
 void CToxEnterPasswordDlg::Password_OnChange(CCtrlBase*)
@@ -230,7 +231,7 @@ CToxCreatePasswordDlg::CToxCreatePasswordDlg(CToxProto *proto)
 	m_ok.OnClick = Callback(this, &CToxCreatePasswordDlg::OnOk);
 }
 
-void CToxCreatePasswordDlg::OnInitDialog()
+bool CToxCreatePasswordDlg::OnInitDialog()
 {
 	LOGFONT lf;
 	HFONT hFont = (HFONT)m_passwordValidation.SendMsg(WM_GETFONT, 0, 0);
@@ -239,6 +240,7 @@ void CToxCreatePasswordDlg::OnInitDialog()
 	m_passwordValidation.SendMsg(WM_SETFONT, (WPARAM)CreateFontIndirect(&lf), 0);
 
 	m_ok.Disable();
+	return true;
 }
 
 void CToxCreatePasswordDlg::Password_OnChange(CCtrlBase*)
@@ -264,7 +266,7 @@ void CToxCreatePasswordDlg::Password_OnChange(CCtrlBase*)
 void CToxCreatePasswordDlg::OnOk(CCtrlButton*)
 {
 	m_proto->setWString(TOX_SETTINGS_PASSWORD, pass_ptrW(m_newPassword.GetText()));
-	m_proto->SaveToxProfile(m_proto->m_toxThread->Tox());
+	m_proto->SaveToxProfile(m_proto->m_tox);
 	EndDialog(m_hwnd, 1);
 }
 
@@ -284,7 +286,7 @@ CToxChangePasswordDlg::CToxChangePasswordDlg(CToxProto *proto)
 	m_ok.OnClick = Callback(this, &CToxChangePasswordDlg::OnOk);
 }
 
-void CToxChangePasswordDlg::OnInitDialog()
+bool CToxChangePasswordDlg::OnInitDialog()
 {
 	LOGFONT lf;
 	HFONT hFont = (HFONT)m_passwordValidation.SendMsg(WM_GETFONT, 0, 0);
@@ -293,6 +295,7 @@ void CToxChangePasswordDlg::OnInitDialog()
 	m_passwordValidation.SendMsg(WM_SETFONT, (WPARAM)CreateFontIndirect(&lf), 0);
 
 	m_ok.Disable();
+	return true;
 }
 
 void CToxChangePasswordDlg::Password_OnChange(CCtrlBase*)
@@ -326,6 +329,6 @@ void CToxChangePasswordDlg::Password_OnChange(CCtrlBase*)
 void CToxChangePasswordDlg::OnOk(CCtrlButton*)
 {
 	m_proto->setWString(TOX_SETTINGS_PASSWORD, pass_ptrW(m_newPassword.GetText()));
-	m_proto->SaveToxProfile(m_proto->m_toxThread->Tox());
+	m_proto->SaveToxProfile(m_proto->m_tox);
 	EndDialog(m_hwnd, 1);
 }

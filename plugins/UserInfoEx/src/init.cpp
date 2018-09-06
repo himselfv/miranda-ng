@@ -21,7 +21,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 #include "stdafx.h"
 
-static PLUGININFOEX pluginInfo = {
+CMPlugin g_plugin;
+HMODULE hDwmApi;
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static PLUGININFOEX pluginInfoEx =
+{
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -34,8 +40,9 @@ static PLUGININFOEX pluginInfo = {
 	{0x9c23a24b, 0xe6aa, 0x43c6, {0xb0, 0xb8, 0xd6, 0xc3, 0x6d, 0x2f, 0x7b, 0x57}}
 };
 
-int hLangpack;
-HMODULE hDwmApi;
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 /*
 ============================================================================================
@@ -54,8 +61,23 @@ HMODULE hDwmApi;
  **/
 static int OnTopToolBarLoaded(WPARAM, LPARAM)
 {
-	DlgAnniversaryListOnTopToolBarLoaded();
-	SvcReminderOnTopToolBarLoaded();
+	TTBButton ttb = {};
+	ttb.dwFlags = TTBBF_VISIBLE | TTBBF_SHOWTOOLTIP;
+	ttb.pszService = MS_USERINFO_SHOWDIALOG;
+	ttb.hIconHandleUp = IcoLib_GetIconHandle(ICO_COMMON_MAIN);
+	ttb.name = ttb.pszTooltipUp = LPGEN("User &details");
+	g_plugin.addTTB(&ttb);
+
+	ttb.dwFlags = TTBBF_SHOWTOOLTIP;
+	ttb.pszService = MS_USERINFO_REMINDER_LIST;
+	ttb.hIconHandleUp = IcoLib_GetIconHandle(ICO_COMMON_ANNIVERSARY);
+	ttb.name = ttb.pszTooltipUp = LPGEN("Anniversary list");
+	g_plugin.addTTB(&ttb);
+
+	ttb.pszService = MS_USERINFO_REMINDER_CHECK;
+	ttb.hIconHandleUp = IcoLib_GetIconHandle(ICO_COMMON_BIRTHDAY);
+	ttb.name = ttb.pszTooltipUp = LPGEN("Check anniversaries");
+	g_plugin.addTTB(&ttb);
 	return 0;
 }
 
@@ -110,22 +132,10 @@ static int OnShutdown(WPARAM, LPARAM)
 	return 0;
 }
 
-/*
-============================================================================================
-	plugin interface & DllEntrypoint
-============================================================================================
-*/
+//============================================================================================
+//	plugin interface
+//============================================================================================
 
-/**
- * This function is called by Miranda to get some information about this plugin.
- *
- * @return	pointer to pluginInfo struct
- **/
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD mirandaVersion)
-{
-	myGlobals.mirandaVersion = mirandaVersion;
-	return &pluginInfo;
-}
 
 /**
  * This function returns the provided interfaces.
@@ -143,7 +153,7 @@ extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = {
  *
  * @return	0
  **/
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	FreeLibrary(hDwmApi);
 	return 0;
@@ -154,10 +164,8 @@ extern "C" int __declspec(dllexport) Unload(void)
  *
  * @return	0
  **/
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	// init common controls
 	INITCOMMONCONTROLSEX ccEx;
 	ccEx.dwSize = sizeof(ccEx);
@@ -165,9 +173,6 @@ extern "C" int __declspec(dllexport) Load(void)
 	InitCommonControlsEx(&ccEx);
 
 	memset(&myGlobals, 0, sizeof(MGLOBAL));
-
-	// init clist interface
-	pcli = Clist_GetInterface();
 
 	if (IsWinVerVistaPlus()) {
 		hDwmApi = LoadLibraryA("dwmapi.dll");
@@ -204,17 +209,4 @@ extern "C" int __declspec(dllexport) Load(void)
 	HookEvent(ME_TTB_MODULELOADED, OnTopToolBarLoaded);
 	HookEvent(ME_SYSTEM_SHUTDOWN, OnShutdown);
 	return 0;
-}
-
-/**
- * Windows needs it for loading.
- *
- * @return	TRUE
- **/
-BOOL WINAPI DllMain(HINSTANCE hinst, DWORD fdwReason, LPVOID)
-{
-	if (fdwReason == DLL_PROCESS_ATTACH)
-		ghInst = hinst;
-
-	return TRUE;
 }

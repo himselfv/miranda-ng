@@ -107,7 +107,7 @@ BEGIN
     LTEXT           "Search:",IDC_STATIC,5,32,37,8
     CONTROL         "",IDC_PROTOLIST,"ComboBoxEx32",CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP,42,30,80,88
     GROUPBOX        "",IDC_PROTOIDGROUP,5,46,117,32
-    CONTROL         "",IDC_BYPROTOID,"Button",BS_AUTORADIOBUTTON,11,46,85,10
+    CONTROL         "",IDC_BYPROTOID,"Button",BS_AUTORADIOBUTTON,11,46,105,10
     EDITTEXT        IDC_PROTOID,11,59,105,12,ES_AUTOHSCROLL
     GROUPBOX        "",IDC_EMAILGROUP,5,83,117,32
     CONTROL         "E-mail address",IDC_BYEMAIL,"Button",BS_AUTORADIOBUTTON,11,83,80,10
@@ -607,7 +607,7 @@ BEGIN
     LTEXT           "Select the extra icons to be shown in the contact list:",IDC_STATIC,1,9,274,13
     CONTROL         "",IDC_EXTRAORDER,"SysTreeView32",TVS_NOTOOLTIPS | TVS_NOHSCROLL | TVS_CHECKBOXES | TVS_FULLROWSELECT | WS_BORDER | WS_TABSTOP,1,24,274,160
     LTEXT           "*only the first %d icons will be shown",IDC_MAX_ICONS_L,1,190,274,13,NOT WS_VISIBLE
-    LTEXT           "You can group/ungroup icons by selecting them (CTRL+left click) and using the popup menu (right click)",IDC_STATIC,1,208,274,20
+    LTEXT           "You can group/ungroup icons by selecting them (Ctrl+left click) and using the popup menu (right click)",IDC_STATIC,1,208,274,20
 END
 
 IDD_ENTER_STRING DIALOGEX 0, 0, 242, 42
@@ -1296,6 +1296,28 @@ BEGIN
             MENUITEM "Foodnetwork",                 IDM_SEARCH_FOODNETWORK
         END
     END
+END
+
+IDR_CLISTMENU MENU 
+BEGIN 
+	POPUP "&Main menu" 
+	BEGIN 
+		MENUITEM SEPARATOR 
+		MENUITEM "E&xit",                       ID_ICQ_EXIT 
+	END 
+	POPUP "&Status" 
+	BEGIN 
+		MENUITEM "&Offline\tCtrl+0",            ID_STATUS_OFFLINE, CHECKED 
+		MENUITEM "On&line\tCtrl+1",             ID_STATUS_ONLINE 
+		MENUITEM "&Away\tCtrl+2",               ID_STATUS_AWAY 
+		MENUITEM "&Not available\tCtrl+3",      ID_STATUS_NA 
+		MENUITEM "Occ&upied\tCtrl+4",           ID_STATUS_OCCUPIED 
+		MENUITEM "&Do not disturb\tCtrl+5",     ID_STATUS_DND 
+		MENUITEM "&Free for chat\tCtrl+6",      ID_STATUS_FREECHAT 
+		MENUITEM "&Invisible\tCtrl+7",          ID_STATUS_INVISIBLE 
+		MENUITEM "On the &phone\tCtrl+8",       ID_STATUS_ONTHEPHONE 
+		MENUITEM "Out to &lunch\tCtrl+9",       ID_STATUS_OUTTOLUNCH 
+	END 
 END
 
 #endif    // English (United States) resources

@@ -33,7 +33,6 @@
 #include "popup.h"
 
 // Globals
-extern HINSTANCE hInst;
 extern HGENMENU hMenu;
 extern DWORD mirVer;
 extern MWindowList hAvatarWindowsList;
@@ -41,7 +40,15 @@ extern Options opts;
 extern HANDLE hFolder;
 extern wchar_t basedir[];
 
-#define MODULE_NAME "AvatarHistory"
+#define MODULENAME "AvatarHistory"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 #define AVH_DEF_POPUPFG 0
 #define AVH_DEF_POPUPBG 0x2DB6FF

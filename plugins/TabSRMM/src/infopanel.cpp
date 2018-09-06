@@ -887,7 +887,7 @@ void CInfoPanel::showTip(UINT ctrlId, const LPARAM lParam)
 		if (BYTE xStatus = m_dat->m_cache->getXStatusId()) {
 			wchar_t	*tszXStatusName = nullptr;
 			if (0 == db_get_ws(m_dat->m_cache->getContact(), m_dat->m_cache->getProto(), "XStatusName", &dbv))
-				tszXStatusName = dbv.ptszVal;
+				tszXStatusName = dbv.pwszVal;
 			else if (xStatus > 0 && xStatus <= 31)
 				tszXStatusName = xStatusDescr[xStatus - 1];
 
@@ -896,8 +896,8 @@ void CInfoPanel::showTip(UINT ctrlId, const LPARAM lParam)
 				str.AppendFormat(L"%s%s%s", tszXStatusName, m_dat->m_cache->getXStatusMsg() ? L" / " : L"",
 					m_dat->m_cache->getXStatusMsg() ? m_dat->m_cache->getXStatusMsg() : L"");
 
-				if (dbv.ptszVal)
-					mir_free(dbv.ptszVal);
+				if (dbv.pwszVal)
+					mir_free(dbv.pwszVal);
 			}
 		}
 
@@ -905,7 +905,7 @@ void CInfoPanel::showTip(UINT ctrlId, const LPARAM lParam)
 			str.AppendFormat(TranslateT("\\par\\par\\ul\\b Listening to:\\ul0\\b0 \\par %s"), m_dat->m_cache->getListeningInfo());
 
 		if (0 == db_get_ws(m_dat->m_cache->getActiveContact(), m_dat->m_cache->getActiveProto(), "MirVer", &dbv)) {
-			str.AppendFormat(TranslateT("\\par\\par\\ul\\b Client:\\ul0\\b0  %s"), dbv.ptszVal);
+			str.AppendFormat(TranslateT("\\par\\par\\ul\\b Client:\\ul0\\b0  %s"), dbv.pwszVal);
 			::db_free(&dbv);
 		}
 		str.AppendChar('}');
@@ -1253,7 +1253,7 @@ int CInfoPanel::invokeConfigDialog(const POINT &pt)
 
 	if (m_hwndConfig == nullptr) {
 		m_configDlgBoldFont = m_configDlgFont = nullptr;
-		m_hwndConfig = ::CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_INFOPANEL), nullptr /*m_dat->m_pContainer->m_hwnd */,
+		m_hwndConfig = ::CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_INFOPANEL), nullptr /*m_dat->m_pContainer->m_hwnd */,
 			ConfigDlgProcStub, (LPARAM)this);
 		if (m_hwndConfig) {
 			TranslateDialogDefault(m_hwndConfig);
@@ -1306,10 +1306,10 @@ void CInfoPanel::dismissConfig(bool fForced)
 CTip::CTip(const HWND hwndParent, const MCONTACT hContact, const wchar_t *pszText, const CInfoPanel* panel)
 {
 	m_hwnd = ::CreateWindowEx(WS_EX_TOOLWINDOW, L"RichEditTipClass", L"", (M.isAero() ? WS_THICKFRAME : WS_BORDER) | WS_POPUPWINDOW | WS_TABSTOP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
-		0, 0, 40, 40, nullptr, nullptr, g_hInst, this);
+		0, 0, 40, 40, nullptr, nullptr, g_plugin.getInst(), this);
 
 	m_hRich = ::CreateWindowEx(0, L"RICHEDIT50W", L"", WS_CHILD | ES_MULTILINE | ES_AUTOVSCROLL | ES_NOHIDESEL | ES_READONLY | WS_VSCROLL | WS_TABSTOP,
-		0, 0, 40, 40, m_hwnd, reinterpret_cast<HMENU>(1000), g_hInst, nullptr);
+		0, 0, 40, 40, m_hwnd, reinterpret_cast<HMENU>(1000), g_plugin.getInst(), nullptr);
 
 	::SendMessage(m_hRich, EM_AUTOURLDETECT, TRUE, 0);
 	::SendMessage(m_hRich, EM_SETEVENTMASK, 0, ENM_LINK);

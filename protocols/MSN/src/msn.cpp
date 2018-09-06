@@ -24,14 +24,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "msn_proto.h"
 #include "version.h"
 
-CLIST_INTERFACE *pcli;
-int hLangpack;
+CMPlugin g_plugin;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Initialization routines
 
 void MsnLinks_Init(void);
-void MsnLinks_Destroy(void);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Global variables
@@ -39,7 +37,9 @@ void MsnLinks_Destroy(void);
 bool g_bTerminated = false;
 int avsPresent = -1;
 
-static const PLUGININFOEX pluginInfo =
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static const PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -53,21 +53,17 @@ static const PLUGININFOEX pluginInfo =
 	{0x97724af9, 0xf3fb, 0x47d3, {0xa3, 0xbf, 0xea, 0xa9, 0x35, 0xc7, 0x4e, 0x6d}}
 };
 
-extern "C" __declspec(dllexport) const PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	ACCPROTOPLUGIN<CMsnProto>("MSN", pluginInfoEx)
 {
-	return &pluginInfo;
+	::DisableThreadLibraryCalls(m_hInst);
+	SetUniqueId("wlid");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // MirandaInterfaces - returns the protocol interface to the core
 
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_PROTOCOL, MIID_LAST };
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-CMPlugin g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //	OnModulesLoaded - finalizes plugin's configuration on load
@@ -83,11 +79,8 @@ static int OnModulesLoaded(WPARAM, LPARAM)
 /////////////////////////////////////////////////////////////////////////////////////////
 // Performs a primary set of actions upon plugin loading
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, OnModulesLoaded);
 
 	MsnInitIcons();
@@ -98,9 +91,8 @@ extern "C" int __declspec(dllexport) Load(void)
 /////////////////////////////////////////////////////////////////////////////////////////
 // Unload a plugin
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	MSN_RemoveContactMenus();
-	MsnLinks_Destroy();
 	return 0;
 }

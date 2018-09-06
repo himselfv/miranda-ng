@@ -47,11 +47,14 @@ static char g_szModename[2048];
 
 static int g_ViewModeOptDlg = FALSE;
 
-static UINT _page1Controls[] = { IDC_STATIC1, IDC_STATIC2, IDC_STATIC3, IDC_STATIC5, IDC_STATIC4,
-IDC_STATIC8, IDC_ADDVIEWMODE, IDC_DELETEVIEWMODE, IDC_NEWVIEMODE, IDC_GROUPS, IDC_PROTOCOLS,
-IDC_VIEWMODES, IDC_STATUSMODES, IDC_STATIC12, IDC_STATIC13, IDC_STATIC14, IDC_PROTOGROUPOP, IDC_GROUPSTATUSOP,
-IDC_AUTOCLEAR, IDC_AUTOCLEARVAL, IDC_AUTOCLEARSPIN, IDC_STATIC15, IDC_STATIC16,
-IDC_LASTMESSAGEOP, IDC_LASTMESSAGEUNIT, IDC_LASTMSG, IDC_LASTMSGVALUE, IDC_USEGROUPS, 0 };
+static UINT _page1Controls[] = 
+{
+	IDC_STATIC1, IDC_STATIC2, IDC_STATIC3, IDC_STATIC5, IDC_STATIC4,
+	IDC_STATIC8, IDC_ADDVIEWMODE, IDC_DELETEVIEWMODE, IDC_NEWVIEMODE, IDC_GROUPS, IDC_PROTOCOLS,
+	IDC_VIEWMODES, IDC_STATUSMODES, IDC_STATIC12, IDC_STATIC13, IDC_STATIC14, IDC_PROTOGROUPOP, IDC_GROUPSTATUSOP,
+	IDC_AUTOCLEAR, IDC_AUTOCLEARVAL, IDC_AUTOCLEARSPIN, IDC_STATIC15, IDC_STATIC16,
+	IDC_LASTMESSAGEOP, IDC_LASTMESSAGEUNIT, IDC_LASTMSG, IDC_LASTMSGVALUE, IDC_USEGROUPS, 0
+};
 
 static UINT _page2Controls[] = { IDC_CLIST, IDC_STATIC9, IDC_STATIC8, IDC_CLEARALL, IDC_CURVIEWMODE2, 0 };
 
@@ -422,7 +425,7 @@ void SaveState()
 	if (iLen) {
 		unsigned int stickies = 0;
 
-		wchar_t *szTempModeName = (wchar_t*)mir_alloc((iLen + 1)*sizeof(wchar_t));
+		wchar_t *szTempModeName = (wchar_t*)mir_alloc((iLen + 1) * sizeof(wchar_t));
 		if (szTempModeName) {
 			SendDlgItemMessage(clvmHwnd, IDC_VIEWMODES, LB_GETTEXT, clvm_curItem, (LPARAM)szTempModeName);
 
@@ -458,7 +461,7 @@ void SaveState()
 			BOOL translated;
 			DWORD lmdat = MAKELONG(GetDlgItemInt(clvmHwnd, IDC_LASTMSGVALUE, &translated, FALSE),
 				MAKEWORD(SendDlgItemMessage(clvmHwnd, IDC_LASTMESSAGEOP, CB_GETCURSEL, 0, 0),
-				SendDlgItemMessage(clvmHwnd, IDC_LASTMESSAGEUNIT, CB_GETCURSEL, 0, 0)));
+					SendDlgItemMessage(clvmHwnd, IDC_LASTMESSAGEUNIT, CB_GETCURSEL, 0, 0)));
 
 			SaveViewMode(szModeName, newGroupFilter, newProtoFilter, statusMask, dwGlobalMask, options,
 				stickies, operators, lmdat);
@@ -487,7 +490,7 @@ static void UpdateFilters()
 	if (iLen == 0)
 		return;
 
-	wchar_t *szTempBuf = (wchar_t*)_alloca((iLen + 1)*sizeof(wchar_t));
+	wchar_t *szTempBuf = (wchar_t*)_alloca((iLen + 1) * sizeof(wchar_t));
 	SendDlgItemMessage(clvmHwnd, IDC_VIEWMODES, LB_GETTEXT, clvm_curItem, (LPARAM)szTempBuf);
 
 	T2Utf szBuf(szTempBuf);
@@ -510,7 +513,7 @@ static void UpdateFilters()
 	mir_snprintf(szSetting, "%c%s_OPT", 246, szBuf);
 	if ((opt = db_get_dw(0, CLVM_MODULE, szSetting, -1)) != -1)
 		SendDlgItemMessage(clvmHwnd, IDC_AUTOCLEARSPIN, UDM_SETPOS, 0, MAKELONG(LOWORD(opt), 0));
-	
+
 	mir_snprintf(szSetting, "%c%s_SM", 246, szBuf);
 	DWORD statusMask = db_get_dw(0, CLVM_MODULE, szSetting, 0);
 	mir_snprintf(szSetting, "%c%s_SSM", 246, szBuf);
@@ -534,7 +537,7 @@ static void UpdateFilters()
 			if (szPF && strstr(szPF, szMask))
 				ListView_SetCheckState(hwndList, i, TRUE)
 			else
-			ListView_SetCheckState(hwndList, i, FALSE);
+				ListView_SetCheckState(hwndList, i, FALSE);
 		}
 	}
 	{
@@ -557,7 +560,7 @@ static void UpdateFilters()
 			if (szGF && wcsstr(szGF, szMask))
 				ListView_SetCheckState(hwndList, i, TRUE)
 			else
-			ListView_SetCheckState(hwndList, i, FALSE);
+				ListView_SetCheckState(hwndList, i, FALSE);
 		}
 	}
 	{
@@ -567,7 +570,7 @@ static void UpdateFilters()
 			if ((1 << (i - ID_STATUS_OFFLINE)) & statusMask)
 				ListView_SetCheckState(hwndList, i - ID_STATUS_OFFLINE, TRUE)
 			else
-			ListView_SetCheckState(hwndList, i - ID_STATUS_OFFLINE, FALSE);
+				ListView_SetCheckState(hwndList, i - ID_STATUS_OFFLINE, FALSE);
 		}
 	}
 	SendDlgItemMessage(clvmHwnd, IDC_PROTOGROUPOP, CB_SETCURSEL, dwFlags & CLVM_PROTOGROUP_OP ? 1 : 0, 0);
@@ -726,14 +729,14 @@ INT_PTR CALLBACK DlgProcViewModesSetup(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			break;
 
 		case IDC_LASTMSG:
-		{
-			int bUseLastMsg = IsDlgButtonChecked(hwndDlg, IDC_LASTMSG);
-			EnableWindow(GetDlgItem(hwndDlg, IDC_LASTMESSAGEOP), bUseLastMsg);
-			EnableWindow(GetDlgItem(hwndDlg, IDC_LASTMESSAGEUNIT), bUseLastMsg);
-			EnableWindow(GetDlgItem(hwndDlg, IDC_LASTMSGVALUE), bUseLastMsg);
-			EnableWindow(GetDlgItem(hwndDlg, IDC_APPLY), TRUE);
-		}
-		break;
+			{
+				int bUseLastMsg = IsDlgButtonChecked(hwndDlg, IDC_LASTMSG);
+				EnableWindow(GetDlgItem(hwndDlg, IDC_LASTMESSAGEOP), bUseLastMsg);
+				EnableWindow(GetDlgItem(hwndDlg, IDC_LASTMESSAGEUNIT), bUseLastMsg);
+				EnableWindow(GetDlgItem(hwndDlg, IDC_LASTMSGVALUE), bUseLastMsg);
+				EnableWindow(GetDlgItem(hwndDlg, IDC_APPLY), TRUE);
+			}
+			break;
 
 		case IDC_AUTOCLEARVAL:
 		case IDC_LASTMSGVALUE:
@@ -745,7 +748,7 @@ INT_PTR CALLBACK DlgProcViewModesSetup(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			if (MessageBox(nullptr, TranslateT("Really delete this view mode? This cannot be undone"), TranslateT("Delete a view mode"), MB_YESNO | MB_ICONQUESTION) == IDYES) {
 				int iLen = SendDlgItemMessage(hwndDlg, IDC_VIEWMODES, LB_GETTEXTLEN, SendDlgItemMessage(hwndDlg, IDC_VIEWMODES, LB_GETCURSEL, 0, 0), 0);
 				if (iLen) {
-					wchar_t *szTempBuf = (wchar_t*)_alloca((iLen + 1)*sizeof(wchar_t));
+					wchar_t *szTempBuf = (wchar_t*)_alloca((iLen + 1) * sizeof(wchar_t));
 					SendDlgItemMessage(hwndDlg, IDC_VIEWMODES, LB_GETTEXT, SendDlgItemMessage(hwndDlg, IDC_VIEWMODES, LB_GETCURSEL, 0, 0), (LPARAM)szTempBuf);
 					DeleteViewMode(T2Utf(szTempBuf));
 
@@ -760,42 +763,42 @@ INT_PTR CALLBACK DlgProcViewModesSetup(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			break;
 
 		case IDC_ADDVIEWMODE:
-		{
-			wchar_t szBuf[256];
-			szBuf[0] = 0;
-			GetDlgItemText(hwndDlg, IDC_NEWVIEMODE, szBuf, _countof(szBuf));
-			szBuf[255] = 0;
+			{
+				wchar_t szBuf[256];
+				szBuf[0] = 0;
+				GetDlgItemText(hwndDlg, IDC_NEWVIEMODE, szBuf, _countof(szBuf));
+				szBuf[255] = 0;
 
-			if (szBuf[0] != 0) {
-				T2Utf szUTF8Buf(szBuf);
+				if (szBuf[0] != 0) {
+					T2Utf szUTF8Buf(szBuf);
 
-				if (db_get_dw(0, CLVM_MODULE, szUTF8Buf, -1) != -1)
-					MessageBox(nullptr, TranslateT("A view mode with this name does already exist"), TranslateT("Duplicate name"), MB_OK);
-				else {
-					int iNewItem = SendDlgItemMessage(hwndDlg, IDC_VIEWMODES, LB_INSERTSTRING, -1, (LPARAM)szBuf);
-					if (iNewItem != LB_ERR) {
-						SendDlgItemMessage(hwndDlg, IDC_VIEWMODES, LB_SETCURSEL, (WPARAM)iNewItem, 0);
-						SaveViewMode(szUTF8Buf, L"", "", 0, -1, 0, 0, 0, 0);
-						clvm_curItem = iNewItem;
-						UpdateStickies();
-						SendDlgItemMessage(hwndDlg, IDC_PROTOGROUPOP, CB_SETCURSEL, 0, 0);
-						SendDlgItemMessage(hwndDlg, IDC_GROUPSTATUSOP, CB_SETCURSEL, 0, 0);
+					if (db_get_dw(0, CLVM_MODULE, szUTF8Buf, -1) != -1)
+						MessageBox(nullptr, TranslateT("A view mode with this name does already exist"), TranslateT("Duplicate name"), MB_OK);
+					else {
+						int iNewItem = SendDlgItemMessage(hwndDlg, IDC_VIEWMODES, LB_INSERTSTRING, -1, (LPARAM)szBuf);
+						if (iNewItem != LB_ERR) {
+							SendDlgItemMessage(hwndDlg, IDC_VIEWMODES, LB_SETCURSEL, (WPARAM)iNewItem, 0);
+							SaveViewMode(szUTF8Buf, L"", "", 0, -1, 0, 0, 0, 0);
+							clvm_curItem = iNewItem;
+							UpdateStickies();
+							SendDlgItemMessage(hwndDlg, IDC_PROTOGROUPOP, CB_SETCURSEL, 0, 0);
+							SendDlgItemMessage(hwndDlg, IDC_GROUPSTATUSOP, CB_SETCURSEL, 0, 0);
+						}
 					}
+					SetDlgItemText(hwndDlg, IDC_NEWVIEMODE, L"");
 				}
-				SetDlgItemText(hwndDlg, IDC_NEWVIEMODE, L"");
+				EnableWindow(GetDlgItem(hwndDlg, IDC_ADDVIEWMODE), FALSE);
+				UpdateFilters();
+				break;
 			}
-			EnableWindow(GetDlgItem(hwndDlg, IDC_ADDVIEWMODE), FALSE);
-			UpdateFilters();
-			break;
-		}
 		case IDC_CLEARALL:
-		{
-			for (auto &hContact : Contacts()) {
-				HANDLE hItem = (HANDLE)SendDlgItemMessage(hwndDlg, IDC_CLIST, CLM_FINDCONTACT, hContact, 0);
-				if (hItem)
-					SendDlgItemMessage(hwndDlg, IDC_CLIST, CLM_SETCHECKMARK, (WPARAM)hItem, 0);
+			{
+				for (auto &hContact : Contacts()) {
+					HANDLE hItem = (HANDLE)SendDlgItemMessage(hwndDlg, IDC_CLIST, CLM_FINDCONTACT, hContact, 0);
+					if (hItem)
+						SendDlgItemMessage(hwndDlg, IDC_CLIST, CLM_SETCHECKMARK, (WPARAM)hItem, 0);
+				}
 			}
-		}
 		case IDOK:
 		case IDC_APPLY:
 			SaveState();
@@ -913,63 +916,63 @@ LRESULT CALLBACK ViewModeFrameWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 {
 	switch (msg) {
 	case WM_CREATE:
-	{
-		RECT rcMargins = { 12, 0, 2, 0 };
-		hwndSelector = CreateWindow(MIRANDABUTTONCLASS, L"", BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD | WS_TABSTOP, 0, 0, 20, 20,
-			hwnd, (HMENU)IDC_SELECTMODE, g_hInst, nullptr);
-		MakeButtonSkinned(hwndSelector);
-		SendMessage(hwndSelector, BUTTONADDTOOLTIP, (WPARAM)TranslateT("Select a view mode"), BATF_UNICODE);
-		SendMessage(hwndSelector, BUTTONSETMARGINS, 0, (LPARAM)&rcMargins);
-		SendMessage(hwndSelector, BUTTONSETID, 0, (LPARAM) "ViewMode.Select");
-		SendMessage(hwndSelector, WM_SETFONT, 0, (LPARAM)FONTID_VIEMODES + 1);
-		SendMessage(hwndSelector, BUTTONSETASFLATBTN, TRUE, 0);
-		SendMessage(hwndSelector, MBM_UPDATETRANSPARENTFLAG, 0, 2);
-		SendMessage(hwndSelector, BUTTONSETSENDONDOWN, 0, (LPARAM)1);
+		{
+			RECT rcMargins = { 12, 0, 2, 0 };
+			hwndSelector = CreateWindow(MIRANDABUTTONCLASS, L"", BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD | WS_TABSTOP, 0, 0, 20, 20,
+				hwnd, (HMENU)IDC_SELECTMODE, g_plugin.getInst(), nullptr);
+			MakeButtonSkinned(hwndSelector);
+			SendMessage(hwndSelector, BUTTONADDTOOLTIP, (WPARAM)TranslateT("Select a view mode"), BATF_UNICODE);
+			SendMessage(hwndSelector, BUTTONSETMARGINS, 0, (LPARAM)&rcMargins);
+			SendMessage(hwndSelector, BUTTONSETID, 0, (LPARAM) "ViewMode.Select");
+			SendMessage(hwndSelector, WM_SETFONT, 0, (LPARAM)FONTID_VIEMODES + 1);
+			SendMessage(hwndSelector, BUTTONSETASFLATBTN, TRUE, 0);
+			SendMessage(hwndSelector, MBM_UPDATETRANSPARENTFLAG, 0, 2);
+			SendMessage(hwndSelector, BUTTONSETSENDONDOWN, 0, (LPARAM)1);
 
-		//SendMessage(hwndSelector, BM_SETASMENUACTION, 1, 0);
-		HWND hwndButton = CreateWindow(MIRANDABUTTONCLASS, L"", BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD | WS_TABSTOP, 0, 0, 20, 20,
-			hwnd, (HMENU)IDC_CONFIGUREMODES, g_hInst, nullptr);
-		MakeButtonSkinned(hwndButton);
-		SendMessage(hwndButton, BUTTONADDTOOLTIP, (WPARAM)TranslateT("Setup view modes"), BATF_UNICODE);
-		SendMessage(hwndButton, BUTTONSETID, 0, (LPARAM) "ViewMode.Setup");
-		SendMessage(hwndButton, BUTTONSETASFLATBTN, TRUE, 0);
-		SendMessage(hwndButton, MBM_UPDATETRANSPARENTFLAG, 0, 2);
+			//SendMessage(hwndSelector, BM_SETASMENUACTION, 1, 0);
+			HWND hwndButton = CreateWindow(MIRANDABUTTONCLASS, L"", BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD | WS_TABSTOP, 0, 0, 20, 20,
+				hwnd, (HMENU)IDC_CONFIGUREMODES, g_plugin.getInst(), nullptr);
+			MakeButtonSkinned(hwndButton);
+			SendMessage(hwndButton, BUTTONADDTOOLTIP, (WPARAM)TranslateT("Setup view modes"), BATF_UNICODE);
+			SendMessage(hwndButton, BUTTONSETID, 0, (LPARAM) "ViewMode.Setup");
+			SendMessage(hwndButton, BUTTONSETASFLATBTN, TRUE, 0);
+			SendMessage(hwndButton, MBM_UPDATETRANSPARENTFLAG, 0, 2);
 
-		hwndButton = CreateWindow(MIRANDABUTTONCLASS, L"", BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD | WS_TABSTOP, 0, 0, 20, 20,
-			hwnd, (HMENU)IDC_RESETMODES, g_hInst, nullptr);
-		MakeButtonSkinned(hwndButton);
-		SendMessage(hwndButton, BUTTONADDTOOLTIP, (WPARAM)TranslateT("Clear view mode and return to default display"), BATF_UNICODE);
-		SendMessage(hwndButton, BUTTONSETID, 0, (LPARAM) "ViewMode.Clear");
-		SendMessage(hwnd, WM_USER + 100, 0, 0);
-		SendMessage(hwndButton, BUTTONSETASFLATBTN, TRUE, 0);
-		SendMessage(hwndButton, MBM_UPDATETRANSPARENTFLAG, 0, 2);
-	}
-	return FALSE;
+			hwndButton = CreateWindow(MIRANDABUTTONCLASS, L"", BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD | WS_TABSTOP, 0, 0, 20, 20,
+				hwnd, (HMENU)IDC_RESETMODES, g_plugin.getInst(), nullptr);
+			MakeButtonSkinned(hwndButton);
+			SendMessage(hwndButton, BUTTONADDTOOLTIP, (WPARAM)TranslateT("Clear view mode and return to default display"), BATF_UNICODE);
+			SendMessage(hwndButton, BUTTONSETID, 0, (LPARAM) "ViewMode.Clear");
+			SendMessage(hwnd, WM_USER + 100, 0, 0);
+			SendMessage(hwndButton, BUTTONSETASFLATBTN, TRUE, 0);
+			SendMessage(hwndButton, MBM_UPDATETRANSPARENTFLAG, 0, 2);
+		}
+		return FALSE;
 
 	case WM_NCCALCSIZE:
 		return 18;// FrameNCCalcSize(hwnd, DefWindowProc, wParam, lParam, hasTitleBar);
 
 	case WM_SIZE:
-	{
-		RECT rcCLVMFrame;
-		HDWP PosBatch = BeginDeferWindowPos(3);
-		GetClientRect(hwnd, &rcCLVMFrame);
-		PosBatch = DeferWindowPos(PosBatch, GetDlgItem(hwnd, IDC_RESETMODES), nullptr,
-			rcCLVMFrame.right - 23, 1, 22, 18, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOCOPYBITS);
-		PosBatch = DeferWindowPos(PosBatch, GetDlgItem(hwnd, IDC_CONFIGUREMODES), nullptr,
-			rcCLVMFrame.right - 45, 1, 22, 18, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOCOPYBITS);
-		PosBatch = DeferWindowPos(PosBatch, GetDlgItem(hwnd, IDC_SELECTMODE), nullptr,
-			1, 1, rcCLVMFrame.right - 46, 18, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOCOPYBITS);
-		EndDeferWindowPos(PosBatch);
-	}
-	break;
+		{
+			RECT rcCLVMFrame;
+			HDWP PosBatch = BeginDeferWindowPos(3);
+			GetClientRect(hwnd, &rcCLVMFrame);
+			PosBatch = DeferWindowPos(PosBatch, GetDlgItem(hwnd, IDC_RESETMODES), nullptr,
+				rcCLVMFrame.right - 23, 1, 22, 18, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOCOPYBITS);
+			PosBatch = DeferWindowPos(PosBatch, GetDlgItem(hwnd, IDC_CONFIGUREMODES), nullptr,
+				rcCLVMFrame.right - 45, 1, 22, 18, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOCOPYBITS);
+			PosBatch = DeferWindowPos(PosBatch, GetDlgItem(hwnd, IDC_SELECTMODE), nullptr,
+				1, 1, rcCLVMFrame.right - 46, 18, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOCOPYBITS);
+			EndDeferWindowPos(PosBatch);
+		}
+		break;
 
 	case WM_USER + 100:
 		SendDlgItemMessage(hwnd, IDC_RESETMODES, MBM_SETICOLIBHANDLE, 0,
-			(LPARAM)RegisterIcolibIconHandle("CLN_CLVM_reset", LPGEN("Contact list"), LPGEN("Reset view mode"), nullptr, 0, g_hInst, IDI_RESETVIEW));
+			(LPARAM)RegisterIcolibIconHandle("CLN_CLVM_reset", LPGEN("Contact list"), LPGEN("Reset view mode"), nullptr, 0, g_plugin.getInst(), IDI_RESETVIEW));
 
 		SendDlgItemMessage(hwnd, IDC_CONFIGUREMODES, MBM_SETICOLIBHANDLE, 0,
-			(LPARAM)RegisterIcolibIconHandle("CLN_CLVM_set", LPGEN("Contact list"), LPGEN("Setup view modes"), nullptr, 0, g_hInst, IDI_SETVIEW));
+			(LPARAM)RegisterIcolibIconHandle("CLN_CLVM_set", LPGEN("Contact list"), LPGEN("Setup view modes"), nullptr, 0, g_plugin.getInst(), IDI_SETVIEW));
 
 		{
 			for (int i = 0; _buttons[i] != 0; i++) {
@@ -991,10 +994,10 @@ LRESULT CALLBACK ViewModeFrameWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 
 	case WM_NCPAINT:
 	case WM_PAINT:
-		if (GetParent(hwnd) == pcli->hwndContactList && g_CluiData.fLayered)
+		if (GetParent(hwnd) == g_clistApi.hwndContactList && g_CluiData.fLayered)
 			ValidateRect(hwnd, nullptr);
 
-		else if (GetParent(hwnd) != pcli->hwndContactList || !g_CluiData.fLayered) {
+		else if (GetParent(hwnd) != g_clistApi.hwndContactList || !g_CluiData.fLayered) {
 			RECT rc = { 0 };
 			GetClientRect(hwnd, &rc);
 			rc.right++;
@@ -1007,7 +1010,7 @@ LRESULT CALLBACK ViewModeFrameWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 			if (g_CluiData.fDisableSkinEngine)
 				sttDrawViewModeBackground(hwnd, hdc2, &rc);
 			else {
-				if (GetParent(hwnd) != pcli->hwndContactList) {
+				if (GetParent(hwnd) != g_clistApi.hwndContactList) {
 					HBRUSH br = GetSysColorBrush(COLOR_3DFACE);
 					FillRect(hdc2, &rc, br);
 				}
@@ -1041,13 +1044,13 @@ LRESULT CALLBACK ViewModeFrameWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 
 	case WM_NOTIFY:
 		if (((LPNMHDR)lParam)->code == BUTTONNEEDREDRAW)
-			pcli->pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		return 0;
 
 	case WM_TIMER:
 		if (wParam == TIMERID_VIEWMODEEXPIRE) {
 			RECT rcCLUI;
-			GetWindowRect(pcli->hwndContactList, &rcCLUI);
+			GetWindowRect(g_clistApi.hwndContactList, &rcCLUI);
 
 			POINT pt;
 			GetCursorPos(&pt);
@@ -1092,15 +1095,15 @@ LRESULT CALLBACK ViewModeFrameWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 			break;
 
 		case IDC_RESETMODES:
-		clvm_reset_command :
+clvm_reset_command:
 			ApplyViewMode("");
-						   break;
+			break;
 
 		case IDC_CONFIGUREMODES:
-		clvm_config_command :
+clvm_config_command:
 			if (!g_ViewModeOptDlg)
-				CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_OPT_VIEWMODES), nullptr, DlgProcViewModesSetup, 0);
-							break;
+				CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_OPT_VIEWMODES), nullptr, DlgProcViewModesSetup, 0);
+			break;
 		}
 
 	default:
@@ -1109,7 +1112,7 @@ LRESULT CALLBACK ViewModeFrameWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 	return TRUE;
 }
 
-static HWND hCLVMFrame;
+static int hCLVMFrame;
 HWND g_hwndViewModeFrame;
 
 struct view_mode_t
@@ -1131,7 +1134,7 @@ static view_mode_t view_mode;
 
 static BOOL sttDrawViewModeBackground(HWND hwnd, HDC hdc, RECT *rect)
 {
-	BOOL bFloat = (GetParent(hwnd) != pcli->hwndContactList);
+	BOOL bFloat = (GetParent(hwnd) != g_clistApi.hwndContactList);
 	if (g_CluiData.fDisableSkinEngine || !g_CluiData.fLayered || bFloat) {
 		RECT rc;
 		if (rect)
@@ -1166,7 +1169,7 @@ static int ehhViewModeBackgroundSettingsChanged(WPARAM, LPARAM)
 		view_mode.useWinColors = db_get_b(0, "ViewMode", "UseWinColours", CLCDEFAULT_USEWINDOWSCOLOURS);
 		view_mode.backgroundBmpUse = db_get_w(0, "ViewMode", "BkBmpUse", CLCDEFAULT_BKBMPUSE);
 	}
-	PostMessage(pcli->hwndContactList, WM_SIZE, 0, 0);
+	PostMessage(g_clistApi.hwndContactList, WM_SIZE, 0, 0);
 	return 0;
 }
 
@@ -1181,7 +1184,7 @@ void CreateViewModeFrame()
 	wndclass.lpfnWndProc = ViewModeFrameWndProc;
 	wndclass.cbClsExtra = 0;
 	wndclass.cbWndExtra = 0;
-	wndclass.hInstance = g_hInst;
+	wndclass.hInstance = g_plugin.getInst();
 	wndclass.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wndclass.hbrBackground = (HBRUSH)GetSysColorBrush(COLOR_3DFACE);
 	wndclass.lpszMenuName = nullptr;
@@ -1190,20 +1193,19 @@ void CreateViewModeFrame()
 
 	CLISTFrame frame = { 0 };
 	frame.cbSize = sizeof(frame);
-	frame.tname = L"View modes";
+	frame.szName.a = frame.szTBname.a = LPGEN("View modes");
 	frame.hIcon = Skin_LoadIcon(SKINICON_OTHER_FRAME);
 	frame.height = 18;
-	frame.TBtname = TranslateT("View modes");
-	frame.Flags = F_VISIBLE | F_SHOWTBTIP | F_NOBORDER | F_NO_SUBCONTAINER | F_UNICODE;
+	frame.Flags = F_VISIBLE | F_SHOWTBTIP | F_NOBORDER | F_NO_SUBCONTAINER;
 	frame.align = alBottom;
-	frame.hWnd = CreateWindowEx(0, L"CLVMFrameWindow", _A2W(CLVM_MODULE), WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_CLIPCHILDREN, 0, 0, 20, 20, pcli->hwndContactList, (HMENU)nullptr, g_hInst, nullptr);
+	frame.hWnd = CreateWindowEx(0, L"CLVMFrameWindow", _A2W(CLVM_MODULE), WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_CLIPCHILDREN, 0, 0, 20, 20, g_clistApi.hwndContactList, (HMENU)nullptr, g_plugin.getInst(), nullptr);
 	g_hwndViewModeFrame = frame.hWnd;
-	hCLVMFrame = (HWND)CallService(MS_CLIST_FRAMES_ADDFRAME, (WPARAM)&frame, 0);
-	CallService(MS_CLIST_FRAMES_UPDATEFRAME, (WPARAM)hCLVMFrame, FU_FMPOS);
+	hCLVMFrame = g_plugin.addFrame(&frame);
+	CallService(MS_CLIST_FRAMES_UPDATEFRAME, hCLVMFrame, FU_FMPOS);
 
 	CallService(MS_SKINENG_REGISTERPAINTSUB, (WPARAM)frame.hWnd, (LPARAM)ViewModePaintCallbackProc); //$$$$$ register sub for frame
 
-	ApplyViewMode(nullptr); //Apply last selected view mode
+	ApplyViewMode(nullptr); // Apply last selected view mode
 }
 
 void ApplyViewMode(const char *Name, bool onlySelector)
@@ -1238,7 +1240,7 @@ void ApplyViewMode(const char *Name, bool onlySelector)
 		KillTimer(g_hwndViewModeFrame, TIMERID_VIEWMODEEXPIRE);
 		SetDlgItemText(g_hwndViewModeFrame, IDC_SELECTMODE, TranslateT("All contacts"));
 		if (g_CluiData.boldHideOffline != (BYTE)-1)
-			pcli->pfnSetHideOffline(g_CluiData.boldHideOffline);
+			g_clistApi.pfnSetHideOffline(g_CluiData.boldHideOffline);
 		if (g_CluiData.bOldUseGroups != (BYTE)-1)
 			CallService(MS_CLIST_SETUSEGROUPS, (WPARAM)g_CluiData.bOldUseGroups, 0);
 		g_CluiData.boldHideOffline = (BYTE)-1;
@@ -1252,7 +1254,7 @@ void ApplyViewMode(const char *Name, bool onlySelector)
 		mir_snprintf(szSetting, "%c%s_PF", 246, Name);
 		if (!db_get_s(0, CLVM_MODULE, szSetting, &dbv)) {
 			if (mir_strlen(dbv.pszVal) >= 2) {
-				mir_strncpy(g_CluiData.protoFilter, dbv.pszVal, _countof(g_CluiData.protoFilter));
+				strncpy_s(g_CluiData.protoFilter, dbv.pszVal, _TRUNCATE);
 				g_CluiData.protoFilter[_countof(g_CluiData.protoFilter) - 1] = 0;
 				g_CluiData.bFilterEffective |= CLVM_FILTER_PROTOS;
 			}
@@ -1260,12 +1262,11 @@ void ApplyViewMode(const char *Name, bool onlySelector)
 		}
 		mir_snprintf(szSetting, "%c%s_GF", 246, Name);
 		if (!db_get_ws(0, CLVM_MODULE, szSetting, &dbv)) {
-			if (mir_wstrlen(dbv.ptszVal) >= 2) {
-				mir_wstrncpy(g_CluiData.groupFilter, dbv.ptszVal, _countof(g_CluiData.groupFilter));
-				g_CluiData.groupFilter[_countof(g_CluiData.groupFilter) - 1] = 0;
+			if (mir_wstrlen(dbv.pwszVal) >= 2) {
+				wcsncpy_s(g_CluiData.groupFilter, dbv.pwszVal, _TRUNCATE);
 				g_CluiData.bFilterEffective |= CLVM_FILTER_GROUPS;
 			}
-			mir_free(dbv.ptszVal);
+			mir_free(dbv.pwszVal);
 		}
 		mir_snprintf(szSetting, "%c%s_SM", 246, Name);
 		g_CluiData.statusMaskFilter = db_get_dw(0, CLVM_MODULE, szSetting, -1);
@@ -1284,7 +1285,7 @@ void ApplyViewMode(const char *Name, bool onlySelector)
 		if (g_CluiData.filterFlags & CLVM_AUTOCLEAR) {
 			mir_snprintf(szSetting, "%c%s_OPT", 246, Name);
 			DWORD timerexpire = LOWORD(db_get_dw(0, CLVM_MODULE, szSetting, 0));
-			mir_strncpy(g_CluiData.old_viewmode, g_CluiData.current_viewmode, _countof(g_CluiData.old_viewmode));
+			strncpy_s(g_CluiData.old_viewmode, g_CluiData.current_viewmode, _TRUNCATE);
 			g_CluiData.old_viewmode[255] = 0;
 			CLUI_SafeSetTimer(g_hwndViewModeFrame, TIMERID_VIEWMODEEXPIRE, timerexpire * 1000, nullptr);
 		}
@@ -1292,7 +1293,7 @@ void ApplyViewMode(const char *Name, bool onlySelector)
 			mir_snprintf(szSetting, "%c_LastMode", 246);
 			db_set_s(0, CLVM_MODULE, szSetting, Name);
 		}
-		mir_strncpy(g_CluiData.current_viewmode, Name, _countof(g_CluiData.current_viewmode));
+		strncpy_s(g_CluiData.current_viewmode, Name, _TRUNCATE);
 		g_CluiData.current_viewmode[255] = 0;
 
 		if (g_CluiData.filterFlags & CLVM_USELASTMSG) {
@@ -1326,10 +1327,10 @@ void ApplyViewMode(const char *Name, bool onlySelector)
 			if (g_CluiData.boldHideOffline == (BYTE)-1)
 				g_CluiData.boldHideOffline = db_get_b(0, "CList", "HideOffline", SETTING_HIDEOFFLINE_DEFAULT);
 
-			pcli->pfnSetHideOffline(false);
+			g_clistApi.pfnSetHideOffline(false);
 		}
 		else if (g_CluiData.boldHideOffline != (BYTE)-1) {
-			pcli->pfnSetHideOffline(g_CluiData.boldHideOffline);
+			g_clistApi.pfnSetHideOffline(g_CluiData.boldHideOffline);
 			g_CluiData.boldHideOffline = -1;
 		}
 
@@ -1355,14 +1356,5 @@ void ApplyViewMode(const char *Name, bool onlySelector)
 	SetWindowText(hwndSelector, ptrW(mir_utf8decodeW((Name[0] == 13) ? Name + 1 : Name)));
 
 	Clist_Broadcast(CLM_AUTOREBUILD, 0, 0);
-	cliInvalidateRect(pcli->hwndStatus, nullptr, FALSE);
-}
-
-static int SkinSetViewMode(WPARAM wParam /*char * name*/, LPARAM lParam /*int index*/)
-{
-	if (wParam == 0 && lParam == 0)
-		ApplyViewMode(nullptr);
-	else if (wParam && !IsBadStringPtrA((const char*)wParam, -1))
-		ApplyViewMode((const char*)wParam);
-	return 0;
+	cliInvalidateRect(g_clistApi.hwndStatus, nullptr, FALSE);
 }

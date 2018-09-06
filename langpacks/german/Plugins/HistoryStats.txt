@@ -2,14 +2,12 @@
 ;============================================================
 ;  File: HistoryStats.dll
 ;  Plugin: HistoryStats
-;  Version: 0.2.1.1
+;  Version: 0.2.1.2
 ;  Authors: Martin Afanasjew
 ;============================================================
 [Creates detailed, colorful and highly customizable statistics using your message history.]
 Plugin erstellt detaillierte, farbige und hochflexible Statistiken anhand Ihres Verlaufes.
 ;file \plugins\HistoryStats\res\resource.rc
-[Band]
-Band
 [HistoryStats - Working...]
 HistoryStats - Arbeite...
 [Cancel]

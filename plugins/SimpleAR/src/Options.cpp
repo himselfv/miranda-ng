@@ -11,12 +11,12 @@ INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 		{
 			char tszStatus[6] = { 0 };
 
-			CheckDlgButton(hwndDlg, IDC_ENABLEREPLIER, db_get_b(NULL, protocolname, KEY_ENABLED, 1) == 1 ? BST_CHECKED : BST_UNCHECKED);
-			SetDlgItemInt(hwndDlg, IDC_INTERVAL, db_get_w(NULL, protocolname, KEY_REPEATINTERVAL, 300) / 60, FALSE);
+			CheckDlgButton(hwndDlg, IDC_ENABLEREPLIER, db_get_b(NULL, MODULENAME, KEY_ENABLED, 1) == 1 ? BST_CHECKED : BST_UNCHECKED);
+			SetDlgItemInt(hwndDlg, IDC_INTERVAL, db_get_w(NULL, MODULENAME, KEY_REPEATINTERVAL, 300) / 60, FALSE);
 
 			DBVARIANT dbv;
-			if (!db_get_ws(NULL, protocolname, KEY_HEADING, &dbv)) {
-				SetDlgItemText(hwndDlg, IDC_HEADING, dbv.ptszVal);
+			if (!db_get_ws(NULL, MODULENAME, KEY_HEADING, &dbv)) {
+				SetDlgItemText(hwndDlg, IDC_HEADING, dbv.pwszVal);
 				db_free(&dbv);
 			}
 
@@ -28,11 +28,11 @@ INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 				else {
 					SendDlgItemMessage(hwndDlg, IDC_STATUSMODE, CB_ADDSTRING, 0, (LPARAM)pszStatus);
 
-					if (!db_get_ws(NULL, protocolname, tszStatus, &dbv)) {
+					if (!db_get_ws(NULL, MODULENAME, tszStatus, &dbv)) {
 						if (c < ID_STATUS_FREECHAT)
-							ptszMessage[c - ID_STATUS_ONLINE - 1] = wcsdup(dbv.ptszVal);
+							ptszMessage[c - ID_STATUS_ONLINE - 1] = wcsdup(dbv.pwszVal);
 						else if (c > ID_STATUS_INVISIBLE)
-							ptszMessage[c - ID_STATUS_ONLINE - 3] = wcsdup(dbv.ptszVal);
+							ptszMessage[c - ID_STATUS_ONLINE - 3] = wcsdup(dbv.pwszVal);
 						db_free(&dbv);
 					}
 				}
@@ -80,7 +80,7 @@ INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 			BOOL translated;
 
 			BOOL fEnabled = IsDlgButtonChecked(hwndDlg, IDC_ENABLEREPLIER) == 1;
-			db_set_b(NULL, protocolname, KEY_ENABLED, (BYTE)fEnabled);
+			db_set_b(NULL, MODULENAME, KEY_ENABLED, (BYTE)fEnabled);
 
 			if (fEnabled)
 				Menu_ModifyItem(hEnableMenu, LPGENW("Disable Auto&reply"), iconList[0].hIcolib);
@@ -88,12 +88,12 @@ INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 				Menu_ModifyItem(hEnableMenu, LPGENW("Enable Auto&reply"), iconList[1].hIcolib);
 
 			GetDlgItemText(hwndDlg, IDC_HEADING, ptszText, _countof(ptszText));
-			db_set_ws(NULL, protocolname, KEY_HEADING, ptszText);
+			db_set_ws(NULL, MODULENAME, KEY_HEADING, ptszText);
 
 			INT size = GetDlgItemInt(hwndDlg, IDC_INTERVAL, &translated, FALSE);
 			if (translated)
 				interval = size * 60;
-			db_set_w(NULL, protocolname, KEY_REPEATINTERVAL, interval);
+			db_set_w(NULL, MODULENAME, KEY_REPEATINTERVAL, interval);
 
 			size = SendDlgItemMessage(hwndDlg, IDC_MESSAGE, WM_GETTEXTLENGTH, 0, 0) + 1;
 			GetDlgItemText(hwndDlg, IDC_MESSAGE, ptszMessage[lastIndex], size);
@@ -106,11 +106,11 @@ INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 					mir_snprintf(szStatus, "%d", c);
 
 					if (c<ID_STATUS_FREECHAT && ptszMessage[c - ID_STATUS_ONLINE - 1])
-						db_set_ws(NULL, protocolname, szStatus, ptszMessage[c - ID_STATUS_ONLINE - 1]);
+						db_set_ws(NULL, MODULENAME, szStatus, ptszMessage[c - ID_STATUS_ONLINE - 1]);
 					else if (c>ID_STATUS_INVISIBLE && ptszMessage[c - ID_STATUS_ONLINE - 3])
-						db_set_ws(NULL, protocolname, szStatus, ptszMessage[c - ID_STATUS_ONLINE - 3]);
+						db_set_ws(NULL, MODULENAME, szStatus, ptszMessage[c - ID_STATUS_ONLINE - 3]);
 					else
-						db_unset(NULL, protocolname, szStatus);
+						db_unset(NULL, MODULENAME, szStatus);
 				}
 			}
 			return TRUE;
@@ -135,14 +135,13 @@ INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 
 INT OptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -790000000;
-	odp.hInstance = hinstance;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTION);
 	odp.szTitle.a = LPGEN("Simple Auto Replier");
 	odp.szGroup.a = LPGEN("Message sessions");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = DlgProcOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

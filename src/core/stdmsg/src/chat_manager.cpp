@@ -27,12 +27,12 @@ pfnDoPopup    oldDoPopup;
 
 SESSION_INFO* SM_GetPrevWindow(SESSION_INFO *si)
 {
-	int i = pci->arSessions.indexOf(si);
+	int i = g_chatApi.arSessions.indexOf(si);
 	if (i == -1)
 		return nullptr;
 
 	for (i--; i >= 0; i--) {
-		SESSION_INFO *p = pci->arSessions[i];
+		SESSION_INFO *p = g_chatApi.arSessions[i];
 		if (p->pDlg)
 			return p;
 	}
@@ -42,11 +42,11 @@ SESSION_INFO* SM_GetPrevWindow(SESSION_INFO *si)
 
 SESSION_INFO* SM_GetNextWindow(SESSION_INFO *si)
 {
-	int i = pci->arSessions.indexOf(si);
+	int i = g_chatApi.arSessions.indexOf(si);
 	if (i == -1)
 		return nullptr;
 
-	for (auto &p : pci->arSessions)
+	for (auto &p : g_chatApi.arSessions)
 		if (p->pDlg)
 			return p;
 
@@ -54,8 +54,6 @@ SESSION_INFO* SM_GetNextWindow(SESSION_INFO *si)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
-
-CHAT_MANAGER *pci;
 
 HMENU g_hMenu = nullptr;
 
@@ -73,10 +71,10 @@ static void OnCreateModule(MODULEINFO *mi)
 {
 	OnDestroyModule(mi);
 
-	mi->OnlineIconIndex = pcli->pfnIconFromStatusMode(mi->pszModule, ID_STATUS_ONLINE, 0);
+	mi->OnlineIconIndex = g_clistApi.pfnIconFromStatusMode(mi->pszModule, ID_STATUS_ONLINE, 0);
 	mi->hOnlineIcon = ImageList_GetIcon(Clist_GetImageList(), mi->OnlineIconIndex, ILD_TRANSPARENT);
 
-	mi->OfflineIconIndex = pcli->pfnIconFromStatusMode(mi->pszModule, ID_STATUS_OFFLINE, 0);
+	mi->OfflineIconIndex = g_clistApi.pfnIconFromStatusMode(mi->pszModule, ID_STATUS_OFFLINE, 0);
 	mi->hOfflineIcon = ImageList_GetIcon(Clist_GetImageList(), mi->OfflineIconIndex, ILD_TRANSPARENT);
 }
 
@@ -128,7 +126,7 @@ static void OnLoadSettings()
 		DeleteObject(g_Settings.MessageAreaFont);
 
 	LOGFONT lf;
-	pci->LoadMsgDlgFont(17, &lf, &g_Settings.MessageAreaColor);
+	g_chatApi.LoadMsgDlgFont(17, &lf, &g_Settings.MessageAreaColor);
 	g_Settings.MessageAreaFont = CreateFontIndirect(&lf);
 
 	g_Settings.iX = db_get_dw(0, CHAT_MODULE, "roomx", -1);
@@ -148,34 +146,34 @@ static void OnLoadSettings()
 
 static void RegisterFonts()
 {
-	ColourIDW colourid = { sizeof(colourid) };
+	ColourIDW colourid = {};
 	strncpy(colourid.dbSettingsGroup, CHAT_MODULE, sizeof(colourid.dbSettingsGroup));
 	wcsncpy(colourid.group, LPGENW("Message sessions") L"/" LPGENW("Chat module"), _countof(colourid.group));
 
 	strncpy(colourid.setting, "ColorLogBG", _countof(colourid.setting));
 	wcsncpy(colourid.name, LPGENW("Group chat log background"), _countof(colourid.name));
 	colourid.defcolour = GetSysColor(COLOR_WINDOW);
-	Colour_RegisterW(&colourid);
+	g_plugin.addColor(&colourid);
 
 	strncpy(colourid.setting, "ColorMessageBG", _countof(colourid.setting));
 	wcsncpy(colourid.name, LPGENW("Message background"), _countof(colourid.name));
 	colourid.defcolour = GetSysColor(COLOR_WINDOW);
-	Colour_RegisterW(&colourid);
+	g_plugin.addColor(&colourid);
 
 	strncpy(colourid.setting, "ColorNicklistBG", _countof(colourid.setting));
 	wcsncpy(colourid.name, LPGENW("Nick list background"), _countof(colourid.name));
 	colourid.defcolour = GetSysColor(COLOR_WINDOW);
-	Colour_RegisterW(&colourid);
+	g_plugin.addColor(&colourid);
 
 	strncpy(colourid.setting, "ColorNicklistLines", _countof(colourid.setting));
 	wcsncpy(colourid.name, LPGENW("Nick list lines"), _countof(colourid.name));
 	colourid.defcolour = GetSysColor(COLOR_INACTIVEBORDER);
-	Colour_RegisterW(&colourid);
+	g_plugin.addColor(&colourid);
 
 	strncpy(colourid.setting, "ColorNicklistSelectedBG", _countof(colourid.setting));
 	wcsncpy(colourid.name, LPGENW("Nick list background (selected)"), _countof(colourid.name));
 	colourid.defcolour = GetSysColor(COLOR_HIGHLIGHT);
-	Colour_RegisterW(&colourid);
+	g_plugin.addColor(&colourid);
 }
 
 static void ShowRoom(SESSION_INFO *si)
@@ -230,23 +228,23 @@ void Load_ChatModule()
 	AddIcons();
 	RegisterFonts();
 
-	CHAT_MANAGER_INITDATA data = { &g_Settings, sizeof(MODULEINFO), sizeof(SESSION_INFO), LPGENW("Message sessions") L"/" LPGENW("Chat module"), FONTMODE_USE };
-	pci = Chat_GetInterface(&data);
+	CHAT_MANAGER_INITDATA data = { &g_Settings, sizeof(MODULEINFO), sizeof(SESSION_INFO), LPGENW("Message sessions") L"/" LPGENW("Chat module"), FONTMODE_USE, &g_plugin };
+	Chat_CustomizeApi(&data);
 
-	pci->OnCreateModule = OnCreateModule;
-	pci->OnDestroyModule = OnDestroyModule;
-	pci->OnReplaceSession = OnReplaceSession;
+	g_chatApi.OnCreateModule = OnCreateModule;
+	g_chatApi.OnDestroyModule = OnDestroyModule;
+	g_chatApi.OnReplaceSession = OnReplaceSession;
 
-	pci->OnLoadSettings = OnLoadSettings;
-	pci->OnFlashWindow = OnFlashWindow;
-	pci->OnFlashHighlight = OnFlashHighlight;
-	pci->ShowRoom = ShowRoom;
+	g_chatApi.OnLoadSettings = OnLoadSettings;
+	g_chatApi.OnFlashWindow = OnFlashWindow;
+	g_chatApi.OnFlashHighlight = OnFlashHighlight;
+	g_chatApi.ShowRoom = ShowRoom;
 
-	oldDoPopup = pci->DoPopup; pci->DoPopup = DoPopup;
-	oldDoTrayIcon = pci->DoTrayIcon; pci->DoTrayIcon = DoTrayIcon;
-	pci->ReloadSettings();
+	oldDoPopup = g_chatApi.DoPopup; g_chatApi.DoPopup = DoPopup;
+	oldDoTrayIcon = g_chatApi.DoTrayIcon; g_chatApi.DoTrayIcon = DoTrayIcon;
+	g_chatApi.ReloadSettings();
 
-	g_hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_MENU));
+	g_hMenu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_MENU));
 
 	HookEvent(ME_SYSTEM_MODULELOAD, OnCheckPlugins);
 }

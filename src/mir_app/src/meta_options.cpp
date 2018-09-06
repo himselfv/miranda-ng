@@ -57,7 +57,7 @@ class CMetaOptionsDlg : public CDlgBase
 
 public:
 	CMetaOptionsDlg() :
-		CDlgBase(g_hInst, IDD_METAOPTIONS),
+		CDlgBase(g_plugin, IDD_METAOPTIONS),
 		m_btnUid(this, IDC_RAD_UID),
 		m_btnDid(this, IDC_RAD_DID),
 		m_btnMsg(this, IDC_RAD_MSG),
@@ -70,7 +70,7 @@ public:
 	{
 	}
 
-	virtual void OnInitDialog()
+	bool OnInitDialog() override
 	{
 		m_btnLock.SetState(g_metaOptions.bLockHandle);
 		m_btnCheck.SetState(g_metaOptions.bSuppressStatus);
@@ -90,9 +90,10 @@ public:
 			m_btnNick.SetState(true);
 		else
 			m_btnName.SetState(true);
+		return true;
 	}
 
-	virtual void OnApply()
+	bool OnApply() override
 	{
 		g_metaOptions.bLockHandle = m_btnLock.GetState() != 0;
 		g_metaOptions.bSuppressStatus = m_btnCheck.GetState() != 0;
@@ -111,6 +112,7 @@ public:
 
 		Meta_SuppressStatus(g_metaOptions.bSuppressStatus);
 		Meta_SetAllNicks();
+		return true;
 	}
 };
 
@@ -118,12 +120,12 @@ public:
 
 int Meta_OptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -790000000;
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.szTitle.a = LPGEN("Metacontacts");
 	odp.szGroup.a = LPGEN("Contacts");
 	odp.pDialog = new CMetaOptionsDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

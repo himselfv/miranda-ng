@@ -25,18 +25,18 @@ void InitPopupList()
 {
 	int index = 0;
 	PopupsList[index].ID = index;
-	PopupsList[index].colorBack = db_get_dw(NULL, MODNAME, "Popups0Bg", COLOR_BG_FIRSTDEFAULT);
-	PopupsList[index].colorText = db_get_dw(NULL, MODNAME, "Popups0Tx", COLOR_TX_DEFAULT);
+	PopupsList[index].colorBack = db_get_dw(NULL, MODULENAME, "Popups0Bg", COLOR_BG_FIRSTDEFAULT);
+	PopupsList[index].colorText = db_get_dw(NULL, MODULENAME, "Popups0Tx", COLOR_TX_DEFAULT);
 
 	index = 1;
 	PopupsList[index].ID = index;
-	PopupsList[index].colorBack = db_get_dw(NULL, MODNAME, "Popups1Bg", COLOR_BG_SECONDDEFAULT);
-	PopupsList[index].colorText = db_get_dw(NULL, MODNAME, "Popups1Tx", COLOR_TX_DEFAULT);
+	PopupsList[index].colorBack = db_get_dw(NULL, MODULENAME, "Popups1Bg", COLOR_BG_SECONDDEFAULT);
+	PopupsList[index].colorText = db_get_dw(NULL, MODULENAME, "Popups1Tx", COLOR_TX_DEFAULT);
 
 	index = 2;
 	PopupsList[index].ID = index;
-	PopupsList[index].colorBack = db_get_dw(NULL, MODNAME, "Popups2Bg", COLOR_BG_FIRSTDEFAULT);
-	PopupsList[index].colorText = db_get_dw(NULL, MODNAME, "Popups2Tx", COLOR_TX_DEFAULT);
+	PopupsList[index].colorBack = db_get_dw(NULL, MODULENAME, "Popups2Bg", COLOR_BG_FIRSTDEFAULT);
+	PopupsList[index].colorText = db_get_dw(NULL, MODULENAME, "Popups2Tx", COLOR_TX_DEFAULT);
 }
 
 void PopupAction(HWND hPopup, BYTE action)
@@ -74,7 +74,7 @@ static void _stdcall RestartPrompt(void *)
 	mir_snwprintf(tszText, L"%s\n\n%s", TranslateT("You need to restart your Miranda to apply installed updates."), TranslateT("Would you like to restart it now?"));
 
 	if (MessageBox(nullptr, tszText, TranslateT("Plugin Updater"), MB_YESNO | MB_ICONQUESTION | MB_TOPMOST) == IDYES)
-		CallService(MS_SYSTEM_RESTART, db_get_b(NULL, MODNAME, "RestartCurrentProfile", 1) ? 1 : 0, 0);
+		CallService(MS_SYSTEM_RESTART, db_get_b(NULL, MODULENAME, "RestartCurrentProfile", 1) ? 1 : 0, 0);
 }
 
 static LRESULT CALLBACK PopupDlgProcRestart(HWND hPopup, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -97,19 +97,13 @@ void ShowPopup(LPCTSTR ptszTitle, LPCTSTR ptszText, int Number)
 {
 	if (ServiceExists(MS_POPUP_ADDPOPUPT) && db_get_b(NULL, "Popup", "ModuleIsEnabled", 1)) {
 		char setting[100];
-#if MIRANDA_VER < 0x0A00
-		mir_snprintf(setting, sizeof(setting), "Popups%d", Number);
-#else
 		mir_snprintf(setting, "Popups%d", Number);
-#endif
-		if (db_get_b(NULL, MODNAME, setting, DEFAULT_POPUP_ENABLED)) {
+
+		if (db_get_b(NULL, MODULENAME, setting, DEFAULT_POPUP_ENABLED)) {
 			POPUPDATAT pd = { 0 };
 			pd.lchContact = NULL;
-#if MIRANDA_VER >= 0x0A00
 			pd.lchIcon = IcoLib_GetIconByHandle(iconList[0].hIcolib);
-#else
-			pd.lchIcon = IcoLib_GetIcon("check_update");
-#endif
+
 			if (Number == POPUP_TYPE_MSG) {
 				pd.PluginWindowProc = PopupDlgProcRestart;
 				pd.iSeconds = -1;

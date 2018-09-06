@@ -1,8 +1,6 @@
 #include "stdafx.h"
 
-HINSTANCE g_hInst;
-int hLangpack;
-DWORD g_mirandaVersion;
+CMPlugin g_plugin;
 
 SpeakConfig   *g_speak_config = nullptr;
 SpeakAnnounce *g_speak_announce = nullptr;
@@ -11,7 +9,7 @@ HANDLE         g_event_status_change;
 HANDLE         g_event_message_added;
 HANDLE         g_protocol_ack;
 
-PLUGININFOEX pluginInfo={
+PLUGININFOEX pluginInfoEx={
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -23,6 +21,10 @@ PLUGININFOEX pluginInfo={
 	// {81E189DC-C251-45F6-9EDF-A0F3A05C4248}
 	{ 0x81e189dc, 0xc251, 0x45f6, { 0x9e, 0xdf, 0xa0, 0xf3, 0xa0, 0x5c, 0x42, 0x48 } }
 };
+
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>("speak_config", pluginInfoEx)
+{}
 
 //-----------------------------------------------------------------------------
 // Description : External hook
@@ -67,8 +69,7 @@ int protocolAck(WPARAM, LPARAM lParam)
 
 int dialogOptionsInitialise(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szGroup.w = LPGENW("Speak");
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
 
@@ -77,12 +78,12 @@ int dialogOptionsInitialise(WPARAM wParam, LPARAM)
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_CONFIG);
 		odp.szTitle.w = LPGENW("Engine/Voice");
 		odp.pfnDlgProc = DialogConfigEngine::process;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_ACTIVEMODES);
 		odp.szTitle.w = LPGENW("Active Modes");
 		odp.pfnDlgProc = DialogConfigActive::process;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 
 	if (g_speak_announce)
@@ -90,24 +91,18 @@ int dialogOptionsInitialise(WPARAM wParam, LPARAM)
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_ANNOUNCE);
 		odp.szTitle.w = LPGENW("Announce");
 		odp.pfnDlgProc = AnnounceDialog::process;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD mirandaVersion)
-{
-	g_mirandaVersion = mirandaVersion;
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	if (!g_speak_config)
 	{
-		g_speak_config = new SpeakConfig(g_hInst);
+		g_speak_config = new SpeakConfig(g_plugin.getInst());
 
 		// expose to allow miranda + plugins to access my speak routines
 		CreateServiceFunction(MS_SPEAK_STATUS, status);
@@ -116,7 +111,7 @@ extern "C" __declspec(dllexport) int Load(void)
 
 	if (!g_speak_announce)
 	{
-		g_speak_announce = new SpeakAnnounce(g_hInst);
+		g_speak_announce = new SpeakAnnounce(g_plugin.getInst());
 
 		// tap into contact setting change event
 		g_event_status_change = HookEvent(ME_DB_CONTACT_SETTINGCHANGED, eventStatusChange);
@@ -135,7 +130,9 @@ extern "C" __declspec(dllexport) int Load(void)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	UnhookEvent(g_dialog_options_initialise);
 
@@ -156,11 +153,4 @@ extern "C" __declspec(dllexport) int Unload(void)
 	}
 
 	return 0;
-}
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	DisableThreadLibraryCalls(hinstDLL);
-	g_hInst = hinstDLL;
-	return TRUE;
 }

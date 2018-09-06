@@ -15,6 +15,8 @@
 #define RESULT_INVALID		50
 #define RESULT_NONE			100
 
+#pragma comment(lib, "version.lib")
+
 int debug = 0;
 
 static void PatchResourcesDirectory(PIMAGE_RESOURCE_DIRECTORY pIRD, PBYTE pBase);

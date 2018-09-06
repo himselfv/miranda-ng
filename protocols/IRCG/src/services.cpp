@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void CIrcProto::OnBuildProtoMenu()
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.root = Menu_GetProtocolRoot(this);
 
 	mi.name.a = LPGEN("&Quick connect");
@@ -104,7 +104,7 @@ void InitContactMenus(void)
 	char temp[MAXMODULELABELLENGTH];
 	char *d = temp + mir_snprintf(temp, "IRC");
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.pszService = temp;
 
 	SET_UID(mi, 0x5f01196f, 0xfbcd, 0x4034, 0xbd, 0x90, 0x12, 0xa0, 0x20, 0x68, 0x15, 0xc0);
@@ -183,12 +183,12 @@ void CIrcProto::OnContactDeleted(MCONTACT hContact)
 		if (type != 0) {
 			CMStringW S;
 			if (type == GCW_CHATROOM)
-				S = MakeWndID(dbv.ptszVal);
+				S = MakeWndID(dbv.pwszVal);
 			if (type == GCW_SERVER)
 				S = SERVERWINDOW;
 			int i = Chat_Terminate(m_szModuleName, S);
 			if (i && type == GCW_CHATROOM)
-				PostIrcMessage(L"/PART %s %s", dbv.ptszVal, m_userInfo);
+				PostIrcMessage(L"/PART %s %s", dbv.pwszVal, m_userInfo);
 		}
 		else {
 			BYTE bDCC = getByte(hContact, "DCC", 0);
@@ -211,7 +211,7 @@ INT_PTR __cdecl CIrcProto::OnJoinChat(WPARAM wp, LPARAM)
 	DBVARIANT dbv;
 	if (!getWString((MCONTACT)wp, "Nick", &dbv)) {
 		if (getByte((MCONTACT)wp, "ChatRoom", 0) == GCW_CHATROOM)
-			PostIrcMessage(L"/JOIN %s", dbv.ptszVal);
+			PostIrcMessage(L"/JOIN %s", dbv.pwszVal);
 		db_free(&dbv);
 	}
 	return 0;
@@ -225,8 +225,8 @@ INT_PTR __cdecl CIrcProto::OnLeaveChat(WPARAM wp, LPARAM)
 	DBVARIANT dbv;
 	if (!getWString((MCONTACT)wp, "Nick", &dbv)) {
 		if (getByte((MCONTACT)wp, "ChatRoom", 0) == GCW_CHATROOM) {
-			PostIrcMessage(L"/PART %s %s", dbv.ptszVal, m_userInfo);
-			Chat_Terminate(m_szModuleName, MakeWndID(dbv.ptszVal));
+			PostIrcMessage(L"/PART %s %s", dbv.pwszVal, m_userInfo);
+			Chat_Terminate(m_szModuleName, MakeWndID(dbv.pwszVal));
 		}
 		db_free(&dbv);
 	}
@@ -241,7 +241,7 @@ INT_PTR __cdecl CIrcProto::OnMenuChanSettings(WPARAM wp, LPARAM)
 	MCONTACT hContact = (MCONTACT)wp;
 	DBVARIANT dbv;
 	if (!getWString(hContact, "Nick", &dbv)) {
-		PostIrcMessageWnd(dbv.ptszVal, NULL, L"/CHANNELMANAGER");
+		PostIrcMessageWnd(dbv.pwszVal, NULL, L"/CHANNELMANAGER");
 		db_free(&dbv);
 	}
 	return 0;
@@ -255,7 +255,7 @@ INT_PTR __cdecl CIrcProto::OnMenuWhois(WPARAM wp, LPARAM)
 	DBVARIANT dbv;
 
 	if (!getWString((MCONTACT)wp, "Nick", &dbv)) {
-		PostIrcMessage(L"/WHOIS %s %s", dbv.ptszVal, dbv.ptszVal);
+		PostIrcMessage(L"/WHOIS %s %s", dbv.pwszVal, dbv.pwszVal);
 		db_free(&dbv);
 	}
 	return 0;
@@ -540,7 +540,7 @@ int __cdecl CIrcProto::GCEventHook(WPARAM, LPARAM lParam)
 					{
 						DBVARIANT dbv;
 						if (!getWString("Nick", &dbv)) {
-							PostIrcMessage(L"/nickserv SENDPASS %s", dbv.ptszVal);
+							PostIrcMessage(L"/nickserv SENDPASS %s", dbv.pwszVal);
 							db_free(&dbv);
 						}
 					}
@@ -632,7 +632,7 @@ int __cdecl CIrcProto::GCEventHook(WPARAM, LPARAM lParam)
 					break;
 				case 6:
 					PostIrcMessage(L"/KICK %s %s %%question=\"%s\",\"%s\",\"%s\"",
-						p1, gch->ptszUID, TranslateT("Please enter the reason"), TranslateT("Kick"), TranslateT("Jerk"));
+						p1, gch->ptszUID, TranslateT("Please enter the reason"), TranslateT("Kick"), "");
 					break;
 				case 7:
 					DoUserhostWithReason(1, L"B" + (CMStringW)p1, true, L"%s", gch->ptszUID);
@@ -796,7 +796,7 @@ int __cdecl CIrcProto::GCMenuHook(WPARAM, LPARAM lParam)
 		if (!mir_strcmpi(gcmi->pszModule, m_szModuleName)) {
 			if (gcmi->Type == MENU_ON_LOG) {
 				if (mir_wstrcmpi(gcmi->pszID, SERVERWINDOW))
-					Chat_AddMenuItems(gcmi->hMenu, _countof(logItems), logItems);
+					Chat_AddMenuItems(gcmi->hMenu, _countof(logItems), logItems, &g_plugin);
 			}
 
 			if (gcmi->Type == MENU_ON_NICKLIST) {
@@ -829,7 +829,7 @@ int __cdecl CIrcProto::GCMenuHook(WPARAM, LPARAM lParam)
 				nickItems[7].bDisabled = nickItems[8].bDisabled = nickItems[9].bDisabled = nickItems[10].bDisabled = !(bForceEnable || bOwner);
 				nickItems[11].bDisabled = nickItems[12].bDisabled = nickItems[13].bDisabled = nickItems[14].bDisabled = !(bForceEnable || bOp || bAdmin || bOwner);
 
-				Chat_AddMenuItems(gcmi->hMenu, _countof(nickItems), nickItems);
+				Chat_AddMenuItems(gcmi->hMenu, _countof(nickItems), nickItems, &g_plugin);
 			}
 		}
 	}
@@ -917,7 +917,7 @@ int __cdecl CIrcProto::OnDbSettingChanged(WPARAM hContact, LPARAM lParam)
 		DBVARIANT dbv;
 		if (!getWString(hContact, "Nick", &dbv)) {
 			if (getByte("MirVerAutoRequest", 1))
-				PostIrcMessage(L"/PRIVMSG %s \001VERSION\001", dbv.ptszVal);
+				PostIrcMessage(L"/PRIVMSG %s \001VERSION\001", dbv.pwszVal);
 			db_free(&dbv);
 		}
 	}

@@ -395,7 +395,7 @@ class MIR_CORE_EXPORT CDlgBase
 	friend class CCtrlData;
 
 public:
-	CDlgBase(HINSTANCE hInst, int idDialog);
+	CDlgBase(class CMPluginBase &pPlug, int idDialog);
 	virtual ~CDlgBase();
 
 	// general utilities
@@ -412,8 +412,7 @@ public:
 	void SetCaption(const wchar_t *ptszCaption);
 	void NotifyChange(void); // sends a notification to a parent window
 
-	__forceinline void Fail() { m_lresult = false; }
-	__forceinline HINSTANCE GetInst() const { return m_hInst; }
+	__forceinline HINSTANCE GetInst() const { return m_pPlugin.getInst(); }
 	__forceinline HWND GetHwnd() const { return m_hwnd; }
 	__forceinline void Hide() { Show(SW_HIDE); }
 	__forceinline bool IsInitialized() const { return m_initialized; }
@@ -424,32 +423,32 @@ public:
 	static CDlgBase* Find(HWND hwnd);
 
 protected:
-	HWND      m_hwnd;  // must be the first data item
-	HINSTANCE m_hInst;
-	HWND      m_hwndParent;
-	int       m_idDialog;
-	bool      m_isModal;
-	bool      m_initialized;
-	bool      m_forceResizable;
-	bool      m_bExiting; // window received WM_CLOSE and gonna die soon
-	LRESULT   m_lresult;
+	HWND    m_hwnd = nullptr;  // must be the first data item
+	HWND    m_hwndParent = nullptr;
+	int     m_idDialog;
+	bool    m_isModal = false;
+	bool    m_initialized = false;
+	bool    m_forceResizable = false;
+	bool    m_bExiting = false; // window received WM_CLOSE and gonna die soon
+
+	CMPluginBase &m_pPlugin;
 
 	enum { CLOSE_ON_OK = 0x1, CLOSE_ON_CANCEL = 0x2 };
 	BYTE    m_autoClose;    // automatically close dialog on IDOK/CANCEL commands. default: CLOSE_ON_OK|CLOSE_ON_CANCEL
 
 	// override this handlers to provide custom functionality
 	// general messages
-	virtual void OnInitDialog() { }
-	virtual void OnClose() { }
-	virtual void OnDestroy() { }
+	virtual bool OnInitDialog();
+	virtual bool OnApply();
+	virtual bool OnClose();
+	virtual void OnDestroy();
 
-	virtual void OnTimer(CTimer*) {}
+	virtual void OnTimer(CTimer*);
 
 	// miranda-related stuff
 	virtual int Resizer(UTILRESIZECONTROL *urc);
-	virtual void OnApply() {}
-	virtual void OnReset() {}
-	virtual void OnChange() {}
+	virtual void OnReset();
+	virtual void OnChange();
 
 	// main dialog procedure
 	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam);
@@ -460,6 +459,16 @@ protected:
 	void AddControl(CCtrlBase *ctrl);
 	void AddTimer(CTimer *timer);
 
+	// options support
+	void CreateLink(CCtrlData& ctrl, const char *szSetting, BYTE type, DWORD iValue);
+	void CreateLink(CCtrlData& ctrl, const char *szSetting, wchar_t *szValue);
+
+	template<class T>
+	__inline void CreateLink(CCtrlData& ctrl, CMOption<T> &option)
+	{
+		ctrl.CreateDbLink(new CMOptionLink<T>(option));
+	}
+
 	// win32 stuff
 	void ThemeDialogBackground(BOOL tabbed);
 
@@ -468,6 +477,7 @@ private:
 	LIST<CCtrlBase> m_controls;
 
 	void NotifyControls(void (CCtrlBase::*fn)());
+	bool VerifyControls(bool (CCtrlBase::*fn)());
 
 	CTimer* FindTimer(int idEvent);
 
@@ -556,7 +566,7 @@ public:
 	virtual void OnInit();
 	virtual void OnDestroy();
 
-	virtual void OnApply();
+	virtual bool OnApply();
 	virtual void OnReset();
 
 protected:
@@ -808,7 +818,7 @@ public:
 	CCtrlCheck(CDlgBase *dlg, int ctrlId);
 	BOOL OnCommand(HWND /*hwndCtrl*/, WORD /*idCtrl*/, WORD /*idCode*/) override;
 
-	void OnApply() override;
+	bool OnApply() override;
 	void OnReset() override;
 
 	int GetState();
@@ -828,7 +838,7 @@ public:
 	CCtrlEdit(CDlgBase *dlg, int ctrlId);
 	BOOL OnCommand(HWND /*hwndCtrl*/, WORD /*idCtrl*/, WORD idCode) override;
 
-	void OnApply() override;
+	bool OnApply() override;
 	void OnReset() override;
 
 	void SetMaxLength(unsigned int len);
@@ -871,7 +881,7 @@ class MIR_CORE_EXPORT CCtrlSpin : public CCtrlData
 public:
 	CCtrlSpin(CDlgBase *dlg, int ctrlId);
 
-	void OnApply() override;
+	bool OnApply() override;
 	void OnReset() override;
 
 	WORD GetPosition();
@@ -931,7 +941,7 @@ public:
 
 	BOOL OnCommand(HWND /*hwndCtrl*/, WORD /*idCtrl*/, WORD idCode) override;
 	void OnInit() override;
-	void OnApply() override;
+	bool OnApply() override;
 	void OnReset() override;
 
 	// Control interface
@@ -1270,6 +1280,7 @@ public:
 	CCallback<TEventInfo> OnItemExpanded;
 	CCallback<TEventInfo> OnItemExpanding;
 	CCallback<TEventInfo> OnKeyDown;
+	CCallback<TEventInfo> OnRightClick;
 	CCallback<TEventInfo> OnSelChanged;
 	CCallback<TEventInfo> OnSelChanging;
 	CCallback<TEventInfo> OnSetDispInfo;
@@ -1342,7 +1353,7 @@ protected:
 	void OnInit() override;
 	void OnDestroy() override;
 
-	void OnApply() override;
+	bool OnApply() override;
 	void OnReset() override;
 
 	LRESULT CustomWndProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
@@ -1489,27 +1500,6 @@ public:
 
 protected:
 	TProto* m_proto;
-};
-
-class CPluginDlgBase : public CDlgBase
-{
-	const char *m_szModule;
-public:
-	CPluginDlgBase(HINSTANCE hInst, int idDialog, const char *module) : CDlgBase(hInst, idDialog), m_szModule(module) {};
-
-	void CreateLink(CCtrlData& ctrl, const char *szSetting, BYTE type, DWORD iValue)
-	{
-		ctrl.CreateDbLink(m_szModule, szSetting, type, iValue);
-	}
-	void CreateLink(CCtrlData& ctrl, const char *szSetting, wchar_t *szValue)
-	{
-		ctrl.CreateDbLink(m_szModule, szSetting, szValue);
-	}
-	template<class T>
-	__inline void CreateLink(CCtrlData& ctrl, CMOption<T> &option)
-	{
-		ctrl.CreateDbLink(new CMOptionLink<T>(option));
-	}
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////

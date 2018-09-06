@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
 CMPlugin::CMPlugin() :
-	PLUGIN<CMPlugin>(MODULE_NAME)
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
 {}
 
 void CMPlugin::Init()
@@ -48,12 +48,11 @@ void CMPlugin::positionClist()
 int CMPlugin::OnOptionsInit(WPARAM wParam, LPARAM)
 {
 	OPTIONSDIALOGPAGE odp = {};
-	odp.hInstance = g_hInstance;
 	odp.szGroup.a = LPGEN("Contact list");
 	odp.szTitle.a = LPGEN("Start position");
 	odp.pDialog = new COptionsDlg();
 	odp.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	return 0;
 }

@@ -39,6 +39,8 @@ Boston, MA 02111-1307, USA.
 #include <m_genmenu.h>
 #include <m_hotkeys.h>
 #include <m_extraicons.h>
+#include <m_variables.h>
+#include <m_timezones.h>
 
 #include <m_metacontacts.h>
 #include <m_proto_listeningto.h>
@@ -47,9 +49,15 @@ Boston, MA 02111-1307, USA.
 #include <m_toptoolbar.h>
 #include <m_listeningto.h>
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 #include "../../utils/mir_options.h"
-#include "../../utils/mir_buffer.h"
-#include "../../utils/utf8_helpers.h"
 
 #include "music.h"
 #include "resource.h"
@@ -69,11 +77,9 @@ Boston, MA 02111-1307, USA.
 #define MS_LISTENINGTO_HOTKEYS_DISABLE		"ListeningTo/HotkeysDisable"
 #define MS_LISTENINGTO_HOTKEYS_TOGGLE		"ListeningTo/HotkeysToggle"
 
-#define MODULE_NAME		"ListeningTo"
-
+#define MODULENAME "ListeningTo"
 
 // Global Variables
-extern HINSTANCE hInst;
 extern BOOL loaded;
 
 #define MIR_FREE(_X_) { mir_free(_X_); _X_ = NULL; }
@@ -115,7 +121,7 @@ static bool IsEmpty(const WCHAR *str)
 
 void InitServices();
 
-void ReplaceTemplate(Buffer<wchar_t> *out, MCONTACT hContact, wchar_t *templ, wchar_t **vars, int numVars);
+void ReplaceTemplate(CMStringW &out, MCONTACT hContact, wchar_t *templ, wchar_t **vars, int numVars);
 
 wchar_t* VariablesParseInfo(ARGUMENTSINFO *ai);
 wchar_t* VariablesParseType(ARGUMENTSINFO *ai);

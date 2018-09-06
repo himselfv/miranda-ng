@@ -54,7 +54,6 @@ using namespace std;
 #include <m_spellchecker.h>
 
 #include <../../utils/mir_options.h>
-#include <../../utils/utf8_helpers.h>
 
 #include <hunspell.hpp>
 
@@ -66,14 +65,22 @@ using namespace std;
 #include "ardialog.h"
 #include "RichEdit.h"
 
-#define MODULE_NAME		"SpellChecker"
+#define MODULENAME "SpellChecker"
 
 #define FLAGS_DLL_FOLDER L"%miranda_path%\\Icons"
 #define CUSTOM_DICTIONARIES_FOLDER L"%miranda_userdata%\\Dictionaries"
 #define DICTIONARIES_FOLDER L"%miranda_path%\\Dictionaries"
 
 // Global Variables
-extern HINSTANCE hInst;
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 extern BOOL uinfoex_enabled;
 extern BOOL variables_enabled;
 

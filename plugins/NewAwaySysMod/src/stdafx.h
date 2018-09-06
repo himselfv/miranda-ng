@@ -141,11 +141,11 @@
 
 #define STR_XSTATUSDESC TranslateT("extended status")
 
-#define MOD_NAME "NewAwaySys"
+#define MODULENAME "NewAwaySys"
 #define MOD_NAMEW L"NewAwaySys"
 
-#define LOG_ID MOD_NAME // LogService log ID
-#define LOG_PREFIX MOD_NAME ": " // netlib.log prefix for all NAS' messages
+#define LOG_ID MODULENAME // LogService log ID
+#define LOG_PREFIX MODULENAME ": " // netlib.log prefix for all NAS' messages
 
 #define DB_SETTINGSVER "SettingsVer"
 
@@ -219,6 +219,16 @@ int ICQStatusToGeneralStatus(int bICQStat); // TODO: get rid of these protocol-s
 #define MS_AWAYSYS_SETSTATUSMODE "AwaySys/SetStatusMode" // change the status mode. wParam is new mode, lParam is new status message (AwaySys will interpret variables out of it), may be NULL.
 #define MS_AWAYSYS_IGNORENEXT "AwaySys/IgnoreNextStatusChange" //ignore nest status change
 
+/////////////////////////////////////////////////////////////////////////////////////////
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 struct SetAwayMsgData
 {
 	CString szProtocol;
@@ -270,7 +280,6 @@ extern COptPage g_AutoreplyOptPage;
 extern COptPage g_MoreOptPage;
 extern COptPage g_SetAwayMsgPage;
 
-extern HINSTANCE g_hInstance;
 extern int g_Messages_RecentRootID, g_Messages_PredefinedRootID;
 extern VAR_PARSE_DATA VarParseData;
 extern bool g_fNoProcessing;
@@ -302,8 +311,6 @@ void ShowLog(TCString &LogFilePath);
 void ShowMsg(wchar_t *szFirstLine, wchar_t *szSecondLine = L"", bool IsErrorMsg = false, int Timeout = 0);
 
 #define AWAYSYS_STATUSMSGREQUEST_SOUND "AwaySysStatusMsgRequest"
-#define ME_AWAYSYS_WORKAROUND "AwaySys/_CallService"
-int _Workaround_CallService(const char *name, WPARAM wParam, LPARAM lParam);
 
 // MsgEventAdded.cpp
 int MsgEventAdded(WPARAM wParam, LPARAM lParam);

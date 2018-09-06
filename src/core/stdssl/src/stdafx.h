@@ -31,6 +31,7 @@ typedef struct SslHandle *HSSL;
 #include <schannel.h>
 
 #include <malloc.h>
+
 #include <newpluginapi.h>
 #include <m_langpack.h>
 #include <m_netlib.h>
@@ -39,4 +40,10 @@ typedef struct SslHandle *HSSL;
 
 #include "version.h"
 
-extern HINSTANCE g_hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};

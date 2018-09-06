@@ -8,7 +8,7 @@ int deleteModule(MCONTACT hContact, const char *module, int confirm)
 	if (!module || IsModuleEmpty(hContact, module))
 		return 0;
 
-	if (confirm && db_get_b(NULL, modname, "WarnOnDelete", 1)) {
+	if (confirm && db_get_b(NULL, MODULENAME, "WarnOnDelete", 1)) {
 		wchar_t text[MSG_SIZE];
 		mir_snwprintf(text, TranslateT("Are you sure you want to delete module \"%s\"?"), _A2T(module));
 		if (dlg(text, MB_YESNO | MB_ICONEXCLAMATION) == IDNO)
@@ -121,7 +121,7 @@ INT_PTR CALLBACK DeleteModuleDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM)
 void deleteModuleDlg()
 {
 	if (!hwnd2Delete)
-		hwnd2Delete = CreateDialog(hInst, MAKEINTRESOURCE(IDD_COPY_MOD), hwnd2mainWindow, DeleteModuleDlgProc);
+		hwnd2Delete = CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(IDD_COPY_MOD), hwnd2mainWindow, DeleteModuleDlgProc);
 	else
 		SetForegroundWindow(hwnd2Delete);
 }

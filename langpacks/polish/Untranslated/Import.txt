@@ -1,1 +1,4 @@
-[You cannot import your current profile into itself]
+[Enter file name for import:]
+[Check duplicates]
+[Import history for %s]
+[JSON file]

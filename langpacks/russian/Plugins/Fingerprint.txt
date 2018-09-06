@@ -2,11 +2,12 @@
 ;============================================================
 ;  File: Fingerprint.dll
 ;  Plugin: Fingerprint NG
-;  Version: 0.1.0.0
+;  Version: 0.2.0.1
 ;  Authors: faith_healer, ghazan, Mataes
 ;============================================================
 [Fingerprint NG (client version) icons module for Miranda NG.]
 Fingerprint NG отображает значки клиентов, используемых вашими собеседниками.
+;file \plugins\FingerprintNG\res\resource.rc
 [Fingerprint overlays icons]
 Оверлеи значков клиентов
 [Miranda clients]
@@ -27,6 +28,8 @@ Fingerprint NG отображает значки клиентов, исполь�
 Оверлеи шифрования
 [Select protocols]
 Протоколы
+[Facebook clients]
+Клиенты Facebook
 [Gadu-Gadu clients]
 Клиенты Gadu-Gadu
 [ICQ clients]
@@ -43,14 +46,10 @@ Fingerprint NG отображает значки клиентов, исполь�
 Клиенты QQ
 [RSS clients]
 Клиенты RSS
-[Weather clients]
-Клиенты погоды
-[Yahoo clients]
-Клиенты Yahoo
-[Facebook clients]
-Клиенты Facebook
 [VKontakte clients]
 Клиенты VKontakte
+[Weather clients]
+Клиенты погоды
 [Multi-protocol clients]
 Мульти-протокольные клиенты
 [Other (rare) protocols]
@@ -59,8 +58,10 @@ Fingerprint NG отображает значки клиентов, исполь�
 Другие значки
 [Show client icon in message window status bar]
 Показывать значок клиента в строке состояния окна сообщений
+;file \plugins\FingerprintNG\src\fingerprint.cpp
 [Fingerprint]
 Значки клиентов
+;file \plugins\FingerprintNG\src\finger_groups.h
 [Client icons]
 Клиенты
 [Pack overlays]
@@ -79,6 +80,7 @@ Fingerprint NG отображает значки клиентов, исполь�
 Безопасность
 [Protocol]
 Протокол
+;file \plugins\FingerprintNG\src\masks.cpp
 [Miranda NG stable]
 Стабильная Miranda NG
 [Miranda IM (old versions)]
@@ -127,8 +129,6 @@ XMPP клиент
 Оверлей MSN
 [QQ overlay]
 Оверлей QQ
-[Yahoo overlay]
-Оверлей Yahoo
 [Mail.Ru Agent overlay]
 Оверлей Mail.Ru Agent
 [VK overlay]
@@ -147,12 +147,6 @@ ICQ v6.x оверлей
 ICQ v7.x оверлей
 [ICQ v8.x overlay]
 ICQ v8.x оверлей
-[Yahoo v11.x overlay]
-Yahoo v11.x оверлей
-[Yahoo v10.x overlay]
-Yahoo v10.x оверлей
-[Yahoo v9.x overlay]
-Yahoo v9.x оверлей
 [Gadu-Gadu v11 client]
 Gadu-Gadu v11 клиент
 [Gadu-Gadu v10 client]
@@ -259,5 +253,6 @@ NewGPG оверлей
 MirOTR оверлей
 [SecureIM overlay]
 Оверлей SecureIM
+;file \plugins\FingerprintNG\src\options.cpp
 [Icons]
 Значки

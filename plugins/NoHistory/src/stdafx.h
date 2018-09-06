@@ -21,13 +21,18 @@
 #include "options.h"
 #include "version.h"
 
-#define MODULE						"NoHistory"
-#define DBSETTING_REMOVE			"RemoveHistory"
+#define MODULENAME	"NoHistory"
 
-extern HINSTANCE hInst;
+#define DBSETTING_REMOVE "RemoveHistory"
 
-#endif
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 void SrmmMenu_Load();
 
-
+#endif

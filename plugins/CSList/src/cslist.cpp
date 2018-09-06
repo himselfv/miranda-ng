@@ -27,13 +27,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdafx.h"
 #include "strpos.h"
 
-CLIST_INTERFACE *pcli;
-int hLangpack;
-HINSTANCE g_hInst;
+CMPlugin g_plugin;
 
 static LIST<CSWindow> arWindows(3, HandleKeySortT);
 
-PLUGININFOEX pluginInfoEx =
+//====[ PLUGIN INFO ]========================================================
+
+static PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -47,22 +47,11 @@ PLUGININFOEX pluginInfoEx =
 	{ 0xc8cc7414, 0x6507, 0x4af6, { 0x92, 0x5a, 0x83, 0xc1, 0xd2, 0xf7, 0xbe, 0x8c } }
 };
 
-// ====[ MAIN ]===============================================================
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODNAME, pluginInfoEx)
+{}
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	g_hInst = hinstDLL;
-	return TRUE;
-}
-
-// ====[ PLUGIN INFO ]========================================================
-
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfoEx;
-}
-
-// ====[ LOADER ]=============================================================
+//====[ LOADER ]=============================================================
 
 static int OnDbChanged(WPARAM hContact, LPARAM lparam)
 {
@@ -79,15 +68,14 @@ static int OnDbChanged(WPARAM hContact, LPARAM lparam)
 
 static int OnInitOptions(WPARAM wparam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 955000000;
-	odp.hInstance = g_hInst;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
 	odp.pfnDlgProc = CSOptionsProc;
 	odp.szGroup.w = L"Status";
 	odp.szTitle.w = MODULENAME;
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
-	Options_AddPage(wparam, &odp);
+	g_plugin.addOptions(wparam, &odp);
 	return 0;
 }
 
@@ -107,11 +95,8 @@ static int OnPreshutdown(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-	pcli = Clist_GetInterface();
-
 	// support for ComboBoxEx
 	INITCOMMONCONTROLSEX icc;
 	icc.dwSize = sizeof(icc);
@@ -120,7 +105,7 @@ extern "C" __declspec(dllexport) int Load()
 
 	// init icons
 	wchar_t tszFile[MAX_PATH];
-	GetModuleFileName(g_hInst, tszFile, MAX_PATH);
+	GetModuleFileName(g_plugin.getInst(), tszFile, MAX_PATH);
 
 	SKINICONDESC sid = {};
 	sid.defaultFile.w = tszFile;
@@ -134,7 +119,7 @@ extern "C" __declspec(dllexport) int Load()
 		sid.pszName = szSettingName;
 		sid.description.w = forms[i].ptszDescr;
 		sid.iDefaultIndex = -forms[i].iconNoIcoLib;
-		forms[i].hIcoLibItem = IcoLib_AddIcon(&sid);
+		forms[i].hIcoLibItem = g_plugin.addIcon(&sid);
 	}
 
 	HookEvent(ME_OPT_INITIALISE, OnInitOptions);
@@ -147,14 +132,7 @@ extern "C" __declspec(dllexport) int Load()
 	return 0;
 }
 
-// ====[ UNLOADER ]===========================================================
-
-extern "C" __declspec(dllexport) int Unload()
-{
-	return 0;
-}
-
-// ====[ FUN ]================================================================
+//====[ FUN ]================================================================
 
 void RegisterHotkeys(char buf[200], wchar_t* accName, int Number)
 {
@@ -165,7 +143,7 @@ void RegisterHotkeys(char buf[200], wchar_t* accName, int Number)
 	hotkey.szSection.w = LPGENW("Custom Status List");
 	hotkey.pszService = buf;
 	hotkey.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL | HOTKEYF_SHIFT, '0' + Number);
-	Hotkey_Register(&hotkey);
+	g_plugin.addHotkey(&hotkey);
 }
 
 void SetStatus(WORD code, StatusItem* item, char *szAccName)
@@ -212,7 +190,7 @@ INT_PTR showList(WPARAM, LPARAM, LPARAM param)
 		}
 	}
 
-	CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_CSLIST), nullptr, CSWindowProc, (LPARAM)new CSWindow(szProto));
+	CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_CSLIST), nullptr, CSWindowProc, (LPARAM)new CSWindow(szProto));
 	return 0;
 }
 
@@ -231,8 +209,8 @@ void addProtoStatusMenuItem(char *protoName)
 	if (!ServiceExists(buf))
 		CreateServiceFunctionParam(buf, showList, (LPARAM)protoName);
 
-	CMenuItem mi;
-	mi.flags =  CMIF_UNICODE;
+	CMenuItem mi(&g_plugin);
+	mi.flags = CMIF_UNICODE;
 	mi.hIcolibItem = forms[0].hIcoLibItem;
 	mi.name.w = MODULENAME;
 	mi.position = 2000040000;
@@ -256,14 +234,14 @@ void importCustomStatuses(CSWindow* csw, int result)
 
 		mir_snprintf(bufTitle, "XStatus%dName", i);
 		if (!db_get_ws(NULL, protoName, bufTitle, &dbv)) {
-			mir_wstrcpy(si->m_tszTitle, dbv.ptszVal);
+			mir_wstrcpy(si->m_tszTitle, dbv.pwszVal);
 			db_free(&dbv);
 		}
 		else si->m_tszTitle[0] = 0;
 
 		mir_snprintf(bufMessage, "XStatus%dMsg", i);
 		if (!db_get_ws(NULL, protoName, bufMessage, &dbv)) {
-			mir_wstrcpy(si->m_tszMessage, dbv.ptszVal);
+			mir_wstrcpy(si->m_tszMessage, dbv.pwszVal);
 			db_free(&dbv);
 		}
 		else si->m_tszMessage[0] = 0;
@@ -458,7 +436,7 @@ CSAMWindow::~CSAMWindow()
 
 void CSAMWindow::exec()
 {
-	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_ADDMODIFY), nullptr, CSAMWindowProc, (LPARAM)this);
+	DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_ADDMODIFY), nullptr, CSAMWindowProc, (LPARAM)this);
 }
 
 
@@ -679,7 +657,7 @@ void CSListView::setFullFocusedSelection(int selection)
 	SetFocus(m_handle);
 }
 
-// ====[ LIST MANAGEMENT ]====================================================
+//====[ LIST MANAGEMENT ]====================================================
 
 CSItemsList::CSItemsList(char *protoName)
 {
@@ -742,14 +720,14 @@ void CSItemsList::loadItems(char *protoName)
 
 		mir_snprintf(dbSetting, "%s_Item%dTitle", protoName, i);
 		if (!getWString(dbSetting, &dbv)) {
-			mir_wstrcpy(item->m_tszTitle, dbv.ptszVal);
+			mir_wstrcpy(item->m_tszTitle, dbv.pwszVal);
 			db_free(&dbv);
 		}
 		else item->m_tszTitle[0] = 0;
 
 		mir_snprintf(dbSetting, "%s_Item%dMessage", protoName, i);
 		if (!getWString(dbSetting, &dbv)) {
-			mir_wstrcpy(item->m_tszMessage, dbv.ptszVal);
+			mir_wstrcpy(item->m_tszMessage, dbv.pwszVal);
 			db_free(&dbv);
 		}
 		else item->m_tszMessage[0] = 0;
@@ -799,7 +777,7 @@ void CSItemsList::saveItems(char *protoName)
 }
 
 
-// ====[ PROCEDURES ]=========================================================
+//====[ PROCEDURES ]=========================================================
 
 INT_PTR CALLBACK CSWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
@@ -960,7 +938,7 @@ INT_PTR CALLBACK CSWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
 
 INT_PTR CALLBACK CSAMWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
-	CSAMWindow* csamw = (CSAMWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+	CSAMWindow *csamw = (CSAMWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 
 	switch (message) {
 	case WM_INITDIALOG:
@@ -1002,15 +980,15 @@ INT_PTR CALLBACK CSOptionsProc(HWND hwnd, UINT message, WPARAM, LPARAM lparam)
 		TranslateDialogDefault(hwnd);
 		CheckDlgButton(hwnd, IDC_CONFIRM_DELETION,
 			getByte("ConfirmDeletion", DEFAULT_PLUGIN_CONFIRM_ITEMS_DELETION) ?
-		BST_CHECKED : BST_UNCHECKED);
+			BST_CHECKED : BST_UNCHECKED);
 
 		CheckDlgButton(hwnd, IDC_DELETE_AFTER_IMPORT,
 			getByte("DeleteAfterImport", DEFAULT_PLUGIN_DELETE_AFTER_IMPORT) ?
-		BST_CHECKED : BST_UNCHECKED);
+			BST_CHECKED : BST_UNCHECKED);
 
 		CheckDlgButton(hwnd, IDC_REMEMBER_POSITION,
 			getByte("RememberWindowPosition", DEFAULT_REMEMBER_WINDOW_POSITION) ?
-		BST_CHECKED : BST_UNCHECKED);
+			BST_CHECKED : BST_UNCHECKED);
 		return TRUE;
 
 	case WM_NOTIFY:

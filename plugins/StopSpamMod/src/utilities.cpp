@@ -20,11 +20,10 @@
 wstring DBGetContactSettingStringPAN(MCONTACT hContact, char const * szModule, char const * szSetting, wstring errorValue)
 {
 	DBVARIANT dbv;
-	//if(db_get(hContact, szModule, szSetting, &dbv))
-	if (db_get_ws(hContact, szModule, szSetting, &dbv))
+		if (db_get_ws(hContact, szModule, szSetting, &dbv))
 		return errorValue;
-	//	if(DBVT_WCHAR == dbv.type )
-	errorValue = dbv.ptszVal;
+	
+	errorValue = dbv.pwszVal;
 	db_free(&dbv);
 	return errorValue;
 }
@@ -32,16 +31,15 @@ wstring DBGetContactSettingStringPAN(MCONTACT hContact, char const * szModule, c
 std::string DBGetContactSettingStringPAN_A(MCONTACT hContact, char const * szModule, char const * szSetting, std::string errorValue)
 {
 	DBVARIANT dbv;
-	//if(db_get(hContact, szModule, szSetting, &dbv))
 	if (db_get_s(hContact, szModule, szSetting, &dbv))
 		return errorValue;
-	//	if(DBVT_ASCIIZ == dbv.type )
+
 	errorValue = dbv.pszVal;
 	db_free(&dbv);
 	return errorValue;
 }
 
-wstring &GetDlgItemString(HWND hwnd, int id)
+wstring& GetDlgItemString(HWND hwnd, int id)
 {
 	HWND h = GetDlgItem(hwnd, id);
 	int len = GetWindowTextLength(h);
@@ -56,7 +54,7 @@ wstring &GetDlgItemString(HWND hwnd, int id)
 std::string &GetProtoList()
 {
 	static std::string s;
-	return s = DBGetContactSettingStringPAN_A(NULL, pluginName, "protoList", "ICQ\r\n");
+	return s = DBGetContactSettingStringPAN_A(NULL, MODULENAME, "protoList", "ICQ\r\n");
 }
 
 bool ProtoInList(const char *szProto)
@@ -91,19 +89,16 @@ int RemoveTmp(WPARAM, LPARAM)
 wstring variables_parse(wstring const &tstrFormat, MCONTACT hContact)
 {
 	if (gbVarsServiceExist) {
-		FORMATINFO fi;
-		wchar_t *tszParsed;
-		wstring tstrResult;
-
-		memset(&fi, 0, sizeof(fi));
+		FORMATINFO fi = {};
 		fi.cbSize = sizeof(fi);
-		fi.tszFormat = wcsdup(tstrFormat.c_str());
+		fi.szFormat.w = wcsdup(tstrFormat.c_str());
 		fi.hContact = hContact;
-		fi.flags |= FIF_TCHAR;
-		tszParsed = (wchar_t *)CallService(MS_VARS_FORMATSTRING, (WPARAM)&fi, 0);
-		free(fi.tszFormat);
+		fi.flags = FIF_UNICODE;
+		wchar_t *tszParsed = (wchar_t*)CallService(MS_VARS_FORMATSTRING, (WPARAM)&fi, 0);
+		free(fi.szFormat.w);
+
 		if (tszParsed) {
-			tstrResult = tszParsed;
+			wstring tstrResult = tszParsed;
 			mir_free(tszParsed);
 			return tstrResult;
 		}
@@ -112,14 +107,12 @@ wstring variables_parse(wstring const &tstrFormat, MCONTACT hContact)
 }
 
 // case-insensitive mir_wstrcmp
-//by nullbie as i remember...
-#define NEWTSTR_MALLOC(A) (A==NULL) ? NULL : mir_wstrcpy((wchar_t*)mir_alloc(sizeof(wchar_t)*(mir_wstrlen(A)+1)),A)
 const int Stricmp(const wchar_t *str, const wchar_t *substr)
 {
 	int i = 0;
 
-	wchar_t *str_up = NEWTSTR_MALLOC(str);
-	wchar_t *substr_up = NEWTSTR_MALLOC(substr);
+	wchar_t *str_up = mir_wstrdup(str);
+	wchar_t *substr_up = mir_wstrdup(substr);
 
 	CharUpperBuff(str_up, (int)mir_wstrlen(str_up));
 	CharUpperBuff(substr_up, (int)mir_wstrlen(substr_up));
@@ -178,7 +171,7 @@ BOOL IsUrlContains(wchar_t * Str)
 	};
 
 	if (Str && mir_wstrlen(Str) > 0) {
-		wchar_t *StrLower = NEWTSTR_MALLOC(Str);
+		wchar_t *StrLower = mir_wstrdup(Str);
 		CharLowerBuff(StrLower, (int)mir_wstrlen(StrLower));
 		for (int i = 0; i < CountUrl; i++)
 			if (wcsstr(StrLower, URL[i])) {
@@ -286,7 +279,7 @@ void __cdecl CleanProtocolExclThread(void *param)
 
 	std::list<MCONTACT> contacts;
 	for (auto &hContact : Contacts(szProto))
-		if (db_get_b(hContact, "CList", "NotOnList", 0) && db_get_b(hContact, pluginName, "Excluded", 0))
+		if (db_get_b(hContact, "CList", "NotOnList", 0) && db_get_b(hContact, MODULENAME, "Excluded", 0))
 			contacts.push_back(hContact);
 
 	Sleep(5000);
@@ -321,7 +314,7 @@ void __cdecl CleanThread(void*)
 void HistoryLog(MCONTACT hContact, char *data, int event_type, int flags)
 {
 	DBEVENTINFO Event = {};
-	Event.szModule = pluginName;
+	Event.szModule = MODULENAME;
 	Event.eventType = event_type;
 	Event.flags = flags | DBEF_UTF;
 	Event.timestamp = (DWORD)time(0);

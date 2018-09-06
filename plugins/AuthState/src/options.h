@@ -18,7 +18,7 @@ struct Opts
 extern Opts Options;
 
 
-class COptionsDialog : public CPluginDlgBase
+class COptionsDialog : public CDlgBase
 {
 	CCtrlCheck m_chkAuthIcon;
 	CCtrlCheck m_chkGrantIcon;
@@ -26,7 +26,7 @@ class COptionsDialog : public CPluginDlgBase
 	CCtrlCheck m_chkOnlyForRecent;
 public:
 	COptionsDialog() : 
-		CPluginDlgBase(g_hInst, IDD_AUTHSTATE_OPT, MODULENAME),
+		CDlgBase(g_plugin, IDD_AUTHSTATE_OPT),
 		m_chkAuthIcon(this, IDC_AUTHICON),
 		m_chkGrantIcon(this, IDC_GRANTICON),
 		m_chkMenuItem(this, IDC_ENABLEMENUITEM),
@@ -38,10 +38,10 @@ public:
 		CreateLink(m_chkOnlyForRecent, Options.bIconsForRecentContacts);
 	}
 
-	void OnApply() override
+	bool OnApply() override
 	{
 		for (auto &hContact : Contacts())
 			onExtraImageApplying((WPARAM)hContact, 0);
+		return true;
 	}
-
 };

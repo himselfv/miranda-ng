@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
 COptionsMainDlg::COptionsMainDlg()
-	: CPluginDlgBase(g_plugin.getInst(), IDD_OPTIONS_MAIN, MODULE),
+	: CDlgBase(g_plugin, IDD_OPTIONS_MAIN),
 	m_defaultService(this, IDC_DEFAULTSERVICE),
 	m_doNothingOnConflict(this, IDC_DONOTHINGONCONFLICT),
 	m_renameOnConflict(this, IDC_RENAMEONCONFLICT),
@@ -17,11 +17,11 @@ COptionsMainDlg::COptionsMainDlg()
 	CreateLink(m_urlCopyToClipboard, "UrlCopyToClipboard", DBVT_BYTE, 0);
 }
 
-void COptionsMainDlg::OnInitDialog()
+bool COptionsMainDlg::OnInitDialog()
 {
 	CDlgBase::OnInitDialog();
 
-	ptrA defaultService(db_get_sa(NULL, MODULE, "DefaultService"));
+	ptrA defaultService(db_get_sa(NULL, MODULENAME, "DefaultService"));
 	int iItem = m_defaultService.AddString(TranslateT("None"));
 	m_defaultService.SetCurSel(iItem);
 
@@ -31,7 +31,7 @@ void COptionsMainDlg::OnInitDialog()
 			m_defaultService.SetCurSel(iItem);
 	}
 
-	BYTE strategy = db_get_b(NULL, MODULE, "ConflictStrategy", OnConflict::REPLACE);
+	BYTE strategy = db_get_b(NULL, MODULENAME, "ConflictStrategy", OnConflict::REPLACE);
 	switch (strategy)
 	{
 	case OnConflict::RENAME:
@@ -50,37 +50,39 @@ void COptionsMainDlg::OnInitDialog()
 		m_doNothingOnConflict.SetState(TRUE);
 		break;
 	}
+	return true;
 }
 
-void COptionsMainDlg::OnApply()
+bool COptionsMainDlg::OnApply()
 {
 	int iItem = m_defaultService.GetCurSel();
 	CCloudService *service = (CCloudService*)m_defaultService.GetItemData(iItem);
 	if (service)
-		db_set_s(NULL, MODULE, "DefaultService", service->GetAccountName());
+		db_set_s(NULL, MODULENAME, "DefaultService", service->GetAccountName());
 	else
-		db_unset(NULL, MODULE, "DefaultService");
+		db_unset(NULL, MODULENAME, "DefaultService");
 
 	if (m_renameOnConflict.GetState())
-		db_set_b(NULL, MODULE, "ConflictStrategy", OnConflict::RENAME);
+		db_set_b(NULL, MODULENAME, "ConflictStrategy", OnConflict::RENAME);
 	else if (m_repalceOnConflict.GetState())
-		db_set_b(NULL, MODULE, "ConflictStrategy", OnConflict::REPLACE);
+		db_set_b(NULL, MODULENAME, "ConflictStrategy", OnConflict::REPLACE);
 	else
-		db_unset(NULL, MODULE, "ConflictStrategy");
+		db_unset(NULL, MODULENAME, "ConflictStrategy");
+	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
 
 int OnOptionsInitialized(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.szTitle.w = _A2W(MODULE);
+	OPTIONSDIALOGPAGE odp = {};
+	odp.szTitle.w = _A2W(MODULENAME);
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE | ODPF_DONTTRANSLATE;
 	odp.szGroup.w = LPGENW("Services");
 
 	//odp.szTab.w = LPGENW("General");
 	odp.pDialog = new COptionsMainDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	return 0;
 }
@@ -96,11 +98,12 @@ CAccountManagerDlg::CAccountManagerDlg(CCloudService *service)
 	m_revokeAccess.OnClick = Callback(this, &CAccountManagerDlg::RevokeAccess_OnClick);
 }
 
-void CAccountManagerDlg::OnInitDialog()
+bool CAccountManagerDlg::OnInitDialog()
 {
 	ptrA token(m_proto->getStringA("TokenSecret"));
 	m_requestAccess.Enable(!token);
 	m_revokeAccess.Enable(token);
+	return true;
 }
 
 void CAccountManagerDlg::RequestAccess_OnClick(CCtrlButton*)

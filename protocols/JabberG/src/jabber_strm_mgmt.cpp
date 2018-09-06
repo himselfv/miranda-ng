@@ -186,6 +186,8 @@ void strm_mgmt::OnProcessFailed(HXML node, ThreadData * info) //used failed inst
 
 void strm_mgmt::CheckStreamFeatures(HXML node)
 {
+	if (!IsResumeIdPresent())
+		ResetState(); //this may be necessary to reset counters if session resume id is not set
 	if (mir_wstrcmp(XmlGetName(node), L"sm") || !XmlGetAttrValue(node, L"xmlns") || mir_wstrcmp(XmlGetAttrValue(node, L"xmlns"), L"urn:xmpp:sm:3")) //we work only with version 3 or higher of sm
 		return;
 	if (!(proto->m_bJabberOnline))
@@ -213,14 +215,15 @@ void strm_mgmt::HandleOutgoingNode(HXML node)
 		RequestAck();
 }
 
-void strm_mgmt::OnDisconnect()
+void strm_mgmt::ResetState()
 {
-	//TODO: following should be redone once resumption implemented
 	//reset state of stream management
 	m_bStrmMgmtEnabled = false;
 	m_bStrmMgmtPendingEnable = false;
 	//reset stream management h counters
 	m_nStrmMgmtLocalHCount = m_nStrmMgmtLocalSCount = m_nStrmMgmtSrvHCount = 0;
+	//clear resume id
+	m_sStrmMgmtResumeId.clear();
 }
 
 void strm_mgmt::HandleIncommingNode(HXML node)
@@ -243,7 +246,7 @@ void strm_mgmt::EnableStrmMgmt()
 		XmlAddAttr(enable_sm, L"xmlns", L"urn:xmpp:sm:3");
 		XmlAddAttr(enable_sm, L"resume", L"true"); //enable resumption (most useful part of this xep)
 		proto->m_ThreadInfo->send(enable_sm);
-		m_nStrmMgmtLocalSCount = 1; //TODO: this MUST be 0, i have bug somewhere.
+		m_nStrmMgmtLocalSCount = 1; //TODO: this MUST be 0, i have bug somewhere, feel free to fix it.
 	}
 	else //resume session
 	{

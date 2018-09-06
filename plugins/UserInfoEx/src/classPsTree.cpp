@@ -127,12 +127,11 @@ int CPsTree::AddDummyItem(LPCSTR pszGroup)
 		psh._pPages	 = _pItems;
 		psh._numPages = _numItems;
 
-		OPTIONSDIALOGPAGE odp = { 0 };
-		odp.hInstance = ghInst;
+		OPTIONSDIALOGPAGE odp = {};
 		odp.flags = ODPF_UNICODE;
 		odp.szTitle.w = mir_utf8decodeW(pszGroup);
 		
-		INT_PTR rc = UserInfo_AddPage((WPARAM)&psh, &odp);
+		int rc = g_plugin.addUserInfo((WPARAM)&psh, &odp);
 		mir_free(odp.szTitle.w);
 		if (!rc) {
 			_pItems = psh._pPages;
@@ -159,7 +158,7 @@ BYTE CPsTree::InitTreeItems(LPWORD needWidth)
 		return FALSE;
 	}
 
-	if (!DB::Setting::GetUString(NULL, MODNAME, SET_LASTITEM, &dbv)) 
+	if (!DB::Setting::GetUString(NULL, MODULENAME, SET_LASTITEM, &dbv)) 
 	{
 		_curItem = FindItemIndexByName(dbv.pszVal);
 		db_free(&dbv);
@@ -553,8 +552,8 @@ void CPsTree::SaveState()
 	}
 
 	// save current selected item
-	if (pti) db_set_utf(NULL, MODNAME, SET_LASTITEM, pti->Name());
-	else db_unset(NULL, MODNAME, SET_LASTITEM);
+	if (pti) db_set_utf(NULL, MODULENAME, SET_LASTITEM, pti->Name());
+	else db_unset(NULL, MODULENAME, SET_LASTITEM);
 }
 
 /**
@@ -570,14 +569,14 @@ void CPsTree::DBResetState()
 {
 	DB::CEnumList	Settings;
 
-	if (!Settings.EnumSettings(NULL, MODNAME))
+	if (!Settings.EnumSettings(NULL, MODULENAME))
 	{
 		LPCSTR p = (_pPs->pszProto[0]) ? _pPs->pszProto : "Owner";
 		size_t c = mir_strlen(p);
 
 		for (auto &s : Settings)
 			if (s && *s == '{' && !mir_strncmpi(s + 1, p, c)) 
-				db_unset(NULL, MODNAME, s);
+				db_unset(NULL, MODULENAME, s);
 
 		// keep only these flags
 		_dwFlags &= PSTVF_SORTTREE|PSTVF_GROUPS;
@@ -628,7 +627,7 @@ int CPsTree::BeginLabelEdit(HTREEITEM hItem)
 	CPsTreeItem* pti;
 
 	// tree is readonly
-	if (db_get_b(NULL, MODNAME, SET_PROPSHEET_READONLYLABEL, 0))
+	if (db_get_b(NULL, MODULENAME, SET_PROPSHEET_READONLYLABEL, 0))
 		return 0;
 
 	// get item text
@@ -649,7 +648,7 @@ int CPsTree::BeginLabelEdit(HTREEITEM hItem)
 						rcTree.right - rc.left, rc.bottom - rc.top,
 						_hWndTree,
 						nullptr,
-						ghInst,
+						g_plugin.getInst(),
 						nullptr );
 		if (_hLabelEdit)
 		{
@@ -732,7 +731,7 @@ void CPsTree::PopupMenu()
 		tvi.hItem = hti.hItem;
 		TreeView_GetItem(_hWndTree, &tvi);
 
-		if (!db_get_b(NULL, MODNAME, SET_PROPSHEET_READONLYLABEL, FALSE)) {
+		if (!db_get_b(NULL, MODULENAME, SET_PROPSHEET_READONLYLABEL, FALSE)) {
 			mii.dwTypeData = TranslateT("Rename Item");
 			mii.wID = 32001;
 			InsertMenuItem(hPopup, 0, FALSE, &mii);

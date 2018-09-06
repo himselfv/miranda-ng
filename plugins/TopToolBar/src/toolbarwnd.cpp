@@ -240,14 +240,14 @@ LRESULT CALLBACK TopToolBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
 void CALLBACK OnEventFire()
 {
-	HWND parent = pcli->hwndContactList;
+	HWND parent = g_clistApi.hwndContactList;
 	if (parent == nullptr) // no clist, no buttons
 		return;
 
 	WNDCLASS wndclass = {0};
 	wndclass.lpfnWndProc = TopToolBarProc;
 	wndclass.cbWndExtra = sizeof(void *);
-	wndclass.hInstance = hInst;
+	wndclass.hInstance = g_plugin.getInst();
 	wndclass.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wndclass.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
 	wndclass.lpszClassName = pluginname;
@@ -256,11 +256,12 @@ void CALLBACK OnEventFire()
 	g_ctrl->pButtonList = (SortedList *)&Buttons;
 	g_ctrl->hWnd = CreateWindow(pluginname, L"Toolbar",
 		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-		0, 0, 0, g_ctrl->nLastHeight, parent, nullptr, hInst, nullptr);
+		0, 0, 0, g_ctrl->nLastHeight, parent, nullptr, g_plugin.getInst(), nullptr);
 	SetWindowLongPtr(g_ctrl->hWnd, 0, (LONG_PTR)g_ctrl);
 
 	LoadBackgroundOptions();
-	LoadAllSeparators();	LoadAllLButs();
+	LoadAllSeparators();
+	LoadAllLButs();
 
 	// if we're working in skinned clist, receive the standard buttons & customizations
 	if (g_CustomProc && g_ctrl->hWnd)
@@ -269,15 +270,15 @@ void CALLBACK OnEventFire()
 		InitInternalButtons();
 
 	// if there's no customized frames, create our own
-	if (g_ctrl->hFrame == nullptr) {
+	if (g_ctrl->hFrame == 0) {
 		CLISTFrame Frame = { sizeof(Frame) };
-		Frame.tname = L"Toolbar";
+		Frame.szName.a = "Toolbar";
 		Frame.hWnd = g_ctrl->hWnd;
 		Frame.align = alTop;
-		Frame.Flags = F_VISIBLE | F_NOBORDER | F_LOCKED | F_UNICODE;
+		Frame.Flags = F_VISIBLE | F_NOBORDER | F_LOCKED;
 		Frame.height = g_ctrl->nLastHeight;
 		Frame.hIcon = Skin_LoadIcon(SKINICON_OTHER_FRAME);
-		g_ctrl->hFrame = (HANDLE)CallService(MS_CLIST_FRAMES_ADDFRAME, (WPARAM)&Frame, 0);
+		g_ctrl->hFrame = g_plugin.addFrame(&Frame);
 	}
 
 	// receive buttons

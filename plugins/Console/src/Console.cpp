@@ -79,8 +79,6 @@ typedef struct {
 	int newline;
 } LOGWIN;
 
-
-
 static SortedList lModules = {};
 
 static LOGWIN *pActive = nullptr;
@@ -129,7 +127,7 @@ static int OnTTBLoaded(WPARAM, LPARAM)
 	ttb.name = LPGEN("Show/Hide Console");
 	ttb.pszTooltipDn = LPGEN("Hide Console");
 	ttb.pszTooltipUp = LPGEN("Show Console");
-	hTTBButt = TopToolbar_AddButton(&ttb);
+	hTTBButt = g_plugin.addTTB(&ttb);
 	return 0;
 }
 
@@ -447,7 +445,7 @@ static INT_PTR CALLBACK LogDlgProc(HWND hwndDlg, UINT message, WPARAM wParam, LP
 
 	case WM_SIZE:
 		SetWindowPos(hwndDlg, HWND_TOP, rcTabs.left, rcTabs.top, rcTabs.right - rcTabs.left, rcTabs.bottom - rcTabs.top, SWP_SHOWWINDOW);
-		Utils_ResizeDialog(hwndDlg, hInst, MAKEINTRESOURCEA(IDD_LOG), LogResize);
+		Utils_ResizeDialog(hwndDlg, g_plugin.getInst(), MAKEINTRESOURCEA(IDD_LOG), LogResize);
 		break;
 
 	case WM_COMMAND:
@@ -689,7 +687,7 @@ static INT_PTR CALLBACK ConsoleDlgProc(HWND hwndDlg, UINT message, WPARAM wParam
 		GetClientRect(hTabs, &rcTabs);
 		TabCtrl_AdjustRect(hTabs, FALSE, &rcTabs);
 
-		CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_LOG), hwndDlg, LogDlgProc, (LPARAM)lw);
+		CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_LOG), hwndDlg, LogDlgProc, (LPARAM)lw);
 		ShowWindow(lw->hwnd, (tabCount > 1) ? SW_HIDE : SW_SHOWNOACTIVATE);
 
 		if (pActive)
@@ -856,7 +854,7 @@ static INT_PTR CALLBACK ConsoleDlgProc(HWND hwndDlg, UINT message, WPARAM wParam
 		}
 		break;
 	case WM_SIZE:
-		Utils_ResizeDialog(hwndDlg, hInst, MAKEINTRESOURCEA(IDD_CONSOLE), ConsoleResize);
+		Utils_ResizeDialog(hwndDlg, g_plugin.getInst(), MAKEINTRESOURCEA(IDD_CONSOLE), ConsoleResize);
 		GetClientRect(hTabs, &rcTabs);
 		TabCtrl_AdjustRect(hTabs, FALSE, &rcTabs);
 
@@ -896,13 +894,13 @@ static INT_PTR CALLBACK ConsoleDlgProc(HWND hwndDlg, UINT message, WPARAM wParam
 
 void __cdecl ConsoleThread(void*)
 {
+	CoInitialize(nullptr);
+
+	HWND hwnd = CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(IDD_CONSOLE), nullptr, ConsoleDlgProc);
+	if (!hwnd)
+		return;
+
 	MSG msg;
-	HWND hwnd;
-
-	hwnd = CreateDialog(hInst, MAKEINTRESOURCE(IDD_CONSOLE), nullptr, ConsoleDlgProc);
-
-	if (!hwnd) return;
-
 	while (GetMessage(&msg, nullptr, 0, 0) > 0) {
 		switch (msg.message) {
 		case HM_DUMP:
@@ -1055,14 +1053,13 @@ static INT_PTR CALLBACK OptDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 
 static int OptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
 	odp.szGroup.a = LPGEN("Services");
 	odp.szTitle.a = LPGEN("Console");
 	odp.pfnDlgProc = OptDlgProc;
 	odp.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -1103,12 +1100,11 @@ static int OnSystemModulesLoaded(WPARAM, LPARAM)
 {
 	CreateServiceFunction(MS_CONSOLE_SHOW_HIDE, ShowHideConsole);
 
-	FontIDW fid = { 0 };
-	fid.cbSize = sizeof(fid);
+	FontIDW fid = {};
 	mir_wstrncpy(fid.group, LPGENW("Console"), _countof(fid.group));
 	mir_wstrncpy(fid.name, LPGENW("Text"), _countof(fid.name));
 	mir_strncpy(fid.dbSettingsGroup, "Console", _countof(fid.dbSettingsGroup));
-	mir_strncpy(fid.prefix, "ConsoleFont", _countof(fid.prefix));
+	mir_strncpy(fid.setting, "ConsoleFont", _countof(fid.setting));
 	mir_wstrncpy(fid.backgroundGroup, LPGENW("Console"), _countof(fid.backgroundGroup));
 	mir_wstrncpy(fid.backgroundName, LPGENW("Background"), _countof(fid.backgroundName));
 	fid.flags = FIDF_DEFAULTVALID;
@@ -1117,18 +1113,17 @@ static int OnSystemModulesLoaded(WPARAM, LPARAM)
 	fid.deffontsettings.size = 10;
 	fid.deffontsettings.style = 0;
 	mir_wstrncpy(fid.deffontsettings.szFace, L"Courier", _countof(fid.deffontsettings.szFace));
-	Font_RegisterW(&fid);
+	g_plugin.addFont(&fid);
 
 	HookEvent(ME_FONT_RELOAD, OnFontChange);
 
-	ColourIDW cid = { 0 };
-	cid.cbSize = sizeof(cid);
+	ColourIDW cid = {};
 	mir_wstrncpy(cid.group, LPGENW("Console"), _countof(cid.group));
 	mir_wstrncpy(cid.name, LPGENW("Background"), _countof(cid.name));
 	mir_strncpy(cid.dbSettingsGroup, "Console", _countof(cid.dbSettingsGroup));
 	mir_strncpy(cid.setting, "BgColor", _countof(cid.setting));
 	cid.defcolour = RGB(255, 255, 255);
-	Colour_RegisterW(&cid);
+	g_plugin.addColor(&cid);
 
 	HookEvent(ME_COLOUR_RELOAD, OnColourChange);
 
@@ -1138,12 +1133,12 @@ static int OnSystemModulesLoaded(WPARAM, LPARAM)
 	hkd.szDescription.a = LPGEN("Show/Hide Console");
 	hkd.pszService = MS_CONSOLE_SHOW_HIDE;
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_EXT, 'C');
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	if (hwndConsole && IsWindow(hwndConsole)) {
 		HookEvent(ME_TTB_MODULELOADED, OnTTBLoaded);
 
-		CMenuItem mi;
+		CMenuItem mi(&g_plugin);
 		SET_UID(mi, 0x6d97694e, 0x2024, 0x4560, 0xbb, 0xbc, 0x20, 0x62, 0x7e, 0x5, 0xdf, 0xb3);
 		mi.flags = CMIF_UNICODE;
 		mi.hIcolibItem = hIcons[0];
@@ -1193,19 +1188,19 @@ void InitConsole()
 	lModules.sortFunc = (FSortFunc)stringCompare;
 	lModules.increment = 5;
 
-	hIcons[0] = LoadIcon(hInst, MAKEINTRESOURCE(IDI_CONSOLE));
-	hIcons[1] = (HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_NOSCROLL), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
-	hIcons[2] = (HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_PAUSED), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
+	hIcons[0] = LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(IDI_CONSOLE));
+	hIcons[1] = (HICON)LoadImage(g_plugin.getInst(), MAKEINTRESOURCE(IDI_NOSCROLL), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
+	hIcons[2] = (HICON)LoadImage(g_plugin.getInst(), MAKEINTRESOURCE(IDI_PAUSED), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
 
 	for (i = 0; i < _countof(ctrls); i++) {
-		hIcons[i + ICON_FIRST] = (HICON)LoadImage(hInst, MAKEINTRESOURCE(ctrls[i].icon), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
+		hIcons[i + ICON_FIRST] = (HICON)LoadImage(g_plugin.getInst(), MAKEINTRESOURCE(ctrls[i].icon), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
 	}
 
 	gImg = ImageList_Create(LOGICONX_SIZE, LOGICONY_SIZE, ILC_COLOR24 | ILC_MASK, _countof(logicons), 0);
 
 	for (i = 0; i < _countof(logicons); i++)
 	{
-		hi = (HICON)LoadImage(hInst, MAKEINTRESOURCE(logicons[i]), IMAGE_ICON, LOGICONX_SIZE, LOGICONY_SIZE, 0);
+		hi = (HICON)LoadImage(g_plugin.getInst(), MAKEINTRESOURCE(logicons[i]), IMAGE_ICON, LOGICONX_SIZE, LOGICONY_SIZE, 0);
 		if (hi)
 		{
 			ImageList_AddIcon(gImg, hi);
@@ -1235,7 +1230,7 @@ void ShutdownConsole(void)
 		if (hIcons[i]) DestroyIcon(hIcons[i]);
 	}
 
-	if(hwndConsole)
+	if (hwndConsole)
 		EndDialog(hwndConsole, TRUE);
 	WaitForSingleObject(hConsoleThread, INFINITE);
 }
@@ -1256,7 +1251,7 @@ static int Openfile(wchar_t *outputFile, int selection)
 	wchar_t *filter, *tmp, *tmp1, *tmp2;
 	tmp1 = TranslateT("Text Files (*.txt)");
 	tmp2 = TranslateT("All Files");
-	filter = tmp = (wchar_t*)_alloca((mir_wstrlen(tmp1) + mir_wstrlen(tmp2) + 11)*sizeof(wchar_t));
+	filter = tmp = (wchar_t*)_alloca((mir_wstrlen(tmp1) + mir_wstrlen(tmp2) + 11) * sizeof(wchar_t));
 	tmp = addstring(tmp, tmp1);
 	tmp = addstring(tmp, L"*.TXT");
 	tmp = addstring(tmp, tmp2);

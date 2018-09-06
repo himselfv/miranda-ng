@@ -3,13 +3,21 @@
 
 #include "stdafx.h"
 
-HINSTANCE hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+}
+g_plugin;
+
 HHOOK hHook;
 HWND hDummyWnd = nullptr, hHelperWnd = nullptr, hMirandaWnd = nullptr;
-int hLangpack;
-CLIST_INTERFACE *pcli;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -22,16 +30,11 @@ PLUGININFOEX pluginInfo = {
 	{ 0x3f1657b1, 0x69cb, 0x4992, { 0x9c, 0xfc, 0x22, 0x6c, 0x80, 0x8a, 0x52, 0x2 } }
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 LRESULT CALLBACK HelperProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -73,7 +76,7 @@ void CreateHelperWnd()
 	wcex.lpfnWndProc = HelperProc;
 	wcex.cbClsExtra = 0;
 	wcex.cbWndExtra = 0;
-	wcex.hInstance = hInst;
+	wcex.hInstance = g_plugin.getInst();
 	wcex.hIcon = Skin_LoadIcon(SKINICON_OTHER_MIRANDA, true);
 	wcex.hCursor = nullptr;
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
@@ -84,14 +87,14 @@ void CreateHelperWnd()
 	if (NULL == RegisterClassEx(&wcex))
 		return; // wtf
 
-	hDummyWnd = CreateWindow(L"ZeroSwitchHlp", L"", WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, hInst, nullptr);
+	hDummyWnd = CreateWindow(L"ZeroSwitchHlp", L"", WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, g_plugin.getInst(), nullptr);
 	if (!hDummyWnd)
-		UnregisterClass(L"ZeroSwitchHlp", hInst);
-	hHelperWnd = CreateWindow(L"ZeroSwitchHlp", L"Miranda NG", WS_OVERLAPPEDWINDOW | WS_VISIBLE, -100, -100, 90, 90, hDummyWnd, nullptr, hInst, nullptr);
+		UnregisterClass(L"ZeroSwitchHlp", g_plugin.getInst());
+	hHelperWnd = CreateWindow(L"ZeroSwitchHlp", L"Miranda NG", WS_OVERLAPPEDWINDOW | WS_VISIBLE, -100, -100, 90, 90, hDummyWnd, nullptr, g_plugin.getInst(), nullptr);
 	if (!hHelperWnd)
 	{
 		DestroyWindow(hDummyWnd);
-		UnregisterClass(L"ZeroSwitchHlp", hInst);
+		UnregisterClass(L"ZeroSwitchHlp", g_plugin.getInst());
 	}
 }
 
@@ -101,7 +104,7 @@ void DestroyHelperWnd()
 	{
 		DestroyWindow(hHelperWnd);
 		DestroyWindow(hDummyWnd);
-		UnregisterClass(L"ZeroSwitchHlp", hInst);
+		UnregisterClass(L"ZeroSwitchHlp", g_plugin.getInst());
 	}
 }
 
@@ -113,7 +116,7 @@ LRESULT CALLBACK CallWndRetProc(int nCode, WPARAM wParam, LPARAM lParam)
 	{
 		pMes = (PCWPRETSTRUCT)lParam; // Get message details
 		if (!hMirandaWnd)
-			hMirandaWnd = pcli->hwndContactList;
+			hMirandaWnd = g_clistApi.hwndContactList;
 
 		if (pMes->hwnd == hMirandaWnd)
 		{
@@ -129,11 +132,10 @@ LRESULT CALLBACK CallWndRetProc(int nCode, WPARAM wParam, LPARAM lParam)
 	return CallNextHookEx(nullptr, nCode, wParam, lParam); // Pass the message to other hooks in chain
 }
 
-extern "C" int __declspec(dllexport) Load(void)
-{
-	mir_getLP(&pluginInfo);
- 	pcli = Clist_GetInterface();
+/////////////////////////////////////////////////////////////////////////////////////////
 
+int CMPlugin::Load()
+{
 	if (IsWinVerVistaPlus()) {
 		MessageBox(nullptr, TranslateT("Plugin works under Windows XP only"), TranslateT("ZeroSwitch plugin failed"), MB_ICONSTOP);
 		return 1;
@@ -146,7 +148,9 @@ extern "C" int __declspec(dllexport) Load(void)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	if (hHook)
 		UnhookWindowsHookEx(hHook);

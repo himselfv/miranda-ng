@@ -41,9 +41,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "version.h"
 #include "Utils.h"
 
-#define PLGNAME "QuickMessages"
+#define MODULENAME "QuickMessages"
 
-extern HINSTANCE hinstance;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
+
 extern HANDLE hIcolib;
 extern ListData *ButtonsList[100];
 extern SortedList *QuickList;

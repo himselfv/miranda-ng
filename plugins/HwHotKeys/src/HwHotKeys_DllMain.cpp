@@ -21,11 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111 - 1307, USA.
 
 #include "stdafx.h"
 
-HINSTANCE hInstance;
-int hLangpack;
+CMPlugin g_plugin;
+
 HWND hDialogWnd = nullptr; // хэндл окна настроек, он глобально используется для вывода туда в реалтайме сканкодов клавы из хука
 HHOOK hHook;
-CLIST_INTERFACE *pcli;
 
 // там хранятся настройки - сканкоды кнопок для закрытия/показа/чтения, на которые должны реагировать соответствующие действия
 DWORD code_Close = 0;
@@ -67,19 +66,11 @@ CHAR key_name_buffer[150]; // буфер куда печатается имя к
 
 // ============================================================================
 
-BOOL APIENTRY DllMain( HMODULE hModule, DWORD, LPVOID)
-{
-	hInstance = hModule;
-	return TRUE;
-}
-
-// ============================================================================
-
-PLUGININFOEX PluginInfoEx = {
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
-	__DESCRIPTION_MIR,
+	__DESCRIPTION,
 	__AUTHOR,
 	__COPYRIGHT,
 	__AUTHORWEB,
@@ -88,34 +79,27 @@ PLUGININFOEX PluginInfoEx = {
 	{ 0x315b3800, 0x8258, 0x44c4, { 0xb6, 0xe, 0x58, 0xc5, 0xb, 0x93, 0x3, 0xb6 } }
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX * MirandaPluginInfoEx(DWORD)
-{
-	return &PluginInfoEx;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 // ============================================================================
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
 	// загружаем (из БД) настройки плагина
-	code_Close = db_get_dw(0, __DbModName, "Close", 0);
-	code_HideShow = db_get_dw(0, __DbModName, "HideShow", 0);
-	code_ReadMsg = db_get_dw(0, __DbModName, "ReadMsg", 0);
-
-	// установка кода локализации - макрос mir_getLP(PlgInfoEx)
-	mir_getLP(&PluginInfoEx);
-
-	// Интерфейс контактлиста - макрос заполняет CLIST_INTERFACE *pcli;
-	pcli = Clist_GetInterface();
+	code_Close = db_get_dw(0, MODULENAME, "Close", 0);
+	code_HideShow = db_get_dw(0, MODULENAME, "HideShow", 0);
+	code_ReadMsg = db_get_dw(0, MODULENAME, "ReadMsg", 0);
 
 	// регистрация диалога опций
 	HookEvent(ME_OPT_INITIALISE, initializeOptions);
 
 	// установка хука для низкоуровневой обработки хоткеев
-	hHook = SetWindowsHookExA(WH_KEYBOARD_LL, key_hook, hInstance, 0);
+	hHook = SetWindowsHookExA(WH_KEYBOARD_LL, key_hook, g_plugin.getInst(), 0);
 
-//	StringCbPrintfA(key_name_buffer, 100, "hHook = 0x%x, Err = %u", hHook, GetLastError);
-//	MessageBoxA(0, key_name_buffer, 0, 0);
+	//	StringCbPrintfA(key_name_buffer, 100, "hHook = 0x%x, Err = %u", hHook, GetLastError);
+	//	MessageBoxA(0, key_name_buffer, 0, 0);
 
 	return 0;
 }
@@ -126,24 +110,19 @@ int initializeOptions(WPARAM wParam, LPARAM)
 {
 	OPTIONSDIALOGPAGE OptDlgPg = { sizeof(OptDlgPg) };
 	OptDlgPg.position = 100000000;
-	OptDlgPg.hInstance = hInstance;
 	OptDlgPg.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
 	OptDlgPg.pszTemplate = MAKEINTRESOURCEA(dlg_options);
 	OptDlgPg.szGroup.w = LPGENW("Customize");
 	OptDlgPg.szTitle.w = LPGENW("Hardware HotKeys");
 	OptDlgPg.pfnDlgProc = OptDlgProc;
-	OptDlgPg.hLangpack = hLangpack;
-	Options_AddPage(wParam, &OptDlgPg);
+	g_plugin.addOptions(wParam, &OptDlgPg);
 	return 0;
 }
 
 // ============================================================================
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	UnhookWindowsHookEx(hHook);
 	return 0;
 }
-
-// ============================================================================
-

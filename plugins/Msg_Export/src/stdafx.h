@@ -30,9 +30,11 @@ using namespace std;
 
 #include <newpluginapi.h>
 #include <m_database.h>
+#include <m_metacontacts.h>
 #include <m_clist.h>
 #include <m_contacts.h>
 #include <m_langpack.h>
+#include <m_netlib.h>
 #include <m_options.h>
 #include <m_history.h>
 #include <m_userinfo.h>
@@ -41,6 +43,8 @@ using namespace std;
 #include <m_icq.h>
 #include <m_skin.h>
 #include <win2k.h>
+#include <m_gui.h>
+#include <m_json.h>
 
 #include "utils.h"
 #include "options.h"
@@ -48,14 +52,21 @@ using namespace std;
 #include "resource.h"
 #include "version.h"
 
-#define MODULE "Msg_Export"
+#define MODULENAME "Msg_Export"
 #define MSG_BOX_TITEL TranslateT("Miranda NG (Message Export Plugin)")
 #define MS_SHOW_EXPORT_HISTORY "History/ShowExportHistory"
 #define szFileViewDB "FileV_"
 #define WM_RELOAD_FILE (WM_USER+10)
 
-extern HINSTANCE hInstance;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 extern MWindowList hInternalWindowList;
+extern wstring g_sDBPath, g_sMirandaPath;
 
 #endif

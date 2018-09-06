@@ -77,7 +77,7 @@ static INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 				SendMessage(GetParent(hwndDlg), PSM_CHANGED, 0, 0);
 				break;
 			case IDC_BTN_VIEWLOG:
-				CallService(PLUG "/ViewLogData", 0, 0);
+				CallService(MODULENAME "/ViewLogData", 0, 0);
 				break;
 			case IDC_BTN_LOGBROWSE:
 			{
@@ -150,7 +150,7 @@ static INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 
 			RefreshWindow(0, 0);
 
-			if (options.logging) CallService(PLUG "/Log", (WPARAM)L"options changed", 0);
+			if (options.logging) CallService(MODULENAME "/Log", (WPARAM)L"options changed", 0);
 			if (hWakeEvent) SetEvent(hWakeEvent);
 			return TRUE;
 		}
@@ -276,7 +276,7 @@ INT_PTR CALLBACK DlgProcDestEdit(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM) 
 bool Edit(HWND hwnd, PINGADDRESS &addr)
 {
 	add_edit_addr = addr;
-	if (DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG3), hwnd, DlgProcDestEdit) == IDOK)
+	if (DialogBox(g_plugin.getInst(), MAKEINTRESOURCE(IDD_DIALOG3), hwnd, DlgProcDestEdit) == IDOK)
 	{
 		addr = add_edit_addr;
 		return true;
@@ -360,7 +360,7 @@ static INT_PTR CALLBACK DlgProcOpts2(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
 				add_edit_addr.item_id = 0;
 				add_edit_addr.index = (int)temp_list.size();
 
-				if (DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG3), hwndDlg, DlgProcDestEdit) == IDOK)
+				if (DialogBox(g_plugin.getInst(), MAKEINTRESOURCE(IDD_DIALOG3), hwndDlg, DlgProcDestEdit) == IDOK)
 				{
 					temp_list.push_back(add_edit_addr);
 
@@ -482,8 +482,8 @@ static INT_PTR CALLBACK DlgProcOpts2(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
 	case WM_NOTIFY:
 		if (((LPNMHDR)lParam)->code == PSN_APPLY)
 		{
-			CallService(PLUG "/SetAndSavePingList", (WPARAM)&temp_list, 0);
-			CallService(PLUG "/GetPingList", 0, (LPARAM)&temp_list);
+			CallService(MODULENAME "/SetAndSavePingList", (WPARAM)&temp_list, 0);
+			CallService(MODULENAME "/GetPingList", 0, (LPARAM)&temp_list);
 			// the following will be affected due to list rebuild event
 			//if(hWakeEvent) SetEvent(hWakeEvent);
 			return TRUE;
@@ -496,8 +496,7 @@ static INT_PTR CALLBACK DlgProcOpts2(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
 
 int PingOptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
 	odp.szGroup.w = LPGENW("Network");
 	odp.szTitle.w = LPGENW("Ping");
@@ -505,60 +504,60 @@ int PingOptInit(WPARAM wParam, LPARAM)
 	odp.szTab.w = LPGENW("Settings");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_DIALOG1);
 	odp.pfnDlgProc = DlgProcOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.w = LPGENW("Hosts");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_DIALOG2);
 	odp.pfnDlgProc = DlgProcOpts2;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
 void LoadOptions() {
-	options.ping_period = db_get_dw(NULL, PLUG, "PingPeriod", DEFAULT_PING_PERIOD);
+	options.ping_period = db_get_dw(NULL, MODULENAME, "PingPeriod", DEFAULT_PING_PERIOD);
 
-	options.ping_timeout = db_get_dw(NULL, PLUG, "PingTimeout", DEFAULT_PING_TIMEOUT);
-	CallService(PLUG "/SetPingTimeout", (WPARAM)options.ping_timeout, 0);
-	options.show_popup = (db_get_b(NULL, PLUG, "ShowPopup", DEFAULT_SHOW_POPUP ? 1 : 0) == 1);
-	options.show_popup2 = (db_get_b(NULL, PLUG, "ShowPopup2", DEFAULT_SHOW_POPUP2 ? 1 : 0) == 1);
-	options.block_reps = (db_get_b(NULL, PLUG, "BlockReps", DEFAULT_BLOCK_REPS ? 1 : 0) == 1);
-	options.logging = (db_get_b(NULL, PLUG, "LoggingEnabled", DEFAULT_LOGGING_ENABLED ? 1 : 0) == 1);
+	options.ping_timeout = db_get_dw(NULL, MODULENAME, "PingTimeout", DEFAULT_PING_TIMEOUT);
+	CallService(MODULENAME "/SetPingTimeout", (WPARAM)options.ping_timeout, 0);
+	options.show_popup = (db_get_b(NULL, MODULENAME, "ShowPopup", DEFAULT_SHOW_POPUP ? 1 : 0) == 1);
+	options.show_popup2 = (db_get_b(NULL, MODULENAME, "ShowPopup2", DEFAULT_SHOW_POPUP2 ? 1 : 0) == 1);
+	options.block_reps = (db_get_b(NULL, MODULENAME, "BlockReps", DEFAULT_BLOCK_REPS ? 1 : 0) == 1);
+	options.logging = (db_get_b(NULL, MODULENAME, "LoggingEnabled", DEFAULT_LOGGING_ENABLED ? 1 : 0) == 1);
 
-	options.no_test_icon = (db_get_b(NULL, PLUG, "NoTestStatus", DEFAULT_NO_TEST_ICON ? 1 : 0) == 1);
+	options.no_test_icon = (db_get_b(NULL, MODULENAME, "NoTestStatus", DEFAULT_NO_TEST_ICON ? 1 : 0) == 1);
 
-	options.indent = db_get_w(NULL, PLUG, "Indent", 0);
-	options.row_height = db_get_w(NULL, PLUG, "RowHeight", GetSystemMetrics(SM_CYSMICON));
+	options.indent = db_get_w(NULL, MODULENAME, "Indent", 0);
+	options.row_height = db_get_w(NULL, MODULENAME, "RowHeight", GetSystemMetrics(SM_CYSMICON));
 
-	options.retries = db_get_dw(NULL, PLUG, "Retries", 0);
+	options.retries = db_get_dw(NULL, MODULENAME, "Retries", 0);
 
-	CallService(PLUG "/GetLogFilename", (WPARAM)MAX_PATH, (LPARAM)options.log_filename);
+	CallService(MODULENAME "/GetLogFilename", (WPARAM)MAX_PATH, (LPARAM)options.log_filename);
 
 	ICMP::get_instance()->set_timeout(options.ping_timeout * 1000);
 
-	options.attach_to_clist = (db_get_b(NULL, PLUG, "AttachToClist", DEFAULT_ATTACH_TO_CLIST ? 1 : 0) == 1);
-	options.log_csv = (db_get_b(NULL, PLUG, "LogCSV", 0) == 1);
+	options.attach_to_clist = (db_get_b(NULL, MODULENAME, "AttachToClist", DEFAULT_ATTACH_TO_CLIST ? 1 : 0) == 1);
+	options.log_csv = (db_get_b(NULL, MODULENAME, "LogCSV", 0) == 1);
 }
 
 void SaveOptions() {
-	db_set_dw(NULL, PLUG, "PingPeriod", options.ping_period);
-	db_set_dw(NULL, PLUG, "PingTimeout", options.ping_timeout);
-	CallService(PLUG "/SetPingTimeout", (WPARAM)options.ping_timeout, 0);
-	db_set_b(NULL, PLUG, "ShowPopup", options.show_popup ? 1 : 0);
-	db_set_b(NULL, PLUG, "ShowPopup2", options.show_popup2 ? 1 : 0);
-	db_set_b(NULL, PLUG, "BlockReps", options.block_reps ? 1 : 0);
-	db_set_b(NULL, PLUG, "LoggingEnabled", options.logging ? 1 : 0);
+	db_set_dw(NULL, MODULENAME, "PingPeriod", options.ping_period);
+	db_set_dw(NULL, MODULENAME, "PingTimeout", options.ping_timeout);
+	CallService(MODULENAME "/SetPingTimeout", (WPARAM)options.ping_timeout, 0);
+	db_set_b(NULL, MODULENAME, "ShowPopup", options.show_popup ? 1 : 0);
+	db_set_b(NULL, MODULENAME, "ShowPopup2", options.show_popup2 ? 1 : 0);
+	db_set_b(NULL, MODULENAME, "BlockReps", options.block_reps ? 1 : 0);
+	db_set_b(NULL, MODULENAME, "LoggingEnabled", options.logging ? 1 : 0);
 
-	db_set_b(NULL, PLUG, "NoTestStatus", options.no_test_icon ? 1 : 0);
+	db_set_b(NULL, MODULENAME, "NoTestStatus", options.no_test_icon ? 1 : 0);
 
-	db_set_w(NULL, PLUG, "Indent", options.indent);
-	db_set_w(NULL, PLUG, "RowHeight", options.row_height);
+	db_set_w(NULL, MODULENAME, "Indent", options.indent);
+	db_set_w(NULL, MODULENAME, "RowHeight", options.row_height);
 
-	db_set_dw(NULL, PLUG, "Retries", (DWORD)options.retries);
+	db_set_dw(NULL, MODULENAME, "Retries", (DWORD)options.retries);
 
-	CallService(PLUG "/SetLogFilename", (WPARAM)MAX_PATH, (LPARAM)options.log_filename);
+	CallService(MODULENAME "/SetLogFilename", (WPARAM)MAX_PATH, (LPARAM)options.log_filename);
 
 	ICMP::get_instance()->set_timeout(options.ping_timeout * 1000);
 
-	db_set_b(NULL, PLUG, "AttachToClist", options.attach_to_clist ? 1 : 0);
-	db_set_b(NULL, PLUG, "LogCSV", options.log_csv ? 1 : 0);
+	db_set_b(NULL, MODULENAME, "AttachToClist", options.attach_to_clist ? 1 : 0);
+	db_set_b(NULL, MODULENAME, "LogCSV", options.log_csv ? 1 : 0);
 }

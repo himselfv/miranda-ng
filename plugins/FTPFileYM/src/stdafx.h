@@ -75,10 +75,15 @@ using namespace std;
 #define MS_FTPFILE_CONTACTMENU	"FTPFile/ContactMenu"
 #define MS_FTPFILE_MAINMENU		"FTPFile/MainMenu"
 
-#define MODULE				"FTPFile"
-#define MODULE_FILES		"FTPFile_Files"
+#define MODULENAME       "FTPFile"
+#define MODULE_FILES     "FTPFile_Files"
 
-#define SOUND_UPCOMPLETE	"ftpfile_upcomplete"
-#define SOUND_CANCEL		"ftpfile_cancel"
+#define SOUND_UPCOMPLETE "ftpfile_upcomplete"
+#define SOUND_CANCEL		 "ftpfile_cancel"
 
-extern HINSTANCE hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};

@@ -134,35 +134,35 @@ INT_PTR CALLBACK DlgProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 
 void save_settings()
 {
-	db_set_b(NULL, PlugName, "local_only", g_settings.local_only);
-	db_set_b(NULL, PlugName, "debug_messages", g_settings.debug_messages);
-	db_set_b(NULL, PlugName, "log_to_file", g_settings.log_to_file);
-	db_set_b(NULL, PlugName, "beep", g_settings.sound);
-	db_set_b(NULL, PlugName, "use_pcspeaker", g_settings.use_pcspeaker);
-	db_set_b(NULL, PlugName, "allow_execute", g_settings.allow_execute);
-	db_set_dw(NULL, PlugName, "port", g_settings.port);
-	db_set_ws(NULL, PlugName, "password", g_settings.password.c_str());
-	db_set_ws(NULL, PlugName, "log_filename", g_settings.log_filename.c_str());
+	db_set_b(NULL, MODULENAME, "local_only", g_settings.local_only);
+	db_set_b(NULL, MODULENAME, "debug_messages", g_settings.debug_messages);
+	db_set_b(NULL, MODULENAME, "log_to_file", g_settings.log_to_file);
+	db_set_b(NULL, MODULENAME, "beep", g_settings.sound);
+	db_set_b(NULL, MODULENAME, "use_pcspeaker", g_settings.use_pcspeaker);
+	db_set_b(NULL, MODULENAME, "allow_execute", g_settings.allow_execute);
+	db_set_dw(NULL, MODULENAME, "port", g_settings.port);
+	db_set_ws(NULL, MODULENAME, "password", g_settings.password.c_str());
+	db_set_ws(NULL, MODULENAME, "log_filename", g_settings.log_filename.c_str());
 }
 
 void load_settings()
 {
-	g_settings.local_only = db_get_b(NULL, PlugName, "local_only", 1) != 0;
-	g_settings.debug_messages = db_get_b(NULL, PlugName, "debug_messages", 0) != 0;
-	g_settings.log_to_file = db_get_b(NULL, PlugName, "log_to_file", 0) != 0;
-	g_settings.sound = NASettings::sound_t(db_get_b(NULL, PlugName, "beep", g_settings.request));
-	g_settings.use_pcspeaker = db_get_b(NULL, PlugName, "use_pcspeaker", 0) != 0;
-	g_settings.allow_execute = db_get_b(NULL, PlugName, "allow_execute", 0) != 0;
-	g_settings.port = db_get_dw(NULL, PlugName, "port", 12001);
+	g_settings.local_only = db_get_b(NULL, MODULENAME, "local_only", 1) != 0;
+	g_settings.debug_messages = db_get_b(NULL, MODULENAME, "debug_messages", 0) != 0;
+	g_settings.log_to_file = db_get_b(NULL, MODULENAME, "log_to_file", 0) != 0;
+	g_settings.sound = NASettings::sound_t(db_get_b(NULL, MODULENAME, "beep", g_settings.request));
+	g_settings.use_pcspeaker = db_get_b(NULL, MODULENAME, "use_pcspeaker", 0) != 0;
+	g_settings.allow_execute = db_get_b(NULL, MODULENAME, "allow_execute", 0) != 0;
+	g_settings.port = db_get_dw(NULL, MODULENAME, "port", 12001);
 
 	DBVARIANT dbv;
-	if (!db_get_ws(NULL, PlugName, "password", &dbv)) {
-		g_settings.password = dbv.ptszVal;
+	if (!db_get_ws(NULL, MODULENAME, "password", &dbv)) {
+		g_settings.password = dbv.pwszVal;
 		db_free(&dbv);
 	}
 
-	if (!db_get_ws(NULL, PlugName, "log_filename", &dbv)) {
-		g_settings.log_filename = dbv.ptszVal;
+	if (!db_get_ws(NULL, MODULENAME, "log_filename", &dbv)) {
+		g_settings.log_filename = dbv.pwszVal;
 		db_free(&dbv);
 	}
 	else
@@ -171,14 +171,13 @@ void load_settings()
 
 int OptionsInitialize(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.pszTemplate = MAKEINTRESOURCEA(NA_OPTIONS);
 	odp.pfnDlgProc = DlgProcOpts;
 	odp.szTitle.a = LPGEN("Notify Anything");
 	odp.szGroup.a = LPGEN("Plugins");
 	odp.position = 100000000;
-	odp.hInstance = hInst;
 	odp.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

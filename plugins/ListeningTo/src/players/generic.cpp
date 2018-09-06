@@ -27,7 +27,7 @@ GenericPlayer *singleton = nullptr;
 void m_log(const wchar_t *function, const wchar_t *fmt, ...)
 {
 	if (hLog == nullptr) {
-		hLog = mir_createLog(MODULE_NAME, L"ListeningTo log", L"c:\\temp\\listeningto.txt", 0);
+		hLog = mir_createLog(MODULENAME, L"ListeningTo log", L"c:\\temp\\listeningto.txt", 0);
 		if (hLog == nullptr)
 			return;
 	}
@@ -71,11 +71,11 @@ GenericPlayer::GenericPlayer()
 
 	WNDCLASS wc = {};
 	wc.lpfnWndProc = ReceiverWndProc;
-	wc.hInstance = hInst;
+	wc.hInstance = g_plugin.getInst();
 	wc.lpszClassName = MIRANDA_WINDOWCLASS;
 	RegisterClass(&wc);
 
-	hWnd = CreateWindow(MIRANDA_WINDOWCLASS, LPGENW("Miranda ListeningTo receiver"), 0, 0, 0, 0, 0, nullptr, nullptr, hInst, nullptr);
+	hWnd = CreateWindow(MIRANDA_WINDOWCLASS, LPGENW("Miranda ListeningTo receiver"), 0, 0, 0, 0, 0, nullptr, nullptr, g_plugin.getInst(), nullptr);
 }
 
 GenericPlayer::~GenericPlayer()
@@ -88,7 +88,7 @@ GenericPlayer::~GenericPlayer()
 	DestroyWindow(hWnd);
 	hWnd = nullptr;
 
-	UnregisterClass(MIRANDA_WINDOWCLASS, hInst);
+	UnregisterClass(MIRANDA_WINDOWCLASS, g_plugin.getInst());
 	singleton = nullptr;
 }
 

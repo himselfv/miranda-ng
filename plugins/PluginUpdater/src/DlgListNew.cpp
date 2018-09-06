@@ -250,7 +250,7 @@ INT_PTR CALLBACK DlgList(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		// do this after filling list - enables 'ITEMCHANGED' below
 		SetWindowLongPtr(hDlg, GWLP_USERDATA, lParam);
-		Utils_RestoreWindowPosition(hDlg, 0, MODNAME, "ListWindow");
+		Utils_RestoreWindowPosition(hDlg, 0, MODULENAME, "ListWindow");
 		return TRUE;
 
 	case WM_NOTIFY:
@@ -308,7 +308,7 @@ INT_PTR CALLBACK DlgList(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_SIZE: // make the dlg resizeable
 		if (!IsIconic(hDlg))
-			Utils_ResizeDialog(hDlg, hInst, MAKEINTRESOURCEA(IDD_LIST), ListDlg_Resize);
+			Utils_ResizeDialog(hDlg, g_plugin.getInst(), MAKEINTRESOURCEA(IDD_LIST), ListDlg_Resize);
 		break;
 
 	case WM_GETMINMAXINFO:
@@ -327,7 +327,7 @@ INT_PTR CALLBACK DlgList(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
-		Utils_SaveWindowPosition(hDlg, NULL, MODNAME, "ListWindow");
+		Utils_SaveWindowPosition(hDlg, NULL, MODULENAME, "ListWindow");
 		Window_FreeIcon_IcoLib(hDlg);
 		hwndDialog = nullptr;
 		delete (OBJLIST<FILEINFO> *)GetWindowLongPtr(hDlg, GWLP_USERDATA);
@@ -340,7 +340,7 @@ INT_PTR CALLBACK DlgList(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 static void __stdcall LaunchListDialog(void *param)
 {
-	hwndDialog = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_LIST), GetDesktopWindow(), DlgList, (LPARAM)param);
+	hwndDialog = CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_LIST), GetDesktopWindow(), DlgList, (LPARAM)param);
 }
 
 static FILEINFO* ServerEntryToFileInfo(const ServListEntry &hash, const wchar_t* tszBaseUrl, const wchar_t* tszPath)
@@ -490,6 +490,6 @@ static INT_PTR ParseUriService(WPARAM, LPARAM lParam)
 
 void InitListNew()
 {
-	CreateServiceFunction(MODNAME "/ParseUri", ParseUriService);
+	CreateServiceFunction(MODULENAME "/ParseUri", ParseUriService);
 	CreateServiceFunction(MS_PU_SHOWLIST, ShowListCommand);
 }

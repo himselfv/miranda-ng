@@ -23,10 +23,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 int LoadAutoAwayModule(void);
 
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	MIRANDA_VERSION_DWORD,
@@ -39,28 +40,38 @@ PLUGININFOEX pluginInfo = {
 	{ 0x9f5ca736, 0x1108, 0x4872, {0xbe, 0xc3, 0x19, 0xc8, 0x4b, 0xc2, 0x14, 0x3b}}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx),
+	bIdleCheck(IDLENAME, "UserIdleCheck", 0),
+	bIdleMethod(IDLENAME, "IdleMethod", 0),
+	bIdleOnSaver(IDLENAME, "IdleOnSaver", 0),
+	bIdleOnFullScr(IDLENAME, "IdleOnFullScr", 0),
+	bIdleOnLock(IDLENAME, "IdleOnLock", 0),
+	bIdlePrivate(IDLENAME, "IdlePrivate", 0),
+	bIdleSoundsOff(IDLENAME, "IdleSoundsOff", 1),
+	bIdleOnTerminal(IDLENAME, "IdleOnTerminalDisconnect", 0),
+	bIdleStatusLock(IDLENAME, "IdleStatusLock", 0),
+	bAAEnable(IDLENAME, "AAEnable", 0),
+	bAAStatus(IDLENAME, "AAStatus", 0),
+	iIdleTime1st(IDLENAME, "IdleTime1st", 10)
 {
-	hInst = hinstDLL;
-	return TRUE;
 }
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_AUTOAWAY, MIID_LAST };
 
-extern "C" int __declspec(dllexport) Load(void)
-{
-	mir_getLP(&pluginInfo);
+/////////////////////////////////////////////////////////////////////////////////////////
 
+int CMPlugin::Load()
+{
+	LoadIdleModule();
 	LoadAutoAwayModule();
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
+	UnloadIdleModule();
 	return 0;
 }

@@ -1,41 +1,20 @@
 #pragma once
 
-// returns true if the API exports were good, otherwise, passed in data is returned
-#define CHECKAPI_NONE 	 0
-#define CHECKAPI_CLIST   1
-
 // block these plugins
 #define DEFMOD_REMOVED_UIPLUGINOPTS     21
 #define DEFMOD_REMOVED_PROTOCOLNETLIB   22
 
 // basic export prototypes
-typedef int (__cdecl * Miranda_Plugin_Load) (void);
-typedef int (__cdecl * Miranda_Plugin_Unload) (void);
-// version control
-typedef PLUGININFOEX * (__cdecl * Miranda_Plugin_InfoEx) (DWORD mirandaVersion);
-// prototype for clists
-typedef int (__cdecl * CList_Initialise) (void);
-
-// can all be nullptr
-struct BASIC_PLUGIN_INFO
-{
-	HINSTANCE hInst;
-	Miranda_Plugin_Load Load;
-	Miranda_Plugin_Unload Unload;
-	Miranda_Plugin_InfoEx InfoEx;
-	CList_Initialise clistlink;
-	PLUGININFOEX *pluginInfo;	 // must be freed if hInst = = nullptr then its a copy
-	MUUID *Interfaces;          // array of supported interfaces
-};
+typedef int(__cdecl *Miranda_Plugin_Load) (void);
+typedef int(__cdecl *Miranda_Plugin_Unload) (void);
 
 struct pluginEntry
 {
 	wchar_t pluginname[64];
-	struct {
+	struct
+	{
 		bool bFailed : 1;      // not a valid plugin, or API is invalid, pluginname is valid
-		bool bOk : 1;			  // plugin should be loaded, if DB means nothing
 		bool bLoaded : 1;      // Load(void) has been called, Unload() should be called.
-		bool bStopped : 1;     // wasn't loaded cos plugin name not on white list
 
 		bool bIsCore : 1;		  // a plugin from the /Core directory
 		bool bIsService : 1;	  // has Service Mode implementation
@@ -43,37 +22,58 @@ struct pluginEntry
 
 		bool bHasBasicApi : 1; // has Load, Unload, MirandaPluginInfo() -> PLUGININFO seems valid, this dll is in memory.
 		bool bIsProtocol : 1;  // protocol module
-		bool bIsDatabase : 1;  // has DatabasePluginInfo() and is valid as can be, and PCLASS_BASICAPI has to be set too
-		bool bIsClist : 1;	  // a CList implementation
-		bool bIsCrypto : 1;	  // crypto provider
+		bool bIsClist : 1;	  // has MIID_CLIST in its interfaces
+		bool bIsCrypto : 1;	  // has MIID_CRYPTO in its interfaces
+		bool bIsDatabase : 1;  // has MUUID_DATABASE in its interfaces
 	};
-		
-	int hLangpack;
-	BASIC_PLUGIN_INFO bpi;
+
+	void clear()
+	{
+		pfnLoad = 0;
+		pfnUnload = 0;
+		m_pInterfaces = 0;
+		m_pPlugin = 0;
+	}
+
+	// old stubs for pascal plugins
+	Miranda_Plugin_Load pfnLoad;
+	Miranda_Plugin_Unload pfnUnload;
+
+	MUUID* m_pInterfaces;          // array of supported interfaces or NULL
+	CMPluginBase* m_pPlugin;      // pointer to a plugin's instance
+
+	bool checkAPI(wchar_t *plugin);
+
+	int load()
+	{	return (pfnLoad == nullptr) ? m_pPlugin->Load() : pfnLoad();
+	}
+
+	int unload()
+	{	return (pfnUnload == nullptr) ? m_pPlugin->Unload() : pfnUnload();
+	}
 };
 
 extern LIST<pluginEntry> pluginList, servicePlugins, clistPlugins;
 extern MUUID miid_last;
 
 int PluginOptionsInit(WPARAM, LPARAM);
+
 void LoadPluginOptions();
 void UnloadPluginOptions();
 
-int isPluginOnWhiteList(const wchar_t* pluginname);
-void SetPluginOnWhiteList(const wchar_t* pluginname, int allow);
+int isPluginOnWhiteList(const wchar_t *pluginname);
+void SetPluginOnWhiteList(const wchar_t *pluginname, int allow);
 
-int  getDefaultPluginIdx(const MUUID& muuid);
-bool hasMuuid(const BASIC_PLUGIN_INFO&, const MUUID&);
-bool hasMuuid(const MUUID* pFirst, const MUUID&);
-int  checkAPI(wchar_t* plugin, BASIC_PLUGIN_INFO* bpi, DWORD mirandaVersion, int checkTypeAPI);
+int  getDefaultPluginIdx(const MUUID &muuid);
+bool hasMuuid(const MUUID *pFirst, const MUUID&);
 
 pluginEntry* OpenPlugin(wchar_t *tszFileName, wchar_t *dir, wchar_t *path);
 
 bool TryLoadPlugin(pluginEntry *p, bool bDynamic);
 void Plugin_Uninit(pluginEntry *p);
-int  Plugin_UnloadDyn(pluginEntry *p);
+bool Plugin_UnloadDyn(pluginEntry *p);
 
-typedef BOOL (*SCAN_PLUGINS_CALLBACK) (WIN32_FIND_DATA * fd, wchar_t *path, WPARAM wParam, LPARAM lParam);
+typedef BOOL (*SCAN_PLUGINS_CALLBACK) (WIN32_FIND_DATA *fd, wchar_t *path, WPARAM wParam, LPARAM lParam);
 void enumPlugins(SCAN_PLUGINS_CALLBACK cb, WPARAM wParam, LPARAM lParam);
 
 struct MuuidReplacement
@@ -83,6 +83,6 @@ struct MuuidReplacement
 	pluginEntry* pImpl; // replacement plugin
 };
 
-bool LoadCorePlugin( MuuidReplacement& );
+bool LoadCorePlugin(MuuidReplacement&);
 
-MUUID* GetPluginInterfaces(const wchar_t* ptszFileName, bool& bIsPlugin);
+MUUID* GetPluginInterfaces(const wchar_t *ptszFileName, bool &bIsPlugin);

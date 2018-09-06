@@ -39,6 +39,13 @@
 
 #define MODULENAME "IgnoreState"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
+
 struct IGNOREITEMS
 {
 	wchar_t* name;
@@ -51,8 +58,6 @@ extern IGNOREITEMS ii[];
 extern int nII;
 
 static byte bUseMirandaSettings;
-
-extern HINSTANCE g_hInst;
 
 void applyExtraImage(MCONTACT hContact);
 

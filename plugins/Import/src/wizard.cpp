@@ -64,7 +64,7 @@ INT_PTR CALLBACK FinishedPageProc(HWND hdlg, UINT message, WPARAM wParam, LPARAM
 		case IDCANCEL:
 			if (IsDlgButtonChecked(hdlg, IDC_DONTLOADPLUGIN)) {
 				char sModuleFileName[MAX_PATH];
-				GetModuleFileNameA(hInst, sModuleFileName, sizeof(sModuleFileName));
+				GetModuleFileNameA(g_plugin.getInst(), sModuleFileName, sizeof(sModuleFileName));
 				char *pszFileName = strrchr(sModuleFileName, '\\');
 				if (pszFileName == nullptr)
 					pszFileName = sModuleFileName;
@@ -97,7 +97,7 @@ INT_PTR CALLBACK WizardDlgProc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lP
 	case WM_INITDIALOG:
 		TranslateDialogDefault(hdlg);
 		Window_SetIcon_IcoLib(hdlg, GetIconHandle(IDI_IMPORT));
-		hwndWizard = hdlg;
+		g_hwndWizard = hdlg;
 		{
 			WizardDlgParam *param = (WizardDlgParam*)lParam;
 			if (param)
@@ -112,7 +112,7 @@ INT_PTR CALLBACK WizardDlgProc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lP
 		EnableWindow(GetDlgItem(hdlg, IDOK), TRUE);
 		EnableWindow(GetDlgItem(hdlg, IDCANCEL), TRUE);
 		SetDlgItemText(hdlg, IDCANCEL, TranslateT("Cancel"));
-		hwndPage = CreateDialog(hInst, MAKEINTRESOURCE(wParam), hdlg, (DLGPROC)lParam);
+		hwndPage = CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(wParam), hdlg, (DLGPROC)lParam);
 		SetWindowPos(hwndPage, nullptr, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
 		ShowWindow(hwndPage, SW_SHOW);
 		if (bFirstLaunch)
@@ -165,7 +165,7 @@ INT_PTR CALLBACK WizardDlgProc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lP
 		break;
 
 	case WM_DESTROY:
-		hwndWizard = hwndPage = nullptr;
+		g_hwndWizard = hwndPage = nullptr;
 		if (g_bSendQuit)
 			PostQuitMessage(0);
 	}

@@ -109,7 +109,7 @@ MIR_APP_DLL(HMENU) Menu_GetMainMenu(void)
 	NotifyEventHooks(hPreBuildMainMenuEvent, 0, 0);
 
 	Menu_Build(hMainMenu, hMainMenuObject);
-	DrawMenuBar(cli.hwndContactList);
+	DrawMenuBar(g_clistApi.hwndContactList);
 	return hMainMenu;
 }
 
@@ -425,7 +425,7 @@ static INT_PTR StatusMenuCheckService(WPARAM wParam, LPARAM)
 			if (reset || check) {
 				TMO_IntMenuItem *timiParent = MO_GetIntMenuItem(pimi->mi.root);
 				if (timiParent) {
-					LPTSTR ptszName = TranslateW_LP(pimi->mi.hIcolibItem ? pimi->mi.name.w : LPGENW("Custom status"), pimi->mi.hLangpack);
+					LPTSTR ptszName = TranslateW_LP(pimi->mi.hIcolibItem ? pimi->mi.name.w : LPGENW("Custom status"), pimi->mi.pPlugin);
 
 					timiParent = MO_GetIntMenuItem(pimi->mi.root);
 
@@ -525,8 +525,8 @@ static INT_PTR StatusMenuExecService(WPARAM wParam, LPARAM)
 		char *prot = smep->szProto;
 		char szHumanName[64] = { 0 };
 		PROTOACCOUNT *acc = Proto_GetAccount(smep->szProto);
-		bool bIsLocked = !acc->IsLocked();
-		db_set_b(0, prot, "LockMainStatus", bIsLocked);
+		acc->bIsLocked = !acc->bIsLocked;
+		db_set_b(0, prot, "LockMainStatus", acc->bIsLocked);
 
 		CallProtoServiceInt(0, smep->szProto, PS_GETNAME, _countof(szHumanName), (LPARAM)szHumanName);
 
@@ -536,7 +536,7 @@ static INT_PTR StatusMenuExecService(WPARAM wParam, LPARAM)
 
 		TMO_IntMenuItem *root = (TMO_IntMenuItem*)pimi->mi.root;
 		wchar_t buf[256], *ptszName;
-		if (bIsLocked) {
+		if (acc->bIsLocked) {
 			pimi->mi.flags |= CMIF_CHECKED;
 			mir_snwprintf(buf, TranslateT("%s (locked)"), acc->tszAccountName);
 			ptszName = buf;
@@ -548,8 +548,8 @@ static INT_PTR StatusMenuExecService(WPARAM wParam, LPARAM)
 		replaceStrW(pimi->mi.name.w, ptszName);
 		replaceStrW(root->mi.name.w, ptszName);
 
-		if (cli.hwndStatus)
-			InvalidateRect(cli.hwndStatus, nullptr, TRUE);
+		if (g_clistApi.hwndStatus)
+			InvalidateRect(g_clistApi.hwndStatus, nullptr, TRUE);
 		return 0;
 	}
 	
@@ -565,7 +565,7 @@ static INT_PTR StatusMenuExecService(WPARAM wParam, LPARAM)
 		if (pa->IsVisible())
 			MenusProtoCount++;
 
-	cli.currentDesiredStatusMode = smep->status;
+	g_clistApi.currentDesiredStatusMode = smep->status;
 
 	for (auto &pa : accounts) {
 		if (!pa->IsEnabled())
@@ -573,10 +573,10 @@ static INT_PTR StatusMenuExecService(WPARAM wParam, LPARAM)
 		if (MenusProtoCount > 1 && pa->IsLocked())
 			continue;
 
-		Proto_SetStatus(pa->szModuleName, cli.currentDesiredStatusMode);
+		Proto_SetStatus(pa->szModuleName, g_clistApi.currentDesiredStatusMode);
 	}
-	NotifyEventHooks(hStatusModeChangeEvent, cli.currentDesiredStatusMode, 0);
-	db_set_w(0, "CList", "Status", (WORD)cli.currentDesiredStatusMode);
+	NotifyEventHooks(hStatusModeChangeEvent, g_clistApi.currentDesiredStatusMode, 0);
+	db_set_w(0, "CList", "Status", (WORD)g_clistApi.currentDesiredStatusMode);
 	return 1;
 }
 
@@ -669,7 +669,7 @@ static int MenuIconsChanged(WPARAM, LPARAM)
 {
 	// just rebuild menu
 	RebuildMenuOrder();
-	cli.pfnCluiProtocolStatusChanged(0, nullptr);
+	g_clistApi.pfnCluiProtocolStatusChanged(0, nullptr);
 	return 0;
 }
 
@@ -727,7 +727,7 @@ void RebuildMenuOrder(void)
 		int pos = 0;
 
 		// adding root
-		CMenuItem mi;
+		CMenuItem mi(&g_plugin);
 		mi.flags = CMIF_UNICODE | CMIF_KEEPUNTRANSLATED;
 		mi.position = pos++;
 		mi.hIcon = ic = (HICON)CallProtoServiceInt(0, pa->szModuleName, PS_LOADICON, PLI_PROTOCOL | PLIF_SMALL, 0);
@@ -824,7 +824,7 @@ void RebuildMenuOrder(void)
 			if (!(flags & it.Pf2flag))
 				continue;
 
-			CMenuItem mi;
+			CMenuItem mi(&g_plugin);
 			mi.flags = CMIF_UNICODE;
 			if (it.iStatus == ID_STATUS_OFFLINE)
 				mi.flags |= CMIF_CHECKED;
@@ -882,7 +882,7 @@ MIR_APP_DLL(void) Menu_ReloadProtoMenus(void)
 	RebuildMenuOrder();
 	if (db_get_b(0, "CList", "MoveProtoMenus", true))
 		BuildProtoMenus();
-	cli.pfnCluiProtocolStatusChanged(0, nullptr);
+	g_clistApi.pfnCluiProtocolStatusChanged(0, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -994,7 +994,7 @@ static INT_PTR HotkeySetStatus(WPARAM, LPARAM lParam)
 
 static INT_PTR ShowHide(WPARAM, LPARAM)
 {
-	cli.pfnShowHide();
+	g_clistApi.pfnShowHide();
 	return 0;
 }
 
@@ -1079,14 +1079,14 @@ void InitCustomMenus(void)
 		hkd.szDescription.w = Clist_GetStatusModeDescription(hkd.lParam, GSMDF_UNTRANSLATED);
 		hkd.DefHotKey = HOTKEYCODE(HOTKEYF_CONTROL, '0' + i) | HKF_MIRANDA_LOCAL;
 		hkd.pszService = MS_CLIST_HKSTATUS;
-		g_statuses[i].iHotKey = Hotkey_Register(&hkd);
+		g_statuses[i].iHotKey = g_plugin.addHotkey(&hkd);
 	}
 
 	HookEvent(ME_HOTKEYS_CHANGED, sttRebuildHotkeys);
 	HookEvent(ME_LANGPACK_CHANGED, sttRebuildHotkeys);
 
 	// add exit command to menu
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x707c8962, 0xc33f, 0x4893, 0x8e, 0x36, 0x30, 0xb1, 0x7c, 0xd8, 0x61, 0x40);
 	mi.position = 0x7fffffff;
 	mi.pszService = "CloseAction";
@@ -1095,7 +1095,7 @@ void InitCustomMenus(void)
 	Menu_AddMainMenuItem(&mi);
 
 	currentStatusMenuItem = ID_STATUS_OFFLINE;
-	cli.currentDesiredStatusMode = ID_STATUS_OFFLINE;
+	g_clistApi.currentDesiredStatusMode = ID_STATUS_OFFLINE;
 
 	HookEvent(ME_SKIN_ICONSCHANGED, MenuIconsChanged);
 }

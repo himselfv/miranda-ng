@@ -777,8 +777,8 @@ void GetDictsInfo(LIST<Dictionary> &dicts)
 
 			char lang[128];
 			WideCharToMultiByte(CP_ACP, 0, dict->language, -1, lang, sizeof(lang), nullptr, nullptr);
-			if (!db_get_ws(NULL, MODULE_NAME, lang, &dbv)) {
-				mir_wstrncpy(dict->localized_name, dbv.ptszVal, _countof(dict->localized_name));
+			if (!db_get_ws(NULL, MODULENAME, lang, &dbv)) {
+				mir_wstrncpy(dict->localized_name, dbv.pwszVal, _countof(dict->localized_name));
 				db_free(&dbv);
 			}
 

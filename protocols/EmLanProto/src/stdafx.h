@@ -27,12 +27,10 @@
 
 struct CMPlugin : public PLUGIN<CMPlugin>
 {
-	CMPlugin() :
-		PLUGIN<CMPlugin>(PROTONAME)
-	{
-		RegisterProtocol(PROTOTYPE_PROTOCOL);
-		SetUniqueId("Nick");
-	}
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
 };
 
 //#define VERBOSE

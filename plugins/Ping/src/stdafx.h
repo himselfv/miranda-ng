@@ -40,7 +40,7 @@
 
 #define MAX_HISTORY		(1440)		// 12 hrs at 30 sec intervals
 
-#define PLUG	"PING"
+#define MODULENAME	"PING"
 
 #define DEFAULT_PING_PERIOD		30
 #define DEFAULT_PING_TIMEOUT	2
@@ -54,6 +54,13 @@
 
 #define MAX_PINGADDRESS_STRING_LENGTH	256
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 typedef struct {
 	int ping_period, ping_timeout;
@@ -104,13 +111,12 @@ struct PINGADDRESS {
 };
 
 #include "options.h"
+
 typedef Map<DWORD, HistoryList> HistoryMap;
 typedef std::list<PINGADDRESS> PINGLIST;
 typedef std::list<PINGADDRESS>::iterator pinglist_it;
 
-
 extern HNETLIBUSER hNetlibUser;
-extern HINSTANCE hInst;
 
 extern bool use_raw_ping;
 
@@ -123,7 +129,6 @@ extern HistoryMap history_map;
 extern PINGLIST list_items;
 extern HANDLE reload_event_handle;
 extern mir_cs list_cs;
-extern HANDLE mainThread;
 extern HANDLE hWakeEvent;
 extern mir_cs thread_finished_cs, list_changed_cs, data_list_cs;
 

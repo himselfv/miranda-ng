@@ -373,8 +373,8 @@ public:
 	CTabBaseDlg(int iDialogId, SESSION_INFO* = nullptr);
 	virtual ~CTabBaseDlg();
 
-	virtual void OnInitDialog() override;
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
+	bool OnInitDialog() override;
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
 
 	virtual CThumbBase* tabCreateThumb(CProxyWindow*) const = 0;
 	virtual void tabClearLog() = 0;
@@ -393,10 +393,8 @@ public:
 	void  DM_EventAdded(WPARAM wParam, LPARAM lParam);
 	void  DM_InitRichEdit();
 	void  DM_InitTip();
-	void  DM_LoadLocale();
 	void  DM_NotifyTyping(int mode);
 	void  DM_RecalcPictureSize();
-	void  DM_SaveLocale(WPARAM wParam, LPARAM lParam);
 	void  DM_SaveLogAsRTF() const;
 	void  DM_ScrollToBottom(WPARAM wParam, LPARAM lParam);
 	void  DM_Typing(bool fForceOff);
@@ -433,7 +431,6 @@ public:
 	bool  GetAvatarVisibility();
 	void  GetClientIcon();
 	LONG  GetDefaultMinimumInputHeight() const;
-	void  GetLocaleID(const wchar_t *szKLName);
 	HICON GetMyContactIcon(LPCSTR szSetting);
 	void  GetMYUIN();
 	void  GetMyNick();
@@ -489,14 +486,14 @@ public:
 public:
 	CSrmmWindow();
 
-	virtual void OnInitDialog() override;
-	virtual void OnDestroy() override;
+	bool OnInitDialog() override;
+	void OnDestroy() override;
 
-	virtual int Resizer(UTILRESIZECONTROL *urc) override;
+	int Resizer(UTILRESIZECONTROL *urc) override;
 	
-	virtual void UpdateTitle() override;
+	void UpdateTitle() override;
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
 
 	void onClick_Ok(CCtrlButton*);
 	void onClick_Add(CCtrlButton*);
@@ -537,23 +534,23 @@ class CChatRoomDlg : public CTabBaseDlg
 public:
 	CChatRoomDlg(SESSION_INFO*);
 
-	virtual void OnInitDialog() override;
-	virtual void OnDestroy() override;
+	bool OnInitDialog() override;
+	void OnDestroy() override;
 
-	virtual int Resizer(UTILRESIZECONTROL *urc) override;
+	int Resizer(UTILRESIZECONTROL *urc) override;
 	
-	virtual void AddLog() override;
-	virtual void CloseTab() override;
-	virtual void RedrawLog() override;
-	virtual void ScrollToBottom() override;
-	virtual void ShowFilterMenu() override;
-	virtual void StreamInEvents(LOGINFO* lin, bool bRedraw) override;
-	virtual void UpdateNickList() override;
-	virtual void UpdateOptions() override;
-	virtual void UpdateStatusBar() override;
-	virtual void UpdateTitle() override;
+	void AddLog() override;
+	void CloseTab() override;
+	void RedrawLog() override;
+	void ScrollToBottom() override;
+	void ShowFilterMenu() override;
+	void StreamInEvents(LOGINFO* lin, bool bRedraw) override;
+	void UpdateNickList() override;
+	void UpdateOptions() override;
+	void UpdateStatusBar() override;
+	void UpdateTitle() override;
 
-	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
 
 	void onClick_OK(CCtrlButton*);
 	void onClick_Filter(CCtrlButton*);
@@ -588,10 +585,10 @@ class CTemplateEditDlg : public CTabBaseDlg
 public:
 	CTemplateEditDlg(BOOL rtl, HWND hwndParent);
 
-	virtual void OnInitDialog() override;
-	virtual void OnDestroy() override;
+	bool OnInitDialog() override;
+	void OnDestroy() override;
 
-	virtual INT_PTR DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+	INT_PTR DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
 	void onChange_Text(CCtrlEdit*);
 
@@ -756,7 +753,6 @@ struct TIconDescW
 #define DM_SELECTTAB             (TM_USER+23)
 #define DM_CLOSETABATMOUSE       (TM_USER+24)
 #define DM_STATUSICONCHANGE      (TM_USER+25)
-#define DM_SETLOCALE             (TM_USER+26)
 #define DM_QUERYLASTUNREAD       (TM_USER+28)
 #define DM_QUERYPENDING          (TM_USER+29)
 #define DM_UPDATEPICLAYOUT       (TM_USER+30)
@@ -786,7 +782,6 @@ struct TIconDescW
 #define DM_SETICON               (TM_USER+68)
 #define DM_CHECKQUEUEFORCLOSE    (TM_USER+70)
 #define DM_CHECKAUTOHIDE         (TM_USER+71)
-#define DM_SETPARENTDIALOG       (TM_USER+72)
 #define DM_HANDLECLISTEVENT      (TM_USER+73)
 #define DM_TRAYICONNOTIFY        (TM_USER+74)
 #define DM_REMOVECLISTEVENT      (TM_USER+75)
@@ -1109,7 +1104,6 @@ struct SIDEBARITEM {
 #define MSG_ICON_SOUND   2
 
 int SI_InitStatusIcons();
-int SI_DeinitStatusIcons();
 
 struct SKINDESC
 {
@@ -1131,5 +1125,13 @@ struct SKINDESC
 #define ICON_BUTTON_ADD					0
 #define ICON_BUTTON_CANCEL				6
 #define ICON_BUTTON_SAVE				7
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 #endif /* _MSGS_H */

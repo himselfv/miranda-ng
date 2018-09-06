@@ -25,8 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define VALID_AVATAR(x)      (x==PA_FORMAT_PNG||x==PA_FORMAT_JPEG||x==PA_FORMAT_ICON||x==PA_FORMAT_BMP||x==PA_FORMAT_GIF)
 
-#define ENTERCLICKTIME   1000   //max time in ms during which a double-tap on enter will cause a send
-
 static wchar_t* GetQuotedTextW(wchar_t *text)
 {
 	size_t i, j, l = mir_wstrlen(text);
@@ -177,7 +175,7 @@ CSrmmWindow::CSrmmWindow(MCONTACT hContact, bool bIncoming)
 	m_splitter.OnChange = Callback(this, &CSrmmWindow::onChanged_Splitter);
 }
 
-void CSrmmWindow::OnInitDialog()
+bool CSrmmWindow::OnInitDialog()
 {
 	CSuper::OnInitDialog();
 
@@ -373,6 +371,7 @@ void CSrmmWindow::OnInitDialog()
 		SendMessage(m_hwnd, DM_SHOWMESSAGESENDING, 0, 0);
 
 	NotifyEvent(MSG_WINDOW_EVT_OPEN);
+	return true;
 }
 
 void CSrmmWindow::OnDestroy()
@@ -943,7 +942,7 @@ LRESULT CSrmmWindow::WndProc_Log(UINT msg, WPARAM wParam, LPARAM lParam)
 		return DrawMenuItem(wParam, lParam);
 
 	case WM_CONTEXTMENU:
-		HMENU hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_CONTEXT));
+		HMENU hMenu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_CONTEXT));
 		HMENU hSubMenu = GetSubMenu(hMenu, 0);
 		TranslateMenu(hSubMenu);
 
@@ -1021,26 +1020,11 @@ LRESULT CSrmmWindow::WndProc_Message(UINT msg, WPARAM wParam, LPARAM lParam)
 	if (result != -1)
 		return result;
 
-	BOOL isCtrl = GetKeyState(VK_CONTROL) & 0x8000;
-	BOOL isAlt = GetKeyState(VK_MENU) & 0x8000;
-
 	switch (msg) {
 	case WM_KEYDOWN:
 		if (wParam == VK_RETURN) {
-			if ((isCtrl != 0) ^ (0 != (g_dat.flags & SMF_SENDONENTER))) {
-				PostMessage(m_hwnd, WM_COMMAND, IDOK, 0);
+			if (CheckSend())
 				return 0;
-			}
-			if (g_dat.flags & SMF_SENDONDBLENTER) {
-				if (m_iLastEnterTime + ENTERCLICKTIME < GetTickCount())
-					m_iLastEnterTime = GetTickCount();
-				else {
-					m_log.SendMsg(WM_KEYDOWN, VK_BACK, 0);
-					m_log.SendMsg(WM_KEYUP, VK_BACK, 0);
-					PostMessage(m_hwnd, WM_COMMAND, IDOK, 0);
-					return 0;
-				}
-			}
 		}
 		else m_iLastEnterTime = 0;
 		break;
@@ -1059,7 +1043,7 @@ LRESULT CSrmmWindow::WndProc_Message(UINT msg, WPARAM wParam, LPARAM lParam)
 
 	case WM_SYSCHAR:
 		m_iLastEnterTime = 0;
-		if ((wParam == 's' || wParam == 'S') && isAlt) {
+		if ((wParam == 's' || wParam == 'S') && (GetKeyState(VK_MENU) & 0x8000)) {
 			PostMessage(m_hwnd, WM_COMMAND, IDOK, 0);
 			return 0;
 		}
@@ -1335,7 +1319,7 @@ INT_PTR CSrmmWindow::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				DBEVENTINFO dbei = {};
 				db_event_get(hDbEvent, &dbei);
 				if (!(dbei.flags & DBEF_SENT) && (DbEventIsMessageOrCustom(&dbei) || dbei.eventType == EVENTTYPE_URL))
-					pcli->pfnRemoveEvent(m_hContact, hDbEvent);
+					g_clistApi.pfnRemoveEvent(m_hContact, hDbEvent);
 				hDbEvent = db_event_next(m_hContact, hDbEvent);
 			}
 		}
@@ -1433,10 +1417,12 @@ INT_PTR CSrmmWindow::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 					if (IsAutoPopup(m_hContact))
 						SendMessage(m_hwndParent, CM_POPUPWINDOW, 1, (LPARAM)m_hwnd);
 				}
+
 				if (hDbEvent != m_hDbEventFirst && db_event_next(m_hContact, hDbEvent) == 0)
 					StreamInEvents(hDbEvent, 1, 1);
 				else
 					SendMessage(m_hwnd, DM_REMAKELOG, 0, 0);
+
 				if (!(dbei.flags & DBEF_SENT) && !DbEventIsCustomForMsgWindow(&dbei)) {
 					if (!bIsActive) {
 						m_iShowUnread = 1;
@@ -1614,7 +1600,7 @@ INT_PTR CSrmmWindow::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		case IDC_SENDALL:
 			int result;
 			if (m_iSendAllConfirm == 0) {
-				result = DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_CONFIRM_SENDALL), m_hwnd, ConfirmSendAllDlgProc, (LPARAM)m_hwnd);
+				result = DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_CONFIRM_SENDALL), m_hwnd, ConfirmSendAllDlgProc, (LPARAM)m_hwnd);
 				if (result & 0x10000)
 					m_iSendAllConfirm = result;
 			}

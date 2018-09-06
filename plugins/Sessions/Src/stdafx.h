@@ -45,7 +45,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "version.h"
 #include "Resource.h"
 
-#define MODNAME "Sessions"
+#define MODULENAME "Sessions"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
 
 extern IconItem iconList[];
 
@@ -60,7 +67,6 @@ int SaveUserSessionName(wchar_t*);
 INT_PTR CloseCurrentSession(WPARAM, LPARAM);
 int SaveSessionDate();
 
-extern HINSTANCE g_hInst;
 extern MCONTACT session_list_recovered[255];
 extern MCONTACT session_list[255];
 extern int g_ses_limit;

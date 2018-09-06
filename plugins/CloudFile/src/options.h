@@ -1,7 +1,7 @@
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
 
-class COptionsMainDlg : public CPluginDlgBase
+class COptionsMainDlg : public CDlgBase
 {
 private:
 	CCtrlCombo m_defaultService;
@@ -15,8 +15,8 @@ private:
 	CCtrlCheck m_urlCopyToClipboard;
 
 protected:
-	void OnInitDialog();
-	void OnApply();
+	bool OnInitDialog() override;
+	bool OnApply() override;
 
 public:
 	COptionsMainDlg();
@@ -31,7 +31,7 @@ private:
 	CCtrlButton m_revokeAccess;
 
 protected:
-	void OnInitDialog();
+	bool OnInitDialog() override;
 
 	void RequestAccess_OnClick(CCtrlButton*);
 	void RevokeAccess_OnClick(CCtrlButton*);

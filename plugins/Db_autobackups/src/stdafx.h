@@ -15,6 +15,7 @@ namespace fs = std::experimental::filesystem;
 #include <newpluginapi.h>
 #include <m_clist.h>
 #include <m_database.h>
+#include <m_db_int.h>
 #include <m_langpack.h>
 #include <m_options.h>
 #include <m_popup.h>
@@ -25,7 +26,14 @@ namespace fs = std::experimental::filesystem;
 #include <m_folders.h>
 #include <m_cloudfile.h>
 
-#define MODULE "AutoBackups"
+#define MODULENAME "AutoBackups"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
 
 #include "options.h"
 #include "resource.h"
@@ -50,7 +58,6 @@ struct ZipFile
 
 int CreateZipFile(const wchar_t *szDestPath, OBJLIST<ZipFile> &lstFiles, const std::function<bool(size_t)> &fnCallback);
 
-extern HINSTANCE g_hInstance;
 extern char g_szMirVer[];
 
 static IconItem iconList[] = {

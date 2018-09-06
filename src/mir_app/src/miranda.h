@@ -48,10 +48,6 @@ typedef HRESULT (STDAPICALLTYPE *pfnDwmIsCompositionEnabled)(BOOL *);
 extern pfnDwmExtendFrameIntoClientArea dwmExtendFrameIntoClientArea;
 extern pfnDwmIsCompositionEnabled dwmIsCompositionEnabled;
 
-/**** chat.cpp *************************************************************************/
-
-extern struct CHAT_MANAGER chatApi;
-
 /**** database.cpp *********************************************************************/
 
 extern MDatabaseCommon *currDb;
@@ -61,19 +57,22 @@ extern LIST<DATABASELINK> arDbPlugins;
 int  InitIni(void);
 void UninitIni(void);
 
+/**** idle.cpp *************************************************************************/
+
+int  LoadIdleModule(void);
+void UnloadIdleModule(void);
+
 /**** miranda.cpp **********************************************************************/
 
-extern HINSTANCE g_hInst;
 extern DWORD hMainThreadId;
 extern HANDLE hOkToExitEvent, hModulesLoadedEvent, hevLoadModule, hevUnloadModule;
 extern HANDLE hAccListChanged;
 extern wchar_t mirandabootini[MAX_PATH];
 extern struct pluginEntry *plugin_crshdmp, *plugin_service, *plugin_ssl, *plugin_clist;
-extern bool bModulesLoadedFired;
+extern bool g_bModulesLoadedFired, g_bMirandaTerminated;
 
 /**** newplugins.cpp *******************************************************************/
 
-char* GetPluginNameByLangpack(int _hLang);
 char* GetPluginNameByInstance(HINSTANCE hInstance);
 int   LoadStdPlugins(void);
 int   LaunchServicePlugin(pluginEntry *p);
@@ -84,15 +83,15 @@ void InitPathVar(void);
 
 /**** srmm.cpp *************************************************************************/
 
-void KillModuleSrmmIcons(int hLangpack);
-void KillModuleToolbarIcons(int hLangpack);
+void KillModuleSrmmIcons(HPLUGIN);
+void KillModuleToolbarIcons(HPLUGIN);
 
 /**** utf.cpp **************************************************************************/
 
 __forceinline char* Utf8DecodeA(const char* src)
 {
 	char* tmp = mir_strdup(src);
-	Utf8Decode(tmp, nullptr);
+	mir_utf8decode(tmp, nullptr);
 	return tmp;
 }
 
@@ -113,8 +112,6 @@ int ImageList_ReplaceIcon_IconLibLoaded(HIMAGELIST hIml, int nIndex, HICON hIcon
 #define Safe_DestroyIcon(hIcon) if (hIcon) DestroyIcon(hIcon)
 
 /**** clistmenus.cpp ********************************************************************/
-
-extern CLIST_INTERFACE cli;
 
 extern int hMainMenuObject, hContactMenuObject, hStatusMenuObject;
 extern HANDLE hPreBuildMainMenuEvent, hPreBuildContactMenuEvent;
@@ -144,8 +141,19 @@ extern MStatus g_statuses[MAX_STATUS_COUNT];
 
 extern LIST<PROTOACCOUNT> accounts;
 
-struct MBaseProto : public PROTOCOLDESCRIPTOR
+struct MBaseProto : public PROTOCOLDESCRIPTOR, public MZeroedObject
 {
+	MBaseProto(const char *_proto)
+	{
+		this->szName = mir_strdup(_proto);
+	}
+
+	~MBaseProto()
+	{
+		mir_free(szName);
+		mir_free(szUniqueId);
+	}
+
 	pfnInitProto fnInit;
 	pfnUninitProto fnUninit;
 
@@ -153,7 +161,8 @@ struct MBaseProto : public PROTOCOLDESCRIPTOR
 	char *szUniqueId;  // name of the unique setting that identifies a contact
 };
 
-extern LIST<MBaseProto> g_arProtos, g_arFilters;
+extern OBJLIST<MBaseProto> g_arProtos;
+extern LIST<MBaseProto> g_arFilters;
 
 INT_PTR ProtoCallService(const char *szModule, const char *szService, WPARAM wParam, LPARAM lParam);
 
@@ -188,6 +197,8 @@ INT_PTR stubChainRecv(WPARAM, LPARAM);
 #define MS_PROTO_HIDDENSTUB "Proto/stubChainRecv"
 
 /**** utils.cpp ************************************************************************/
+
+void RegisterModule(CMPluginBase*);
 
 void HotkeyToName(wchar_t *buf, int size, BYTE shift, BYTE key);
 WORD GetHotkeyValue(INT_PTR idHotkey);

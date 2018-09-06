@@ -2,11 +2,12 @@
 ;============================================================
 ;  File: PluginUpdater.dll
 ;  Plugin: Plugin updater
-;  Version: 0.2.0.1
+;  Version: 0.2.0.2
 ;  Authors: Mataes, George Hazan
 ;============================================================
 [Installs and updates plugins and other Miranda NG components.]
 Встановлення й оновлення плагінів та інших компонентів Miranda NG.
+;file \plugins\PluginUpdater\res\Resource.rc
 [Updates found!]
 Знайдені оновлення!
 [PluginUpdater has detected updated versions of some Miranda components. Click on Details button to view more information.]
@@ -41,12 +42,16 @@
 Джерело оновлень
 [Stable version]
 Стабільна версія
+[Stable version with debug symbols]
+Стабільна версія з символами налагодження
 [Development version (less stable)]
 Версія в розробці (менш стабільна)
 [Development version with debug symbols]
 Версія в розробці з символами налагодження
 [Custom version]
 Задана користувачем версія
+[Change platform to 32-bit]
+
 [Some component(s) was updated.\nYou need to restart your Miranda to apply installed updates.]
 Оновлено деякі компоненти.\nОновлення будуть застосовані після перезапуску програми.
 [Notifications]
@@ -95,6 +100,7 @@
 Нижче перелічено всі відсутні компоненти Miranda NG. Виберіть компоненти, які ви хочете завантажити.\n\nНатисніть на значок інформації, щоб перейти на сторінку компонента на сайті.
 [Download]
 Завантажити
+;file \plugins\PluginUpdater\src\DlgListNew.cpp
 [Downloading...]
 Завантаження...
 [Succeeded.]
@@ -125,6 +131,7 @@
 Список порожній.
 [List loading already started!]
 Завантаження вже почалося!
+;file \plugins\PluginUpdater\src\DlgUpdate.cpp
 [Will be deleted!]
 Видалено!
 [Update complete. Press Yes to restart Miranda now or No to postpone a restart until the exit.]
@@ -151,10 +158,16 @@
 Оновлень немає.
 [Update checking already started!]
 Оновлення вже запущено!
+;file \plugins\PluginUpdater\src\Events.cpp
+[Plugin updater URI scheme]
+
+;file \plugins\PluginUpdater\src\Notifications.cpp
+;file \plugins\PluginUpdater\src\Notifications.h
 [Close popup]
 Закрити вікно
 [Do nothing]
 Нічого не робити
+;file \plugins\PluginUpdater\src\Options.cpp
 [Backup database before update]
 Резервувати базу перед оновленням
 [Stable version (incompatible with current development version)]
@@ -163,10 +176,13 @@
 годин
 [days]
 днів
+[Change platform to 64-bit]
+
 [Test]
 Тест
 [Services]
 Служби
+;file \plugins\PluginUpdater\src\PluginUpdater.cpp
 [Check for updates]
 Перевірити оновлення
 [Available components list]
@@ -175,9 +191,11 @@
 Оновлення завершено
 [Update failed]
 Помилка оновлення
+;file \plugins\PluginUpdater\src\Utils.cpp
 [Plugin info]
 Інформація
 [Plugin Updater HTTP connections]
-HTTP-з'єднання PluginUpdater
+HTTP-з'єднання Plugin Updater
 [An error occurred while checking for new updates.]
 Під час перевірки оновлень сталася помилка.
+;file \plugins\PluginUpdater\src\Compat\compat.h

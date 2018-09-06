@@ -28,6 +28,14 @@
 #define MODULENAME	"StickyNotes"
 #define SECTIONNAME	LPGEN("Notes & Reminders")
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 // normal timer interval for reminder update processing
 #define REMINDER_UPDATE_INTERVAL		10000
 // short timer interval for reminder updates used as long as there are pending alarams in the event queue
@@ -38,7 +46,6 @@
 #define NR_FONTID_CAPTION		0
 #define NR_FONTID_BODY			1
 #define NR_FONTID_MAX			NR_FONTID_BODY
-
 
 typedef struct {
 	HFONT hFont;
@@ -76,8 +83,8 @@ typedef struct {
 extern void CreateMsgWindow(void);
 extern void DestroyMsgWindow(void);
 
-extern STICKYNOTE* NewNote(int Ax,int Ay,int Aw,int Ah,char *Data,
-						   ULARGE_INTEGER *ID,BOOL Visible,BOOL bOnTop,int scrollV);
+extern STICKYNOTE* NewNote(int Ax,int Ay,int Aw,int Ah,char *Data, ULARGE_INTEGER *ID,BOOL Visible,BOOL bOnTop,int scrollV);
+
 extern void LoadNotes(BOOL bIsStartup);
 extern void SaveNotes(void);
 extern void DeleteNotes(void);
@@ -93,8 +100,7 @@ extern BOOL CheckRemindersAndStart(void);
 
 extern void InitSettings(void);
 extern void TermSettings(void);
-extern INT_PTR CALLBACK DlgProcOptions(HWND hdlg,UINT message,
-								   WPARAM wParam,LPARAM lParam);
+extern INT_PTR CALLBACK DlgProcOptions(HWND hdlg,UINT message, WPARAM wParam,LPARAM lParam);
 extern void LoadNRFont(int i, LOGFONT *lf, COLORREF *colour);
 
 extern BOOL WS_Init();
@@ -103,7 +109,6 @@ extern void WS_CleanUp();
 extern LPCSTR GetDateFormatStr();
 extern LPCSTR GetTimeFormatStr();
 
-extern HINSTANCE hinstance;
 extern HINSTANCE hmiranda;
 
 extern BOOL g_CloseAfterAddReminder, g_UseDefaultPlaySound;

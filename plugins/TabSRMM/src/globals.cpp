@@ -64,14 +64,14 @@ void CGlobals::reloadSystemStartup()
 
 	dwThreadID = GetCurrentThreadId();
 
-	PluginConfig.g_hMenuContext = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_TABCONTEXT));
+	PluginConfig.g_hMenuContext = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_TABCONTEXT));
 	TranslateMenu(g_hMenuContext);
 
-	Skin_AddSound("RecvMsgActive",   LPGENW("Instant messages"), LPGENW("Incoming (focused window)"));
-	Skin_AddSound("RecvMsgInactive", LPGENW("Instant messages"), LPGENW("Incoming (unfocused window)"));
-	Skin_AddSound("AlertMsg",        LPGENW("Instant messages"), LPGENW("Incoming (new session)"));
-	Skin_AddSound("SendMsg",         LPGENW("Instant messages"), LPGENW("Outgoing"));
-	Skin_AddSound("SendError",       LPGENW("Instant messages"), LPGENW("Message send error"));
+	g_plugin.addSound("RecvMsgActive",   LPGENW("Instant messages"), LPGENW("Incoming (focused window)"));
+	g_plugin.addSound("RecvMsgInactive", LPGENW("Instant messages"), LPGENW("Incoming (unfocused window)"));
+	g_plugin.addSound("AlertMsg",        LPGENW("Instant messages"), LPGENW("Incoming (new session)"));
+	g_plugin.addSound("SendMsg",         LPGENW("Instant messages"), LPGENW("Outgoing"));
+	g_plugin.addSound("SendError",       LPGENW("Instant messages"), LPGENW("Message send error"));
 
 	hCurSplitNS = LoadCursor(nullptr, IDC_SIZENS);
 	hCurSplitWE = LoadCursor(nullptr, IDC_SIZEWE);
@@ -111,11 +111,11 @@ void CGlobals::reloadSystemModulesChanged()
 	}
 	else db_set_b(0, SRMSGMOD_T, "ieview_installed", 0);
 
-	m_hwndClist = pcli->hwndContactList;
+	m_hwndClist = g_clistApi.hwndContactList;
 
 	g_bPopupAvail = ServiceExists(MS_POPUP_ADDPOPUPT) != 0;
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x58d8dc1, 0x1c25, 0x49c0, 0xb8, 0x7c, 0xa3, 0x22, 0x2b, 0x3d, 0xf1, 0xd8);
 	mi.position = -2000090000;
 	mi.flags = CMIF_DEFAULT;
@@ -139,7 +139,6 @@ void CGlobals::reloadSettings(bool fReloadSkins)
 	m_bSendOnShiftEnter = M.GetBool("sendonshiftenter", false);
 	m_bSendOnEnter = M.GetBool(SRMSGSET_SENDONENTER, SRMSGDEFSET_SENDONENTER);
 	m_bSendOnDblEnter = M.GetBool("SendOnDblEnter", false);
-	m_bAutoLocaleSupport = M.GetBool("al", false);
 	m_bAutoSwitchTabs = M.GetBool("autoswitchtabs", true);
 	m_iTabNameLimit = db_get_w(0, SRMSGMOD_T, "cut_at", 15);
 	m_bCutContactNameOnTabs = M.GetBool("cuttitle", false);
@@ -172,7 +171,7 @@ void CGlobals::reloadSettings(bool fReloadSkins)
 	m_autoSplit = M.GetByte("autosplit", 0);
 	m_FlashOnMTN = M.GetByte(SRMSGMOD, SRMSGSET_SHOWTYPINGWINFLASH, SRMSGDEFSET_SHOWTYPINGWINFLASH);
 	if (m_MenuBar == nullptr) {
-		m_MenuBar = ::LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_MENUBAR));
+		m_MenuBar = ::LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_MENUBAR));
 		TranslateMenu(m_MenuBar);
 	}
 
@@ -206,11 +205,8 @@ void CGlobals::reloadSettings(bool fReloadSkins)
 
 void CGlobals::reloadAdv()
 {
-	m_bSoundOnTyping = M.GetBool("adv_soundontyping", false);
-	m_bDontUseDefaultKbd = M.GetBool("adv_leaveKeyboardAlone", true);
-
-	if (m_bSoundOnTyping && m_TypingSoundAdded == false) {
-		Skin_AddSound("SoundOnTyping", LPGENW("Other"), LPGENW("TabSRMM: typing"));
+	if (m_TypingSoundAdded == false) {
+		g_plugin.addSound("SoundOnTyping", LPGENW("Other"), LPGENW("TabSRMM: typing"));
 		m_TypingSoundAdded = true;
 	}
 	m_bAllowOfflineMultisend = M.GetBool("AllowOfflineMultisend", true);
@@ -219,7 +215,7 @@ void CGlobals::reloadAdv()
 const HMENU CGlobals::getMenuBar()
 {
 	if (m_MenuBar == nullptr) {
-		m_MenuBar = ::LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_MENUBAR));
+		m_MenuBar = ::LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_MENUBAR));
 		TranslateMenu(m_MenuBar);
 	}
 	return(m_MenuBar);
@@ -253,13 +249,13 @@ int CGlobals::TopToolbarLoaded(WPARAM, LPARAM)
 	ttb.name = "TabSRMM session list";
 	ttb.pszTooltipUp = LPGEN("TabSRMM session list");
 	ttb.hIconHandleUp = IcoLib_GetIcon("tabSRMM_sb_slist");
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 
 	ttb.name = "TabSRMM Menu";
 	ttb.pszTooltipUp = LPGEN("TabSRMM menu");
 	ttb.lParamUp = ttb.lParamDown = 1;
 	ttb.hIconHandleUp = IcoLib_GetIcon("tabSRMM_container");
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 
 	return 0;
 }
@@ -290,13 +286,13 @@ int CGlobals::ModulesLoaded(WPARAM, LPARAM)
 	if (M.GetByte("avatarmode", -1) == -1)
 		db_set_b(0, SRMSGMOD_T, "avatarmode", 2);
 
-	PluginConfig.g_hwndHotkeyHandler = CreateWindowEx(0, L"TSHK", L"", WS_POPUP, 0, 0, 40, 40, nullptr, nullptr, g_hInst, nullptr);
+	PluginConfig.g_hwndHotkeyHandler = CreateWindowEx(0, L"TSHK", L"", WS_POPUP, 0, 0, 40, 40, nullptr, nullptr, g_plugin.getInst(), nullptr);
 
 	::CreateTrayMenus(TRUE);
 	if (nen_options.bTraySupport)
 		::CreateSystrayIcon(TRUE);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x9f68b822, 0xff97, 0x477d, 0xb7, 0x6d, 0xa5, 0x59, 0x33, 0x1c, 0x54, 0x40);
 	mi.position = -500050005;
 	mi.hIcolibItem = PluginConfig.g_iconContainer;
@@ -454,15 +450,14 @@ int CGlobals::PreshutdownSendRecv(WPARAM, LPARAM)
 	for (auto &hContact : Contacts())
 		db_set_dw(hContact, SRMSGMOD_T, "messagecount", 0);
 
-	::SI_DeinitStatusIcons();
 	::NEN_WriteOptions(&nen_options);
 	::DestroyWindow(PluginConfig.g_hwndHotkeyHandler);
 
-	::UnregisterClass(L"TSStatusBarClass", g_hInst);
-	::UnregisterClass(L"SideBarClass", g_hInst);
-	::UnregisterClass(L"TSTabCtrlClass", g_hInst);
-	::UnregisterClass(L"RichEditTipClass", g_hInst);
-	::UnregisterClass(L"TSHK", g_hInst);
+	::UnregisterClass(L"TSStatusBarClass", g_plugin.getInst());
+	::UnregisterClass(L"SideBarClass", g_plugin.getInst());
+	::UnregisterClass(L"TSTabCtrlClass", g_plugin.getInst());
+	::UnregisterClass(L"RichEditTipClass", g_plugin.getInst());
+	::UnregisterClass(L"TSHK", g_plugin.getInst());
 	return 0;
 }
 
@@ -528,7 +523,7 @@ void CGlobals::RestoreUnreadMessageAlerts(void)
 		mir_snwprintf(toolTip, TranslateT("Message from %s"), Clist_GetContactDisplayName(e->hContact));
 		cle.hContact = e->hContact;
 		cle.hDbEvent = e->hEvent;
-		pcli->pfnAddEvent(&cle);
+		g_clistApi.pfnAddEvent(&cle);
 	}
 }
 

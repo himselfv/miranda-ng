@@ -70,7 +70,7 @@ struct StartPositionOptions
     StartPositionOptions();
 };
 
-class COptionsDlg : public CPluginDlgBase
+class COptionsDlg : public CDlgBase
 {
     CCtrlCheck chkPositionTop, chkPositionBottom, chkPositionSide, chkFromLeft, chkFromRight, chkWidth;
     CCtrlEdit edtPositionTop, edtPositionBottom, edtPositionSide, edtWidth;
@@ -79,8 +79,8 @@ class COptionsDlg : public CPluginDlgBase
 public:
     COptionsDlg();
 
-    void OnInitDialog() override;
-    void OnApply() override;
+    bool OnInitDialog() override;
+    bool OnApply() override;
 
 private:
     void removeOldSettings();

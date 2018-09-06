@@ -75,7 +75,7 @@ void CTabBaseDlg::ShowPopupMenu(const CCtrlBase &pCtrl, POINT pt)
 {
 	CHARRANGE sel, all = { 0, -1 };
 
-	HMENU hSubMenu, hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_CONTEXT));
+	HMENU hSubMenu, hMenu = LoadMenu(g_plugin.getInst(), MAKEINTRESOURCE(IDR_CONTEXT));
 	if (pCtrl.GetCtrlId() == IDC_SRMM_LOG)
 		hSubMenu = GetSubMenu(hMenu, 0);
 	else {
@@ -108,14 +108,14 @@ void CTabBaseDlg::ShowPopupMenu(const CCtrlBase &pCtrl, POINT pt)
 	mwpd.hMenu = hSubMenu;
 	mwpd.selection = 0;
 	mwpd.pt = pt;
-	NotifyEventHooks(pci->hevWinPopup, 0, (LPARAM)&mwpd);
+	NotifyEventHooks(g_chatApi.hevWinPopup, 0, (LPARAM)&mwpd);
 
 	int iSelection = TrackPopupMenu(hSubMenu, TPM_RETURNCMD, pt.x, pt.y, 0, m_hwnd, nullptr);
 
 	// Second notification
 	mwpd.selection = iSelection;
 	mwpd.uType = MSG_WINDOWPOPUP_SELECTED;
-	NotifyEventHooks(pci->hevWinPopup, 0, (LPARAM)&mwpd);
+	NotifyEventHooks(g_chatApi.hevWinPopup, 0, (LPARAM)&mwpd);
 
 	switch (iSelection) {
 	case IDM_COPY:
@@ -277,7 +277,7 @@ void CSrmmWindow::MsgWindowUpdateState(UINT msg)
 	if (m_dwFlagsEx & MWF_SHOW_FLASHCLIST) {
 		m_dwFlagsEx &= ~MWF_SHOW_FLASHCLIST;
 		if (m_hFlashingEvent != 0)
-			pcli->pfnRemoveEvent(m_hContact, m_hFlashingEvent);
+			g_clistApi.pfnRemoveEvent(m_hContact, m_hFlashingEvent);
 		m_hFlashingEvent = 0;
 	}
 	m_pContainer->dwFlags &= ~CNT_NEED_UPDATETITLE;
@@ -289,13 +289,6 @@ void CSrmmWindow::MsgWindowUpdateState(UINT msg)
 
 	if (m_dwFlags & MWF_NEEDCHECKSIZE)
 		PostMessage(m_hwnd, DM_SAVESIZE, 0, 0);
-
-	if (PluginConfig.m_bAutoLocaleSupport) {
-		if (m_hkl == nullptr)
-			DM_LoadLocale();
-		else
-			SendMessage(m_hwnd, DM_SETLOCALE, 0, 0);
-	}
 
 	m_pContainer->hIconTaskbarOverlay = nullptr;
 	m_pContainer->UpdateTitle(m_hContact);
@@ -610,7 +603,7 @@ CThumbBase* CSrmmWindow::tabCreateThumb(CProxyWindow *pProxy) const
 	return new CThumbIM(pProxy);
 }
 
-void CSrmmWindow::OnInitDialog()
+bool CSrmmWindow::OnInitDialog()
 {
 	CTabBaseDlg::OnInitDialog();
 
@@ -643,7 +636,7 @@ void CSrmmWindow::OnInitDialog()
 	GetClientIcon();
 
 	CustomizeButton(CreateWindowEx(0, L"MButtonClass", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 0, 0, 6, DPISCALEY_S(20),
-		m_hwnd, (HMENU)IDC_TOGGLESIDEBAR, g_hInst, nullptr));
+		m_hwnd, (HMENU)IDC_TOGGLESIDEBAR, g_plugin.getInst(), nullptr));
 	m_hwndPanelPicParent = CreateWindowEx(WS_EX_TOPMOST, L"Static", L"", SS_OWNERDRAW | WS_VISIBLE | WS_CHILD, 1, 1, 1, 1, m_hwnd, (HMENU)6000, nullptr, nullptr);
 	mir_subclassWindow(m_hwndPanelPicParent, CInfoPanel::avatarParentSubclass);
 
@@ -757,8 +750,7 @@ void CSrmmWindow::OnInitDialog()
 	m_log.SendMsg(EM_SETLANGOPTIONS, 0, m_log.SendMsg(EM_GETLANGOPTIONS, 0, 0) & ~IMF_AUTOFONTSIZEADJUST);
 
 	// add us to the tray list (if it exists)
-	if (PluginConfig.g_hMenuTrayUnread != nullptr && m_hContact != 0 && m_szProto != nullptr)
-		UpdateTrayMenu(nullptr, m_wStatus, m_szProto, m_wszStatus, m_hContact, FALSE);
+	UpdateTrayMenu(nullptr, m_wStatus, m_szProto, m_wszStatus, m_hContact, 0);
 
 	m_log.SendMsg(EM_AUTOURLDETECT, TRUE, 0);
 	m_log.SendMsg(EM_EXLIMITTEXT, 0, 0x80000000);
@@ -857,6 +849,7 @@ void CSrmmWindow::OnInitDialog()
 		m_pContainer->dwFlags &= ~CNT_CREATE_MINIMIZED;
 		m_pContainer->m_hwndActive = m_hwnd;
 	}
+	return true;
 }
 
 void CSrmmWindow::OnDestroy()
@@ -1021,11 +1014,11 @@ void CSrmmWindow::UpdateTitle()
 			wchar_t fulluin[256];
 			if (m_bIsMeta)
 				mir_snwprintf(fulluin,
-					TranslateT("UID: %s (SHIFT click -> copy to clipboard)\nClick for user's details\nRight click for metacontact control\nClick dropdown to add or remove user from your favorites."),
+					TranslateT("UID: %s (Shift+click -> copy to clipboard)\nClick for user's details\nRight click for metacontact control\nClick dropdown to add or remove user from your favorites."),
 					bHasName ? m_cache->getUIN() : TranslateT("No UID"));
 			else
 				mir_snwprintf(fulluin,
-					TranslateT("UID: %s (SHIFT click -> copy to clipboard)\nClick for user's details\nClick dropdown to change this contact's favorite status."),
+					TranslateT("UID: %s (Shift+click -> copy to clipboard)\nClick for user's details\nClick dropdown to change this contact's favorite status."),
 					bHasName ? m_cache->getUIN() : TranslateT("No UID"));
 
 			SendDlgItemMessage(m_hwnd, IDC_NAME, BUTTONADDTOOLTIP, (WPARAM)fulluin, BATF_UNICODE);
@@ -1075,7 +1068,7 @@ void CSrmmWindow::UpdateTitle()
 void CSrmmWindow::onClick_Ok(CCtrlButton*)
 {
 	if (m_bEditNotesActive) {
-		SendMessage(m_hwnd, DM_ACTIVATETOOLTIP, IDC_PIC, (LPARAM)TranslateT("You are editing the user notes. Click the button again or use the hotkey (default: Alt-N) to save the notes and return to normal messaging mode"));
+		SendMessage(m_hwnd, DM_ACTIVATETOOLTIP, IDC_PIC, (LPARAM)TranslateT("You are editing the user notes. Click the button again or use the hotkey (default: Alt+N) to save the notes and return to normal messaging mode"));
 		return;
 	}
 
@@ -1141,12 +1134,9 @@ void CSrmmWindow::onClick_Ok(CCtrlButton*)
 		int tabCount = TabCtrl_GetItemCount(m_hwndParent);
 		ptrA szFromStream(m_message.GetRichTextRtf(!m_SendFormat));
 
-		TCITEM tci = {};
-		tci.mask = TCIF_PARAM;
 		for (int i = 0; i < tabCount; i++) {
-			TabCtrl_GetItem(m_hwndParent, i, &tci);
 			// get the contact from the tabs lparam which hopefully is the tabs hwnd so we can get its userdata.... hopefully
-			HWND contacthwnd = (HWND)tci.lParam;
+			HWND contacthwnd = GetTabWindow(m_hwndParent, i);
 			if (IsWindow(contacthwnd)) {
 				// if the contact hwnd is the current contact then ignore it and let the normal code deal with the msg
 				if (contacthwnd != m_hwnd) {
@@ -1536,8 +1526,7 @@ int CSrmmWindow::OnFilter(MSGFILTER *pFilter)
 					SWP_NOMOVE | SWP_NOSIZE | SWP_NOCOPYBITS);
 				RedrawWindow(m_hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW | RDW_ALLCHILDREN);
 			}
-			else
-				CWarning::show(CWarning::WARN_NO_SENDLATER, MB_OK | MB_ICONINFORMATION, TranslateT("Configuration issue|The unattended send feature is disabled. The \\b1 send later\\b0  and \\b1 send to multiple contacts\\b0  features depend on it.\n\nYou must enable it under \\b1Options -> Message sessions -> Advanced tweaks\\b0. Changing this option requires a restart."));
+			else CWarning::show(CWarning::WARN_NO_SENDLATER, MB_OK | MB_ICONINFORMATION);
 			return _dlgReturn(m_hwnd, 1);
 		case TABSRMM_HK_TOGGLERTL:
 			m_dwFlags ^= MWF_LOG_RTL;
@@ -1945,7 +1934,7 @@ LRESULT CSrmmWindow::WndProc_Message(UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_CHAR:
 		KbdState(isShift, isCtrl, isAlt);
 
-		if (PluginConfig.m_bSoundOnTyping && !isAlt && !isCtrl && !(m_pContainer->dwFlags & CNT_NOSOUND) && wParam != VK_ESCAPE && !(wParam == VK_TAB && PluginConfig.m_bAllowTab))
+		if (!isAlt && !isCtrl && !(m_pContainer->dwFlags & CNT_NOSOUND) && wParam != VK_ESCAPE && !(wParam == VK_TAB && PluginConfig.m_bAllowTab))
 			Skin_PlaySound("SoundOnTyping");
 
 		if (isCtrl && !isAlt) {
@@ -1998,7 +1987,7 @@ LRESULT CSrmmWindow::WndProc_Message(UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_KEYDOWN:
 		KbdState(isShift, isCtrl, isAlt);
 
-		if (PluginConfig.m_bSoundOnTyping && !isAlt && !(m_pContainer->dwFlags & CNT_NOSOUND) && wParam == VK_DELETE)
+		if (!isAlt && !(m_pContainer->dwFlags & CNT_NOSOUND) && wParam == VK_DELETE)
 			Skin_PlaySound("SoundOnTyping");
 
 		if (wParam == VK_INSERT && !isShift && !isCtrl && !isAlt) {
@@ -2119,14 +2108,6 @@ LRESULT CSrmmWindow::WndProc_Message(UINT msg, WPARAM wParam, LPARAM lParam)
 				iIndex = bChar - (BYTE)'0';
 			SendMessage(m_pContainer->m_hwnd, DM_SELECTTAB, DM_SELECT_BY_INDEX, (LPARAM)iIndex);
 			return 0;
-		}
-		break;
-
-	case WM_INPUTLANGCHANGE:
-		if (PluginConfig.m_bAutoLocaleSupport && GetFocus() == m_message.GetHwnd() && IsActive()) {
-			DM_SaveLocale(wParam, lParam);
-			m_message.SendMsg(EM_SETLANGOPTIONS, 0, (LPARAM)m_message.SendMsg(EM_GETLANGOPTIONS, 0, 0) & ~IMF_AUTOKEYBOARD);
-			return 1;
 		}
 		break;
 
@@ -2689,12 +2670,7 @@ INT_PTR CSrmmWindow::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			m_dwFlags &= ~MWF_WASBACKGROUNDCREATE;
 			Resize();
 			PostMessage(m_hwnd, DM_UPDATEPICLAYOUT, 0, 0);
-			if (PluginConfig.m_bAutoLocaleSupport) {
-				if (m_hkl == nullptr)
-					DM_LoadLocale();
-				else
-					PostMessage(m_hwnd, DM_SETLOCALE, 0, 0);
-			}
+
 			if (m_hwndIEView != nullptr)
 				SetFocus(m_message.GetHwnd());
 			if (m_pContainer->dwFlags & CNT_SIDEBAR)
@@ -3013,15 +2989,12 @@ INT_PTR CSrmmWindow::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 					i++;
 				TabCtrl_SetCurSel(m_hwndParent, i);
 
-				TCITEM item = {};
-				item.mask = TCIF_PARAM;
-				TabCtrl_GetItem(m_hwndParent, i, &item);         // retrieve dialog hwnd for the now active tab...
-
-				m_pContainer->m_hwndActive = (HWND)item.lParam;
+				// retrieve dialog hwnd for the now active tab...
+				m_pContainer->m_hwndActive = GetTabWindow(m_hwndParent, i);
 
 				SendMessage(m_pContainer->m_hwnd, DM_QUERYCLIENTAREA, 0, (LPARAM)&rc);
 				SetWindowPos(m_pContainer->m_hwndActive, HWND_TOP, rc.left, rc.top, (rc.right - rc.left), (rc.bottom - rc.top), SWP_SHOWWINDOW);
-				ShowWindow((HWND)item.lParam, SW_SHOW);
+				ShowWindow(m_pContainer->m_hwndActive, SW_SHOW);
 				SetForegroundWindow(m_pContainer->m_hwndActive);
 				SetFocus(m_pContainer->m_hwndActive);
 			}

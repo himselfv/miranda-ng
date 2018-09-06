@@ -48,6 +48,14 @@ void wfree(char **Data);
 #define msLastUC_IgnoreOff "RecentContacts/SetIgnoreOff"
 #define msLastUC_IgnoreOn  "RecentContacts/SetIgnoreOn"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 /////////////////////////////////////////////////////////////////////////////////////////
 
 struct LastUCOptions

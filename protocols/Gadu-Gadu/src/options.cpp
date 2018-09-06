@@ -13,11 +13,67 @@ GaduOptions::GaduOptions(PROTO_INTERFACE *proto) :
 	forwardPort(proto, "ForwardPort", 1550),
 	forwardHost(proto, "ForwardHost", L""),
 	serverHosts(proto, "ServerHosts", GG_KEYDEF_SERVERHOSTS)
+{}
+
+GaduOptionsDlgConference::GaduOptionsDlgConference(GaduProto *proto) :
+	GaduDlgBase(proto, IDD_OPT_GG_CONFERENCE),
+	cmbPolicyForAllChatParticipants(this, IDC_GC_POLICY_TOTAL),
+	edtNumberOfAllChatParticipants(this, IDC_GC_COUNT_TOTAL_SPIN),
+	cmbPolicyForUnknownChatParticipants(this, IDC_GC_POLICY_UNKNOWN),
+	edtNumberOfUnknownChatParticipants(this, IDC_GC_COUNT_UNKNOWN_SPIN),
+	cmbDefaultChatPolicy(this, IDC_GC_POLICY_DEFAULT)
 {
+	CreateLink(cmbPolicyForAllChatParticipants, GG_KEY_GC_POLICY_TOTAL, DBVT_WORD, GG_KEYDEF_GC_POLICY_TOTAL);
+	CreateLink(edtNumberOfAllChatParticipants, GG_KEY_GC_COUNT_TOTAL, DBVT_WORD, GG_KEYDEF_GC_COUNT_TOTAL);
+
+	CreateLink(cmbPolicyForUnknownChatParticipants, GG_KEY_GC_POLICY_UNKNOWN, DBVT_WORD, GG_KEYDEF_GC_POLICY_UNKNOWN);
+	CreateLink(edtNumberOfUnknownChatParticipants, GG_KEY_GC_COUNT_UNKNOWN, DBVT_WORD, GG_KEYDEF_GC_COUNT_UNKNOWN);
+
+	CreateLink(cmbDefaultChatPolicy, GG_KEY_GC_POLICY_DEFAULT, DBVT_WORD, GG_KEYDEF_GC_POLICY_DEFAULT);
 }
 
+bool GaduOptionsDlgConference::OnInitDialog()
+{
+	cmbPolicyForAllChatParticipants.AddString(TranslateT("Allow"), 0L);
+	cmbPolicyForAllChatParticipants.AddString(TranslateT("Ask"), 1L);
+	cmbPolicyForAllChatParticipants.AddString(TranslateT("Ignore"), 2L);
+	int listIndex = m_proto->getWord(GG_KEY_GC_POLICY_TOTAL, GG_KEYDEF_GC_POLICY_TOTAL);
+	cmbPolicyForAllChatParticipants.SetCurSel(listIndex);
 
-GaduOptionsDlgAdvanced::GaduOptionsDlgAdvanced(GaduProto * proto) :
+	edtNumberOfAllChatParticipants.SetRange(250U);
+
+	cmbPolicyForUnknownChatParticipants.AddString(TranslateT("Allow"), 0L);
+	cmbPolicyForUnknownChatParticipants.AddString(TranslateT("Ask"), 1L);
+	cmbPolicyForUnknownChatParticipants.AddString(TranslateT("Ignore"), 2L);
+	listIndex = m_proto->getWord(GG_KEY_GC_POLICY_UNKNOWN, GG_KEYDEF_GC_POLICY_UNKNOWN);
+	cmbPolicyForUnknownChatParticipants.SetCurSel(listIndex);
+
+	edtNumberOfUnknownChatParticipants.SetRange(250U);
+
+	cmbDefaultChatPolicy.AddString(TranslateT("Allow"), 0L);
+	cmbDefaultChatPolicy.AddString(TranslateT("Ask"), 1L);
+	cmbDefaultChatPolicy.AddString(TranslateT("Ignore"), 2L);
+	listIndex = m_proto->getWord(GG_KEY_GC_POLICY_DEFAULT, GG_KEYDEF_GC_POLICY_DEFAULT);
+	cmbDefaultChatPolicy.SetCurSel(listIndex);
+	return true;
+}
+
+bool GaduOptionsDlgConference::OnApply()
+{
+	int selectionIndex = cmbPolicyForAllChatParticipants.GetCurSel();
+	m_proto->setWord(GG_KEY_GC_POLICY_TOTAL, cmbPolicyForAllChatParticipants.GetItemData(selectionIndex));
+
+	selectionIndex = cmbPolicyForUnknownChatParticipants.GetCurSel();
+	m_proto->setWord(GG_KEY_GC_POLICY_UNKNOWN, cmbPolicyForUnknownChatParticipants.GetItemData(selectionIndex));
+
+	selectionIndex = cmbDefaultChatPolicy.GetCurSel();
+	m_proto->setWord(GG_KEY_GC_POLICY_DEFAULT, cmbDefaultChatPolicy.GetItemData(selectionIndex));
+	return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+GaduOptionsDlgAdvanced::GaduOptionsDlgAdvanced(GaduProto *proto) :
 	GaduDlgBase(proto, IDD_OPT_GG_ADVANCED),
 	chkAutoReconnect(this, IDC_ARECONNECT),
 	chkKeepConnectionAlive(this, IDC_KEEPALIVE),
@@ -61,7 +117,7 @@ GaduOptionsDlgAdvanced::GaduOptionsDlgAdvanced(GaduProto * proto) :
 	edtForwardPort.OnChange = Callback(this, &GaduOptionsDlgAdvanced::showRecconectRequired);
 }
 
-void GaduOptionsDlgAdvanced::OnInitDialog()
+bool GaduOptionsDlgAdvanced::OnInitDialog()
 {
 	chkKeepConnectionAlive.Disable();
 	chkSslConnection.Disable();
@@ -83,6 +139,7 @@ void GaduOptionsDlgAdvanced::OnInitDialog()
 	txtForwardPortLabel.Enable(useForwarding);
 
 	txtReconnectRequired.Hide();
+	return true;
 }
 
 void GaduOptionsDlgAdvanced::onCheck_ManualHosts(CCtrlCheck *)

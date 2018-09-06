@@ -53,8 +53,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "resource.h"
 #include "version.h"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
 
-extern HINSTANCE g_hInst;
+	int Load() override;
+};
+
 extern LIST<CDb3Mmap> g_Dbs;
 extern DBSignature dbSignatureU, dbSignatureE, dbSignatureIM, dbSignatureSA, dbSignatureSD;
 

@@ -2,11 +2,12 @@
 ;============================================================
 ;  File: Db_autobackups.dll
 ;  Plugin: Db autobackuper
-;  Version: 0.0.0.11
+;  Version: 0.1.0.1
 ;  Authors: chaos.persei, sje, Kildor, Billy_Bons
 ;============================================================
 [Database autobackuper plugin.]
 Авторезервирование базы данных.
+;file \plugins\Db_autobackups\res\db_autobackups.rc
 [Automatic backups]
 Авторезервирование базы данных
 [Backup NOW]
@@ -29,18 +30,19 @@
 Перейти в раздел "Тонкая настройка -> Папки"
 [Compress backup to zip-archive]
 Сжать резервную копию в zip-архив
+[Backup profile folder]
+Резервировать папку профиля
 [Disable progress bar]
 Отключить индикатор выполнения
 [Disable popups]
 Отключить всплывающие окна
-[Backup profile folder]
-Резервировать папку профиля
 [Use CloudFile]
 Использовать CloudFile
 [Backup progress]
 Процесс резервного копирования
 [Cancel]
 Отменить
+;file \plugins\Db_autobackups\src\backup.cpp
 [Backup in progress]
 Резервирование в процессе
 [Copying database file...]
@@ -53,6 +55,7 @@
 База данных зарезервирована
 [Database back up in process...]
 Производится резервирование базы данных...
+;file \plugins\Db_autobackups\src\main.cpp
 [Miranda NG databases]
 Базы данных Miranda NG
 [Compressed Miranda NG databases]
@@ -69,6 +72,7 @@
 Резервирование базы данных
 [Backup folder]
 Папка резервирования
+;file \plugins\Db_autobackups\src\options.cpp
 [days]
 дней
 [hours]
@@ -84,9 +88,9 @@
 [will return parsed string %miranda_profilesdir%\\%miranda_profilename%]
 возвратит строку вида %miranda_profilesdir%\\%miranda_profilename%
 [same as environment variable %APPDATA% for currently logged-on Windows user]
-аналог переменной среды %APPDATA% для текущего пользователя системы
+аналог переменной среды %APPDATA% для текущего пользователя Windows
 [username for currently logged-on Windows user]
-имя текущего пользователя системы
+имя текущего пользователя Windows
 ["My Documents" folder for currently logged-on Windows user]
 папка "Мои документы" для текущего пользователя Windows
 ["Desktop" folder for currently logged-on Windows user]
@@ -99,5 +103,7 @@
 Ошибка при создании папки для резервного копирования
 [Select backup folder]
 Выберите папку для хранения резервных копий
+;file \plugins\Db_autobackups\src\stdafx.h
+;file \plugins\Db_autobackups\src\zip.cpp
 [Miranda NG [%s] database backup]
 Резервная копия базы Miranda NG [%s]

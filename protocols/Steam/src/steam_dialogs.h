@@ -16,9 +16,10 @@ private:
 	CCtrlButton m_ok;
 
 protected:
-	void OnInitDialog();
+	bool OnInitDialog() override;
+	bool OnClose() override;
+
 	void OnOk(CCtrlButton*);
-	void OnClose();
 
 public:
 	CSteamPasswordEditor(CSteamProto *proto);
@@ -37,9 +38,10 @@ private:
 	CCtrlHyperlink m_link;
 
 protected:
-	void OnInitDialog();
+	bool OnInitDialog() override;
+	bool OnClose() override;
+
 	void OnOk(CCtrlButton*);
-	void OnClose();
 
 public:
 	CSteamGuardDialog(CSteamProto *proto, const char *domain);
@@ -58,9 +60,10 @@ private:
 	CCtrlButton m_ok;
 
 protected:
-	void OnInitDialog();
+	bool OnInitDialog() override;
+	bool OnClose() override;
+
 	void OnOk(CCtrlButton*);
-	void OnClose();
 
 public:
 	CSteamTwoFactorDialog(CSteamProto *proto);
@@ -76,20 +79,20 @@ private:
 	char m_captchaText[7];
 
 	uint8_t *m_captchaImage;
-	int m_captchaImageSize;
+	size_t m_captchaImageSize;
 
 	CCtrlEdit m_text;
 	CCtrlButton m_ok;
 
 protected:
-	void OnInitDialog();
-	void OnOk(CCtrlButton*);
-	void OnClose();
+	bool OnInitDialog() override;
+	bool OnClose() override;
+	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
 
-	INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam);
+	void OnOk(CCtrlButton*);
 
 public:
-	CSteamCaptchaDialog(CSteamProto *proto, const uint8_t *captchaImage, int captchaImageSize);
+	CSteamCaptchaDialog(CSteamProto *proto, const uint8_t *captchaImage, size_t captchaImageSize);
 	~CSteamCaptchaDialog();
 
 	const char *GetCaptchaText();

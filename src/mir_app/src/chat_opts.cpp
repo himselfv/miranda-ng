@@ -26,8 +26,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 extern SESSION_INFO g_TabSession;
 
+HPLUGIN g_pChatPlugin;
 GlobalLogSettingsBase *g_Settings;
-int g_cbSession, g_cbModuleInfo, g_iFontMode, g_iChatLang;
+int g_cbSession, g_cbModuleInfo, g_iFontMode;
 wchar_t *g_szFontGroup;
 
 #define FONTF_BOLD   1
@@ -78,16 +79,16 @@ static void LoadColors()
 void LoadLogFonts(void)
 {
 	for (int i=0; i < OPTIONS_FONTCOUNT; i++)
-		LoadMsgDlgFont(i, &chatApi.aFonts[i].lf, &chatApi.aFonts[i].color);
+		LoadMsgDlgFont(i, &g_chatApi.aFonts[i].lf, &g_chatApi.aFonts[i].color);
 	LoadColors();
 
-	if (chatApi.hListBkgBrush != nullptr)
-		DeleteObject(chatApi.hListBkgBrush);
-	chatApi.hListBkgBrush = CreateSolidBrush(g_Settings->crUserListBGColor);
+	if (g_chatApi.hListBkgBrush != nullptr)
+		DeleteObject(g_chatApi.hListBkgBrush);
+	g_chatApi.hListBkgBrush = CreateSolidBrush(g_Settings->crUserListBGColor);
 
-	if (chatApi.hListSelectedBkgBrush != nullptr)
-		DeleteObject(chatApi.hListSelectedBkgBrush);
-	chatApi.hListSelectedBkgBrush = CreateSolidBrush(g_Settings->crUserListSelectedBGColor);
+	if (g_chatApi.hListSelectedBkgBrush != nullptr)
+		DeleteObject(g_chatApi.hListSelectedBkgBrush);
+	g_chatApi.hListSelectedBkgBrush = CreateSolidBrush(g_Settings->crUserListSelectedBGColor);
 }
 
 void LoadMsgDlgFont(int i, LOGFONT *lf, COLORREF *colour)
@@ -134,7 +135,7 @@ void RegisterFonts(void)
 
 	SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(lfDefault), &lfDefault, FALSE);
 
-	FontIDW fontid = { sizeof(fontid) };
+	FontIDW fontid = {};
 	fontid.flags = FIDF_ALLOWREREGISTER | FIDF_DEFAULTVALID | FIDF_NEEDRESTART;
 	wcsncpy_s(fontid.backgroundGroup, g_szFontGroup, _TRUNCATE);
 	wcsncpy_s(fontid.group, g_szFontGroup, _TRUNCATE);
@@ -144,7 +145,7 @@ void RegisterFonts(void)
 		strncpy_s(fontid.dbSettingsGroup, CHATFONT_MODULE, _TRUNCATE);
 		wcsncpy_s(fontid.name, FO.szDescr, _TRUNCATE);
 
-		mir_snprintf(fontid.prefix, "Font%d", index);
+		mir_snprintf(fontid.setting, "Font%d", index);
 		fontid.order = index;
 
 		switch (i) {
@@ -177,7 +178,7 @@ void RegisterFonts(void)
 		fontid.deffontsettings.colour = FO.defColour;
 		fontid.deffontsettings.size = FO.defSize;
 		fontid.deffontsettings.style = FO.defStyle;
-		Font_RegisterW(&fontid, g_iChatLang);
+		Font_RegisterW(&fontid, g_pChatPlugin);
 	}
 }
 
@@ -194,7 +195,7 @@ static void InitSetting(wchar_t** ppPointer, char* pszSetting, wchar_t* pszDefau
 {
 	DBVARIANT dbv;
 	if (!db_get_ws(0, CHAT_MODULE, pszSetting, &dbv)) {
-		replaceStrW(*ppPointer, dbv.ptszVal);
+		replaceStrW(*ppPointer, dbv.pwszVal);
 		db_free(&dbv);
 	}
 	else replaceStrW(*ppPointer, pszDefault);
@@ -235,8 +236,8 @@ void LoadGlobalSettings(void)
 
 	LoadColors();
 
-	if (chatApi.OnLoadSettings)
-		chatApi.OnLoadSettings();
+	if (g_chatApi.OnLoadSettings)
+		g_chatApi.OnLoadSettings();
 
 	InitSetting(&g_Settings->pszTimeStamp, "HeaderTime", L"[%H:%M]");
 	InitSetting(&g_Settings->pszTimeStampLog, "LogTimestamp", L"[%d %b %y %H:%M]");
@@ -301,7 +302,7 @@ int Chat_GetTextPixelSize(wchar_t* pszText, HFONT hFont, BOOL bWidth)
 	HDC hdc = GetDC(nullptr);
 	HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
 
-	RECT rc = { 0 };
+	RECT rc = {};
 	DrawText(hdc, pszText, -1, &rc, DT_CALCRECT);
 	SelectObject(hdc, hOldFont);
 	ReleaseDC(nullptr, hdc);

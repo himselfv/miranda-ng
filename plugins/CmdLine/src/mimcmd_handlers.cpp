@@ -483,7 +483,7 @@ void HandleClistCommand(PCommand command, TArgument *argv, int argc, PReply repl
 	switch (argc) {
 	case 2:
 		{
-			int state = IsWindowVisible(pcli->hwndContactList);
+			int state = IsWindowVisible(g_clistApi.hwndContactList);
 			Set2StateReply(reply, state, 0, LPGENW("Contact list is currently shown."), L"", LPGENW("Contact list is currently hidden."), L"");
 
 			return;
@@ -495,18 +495,18 @@ void HandleClistCommand(PCommand command, TArgument *argv, int argc, PReply repl
 
 			switch (Get2StateValue(argv[2])) {
 			case STATE_ON:
-				ShowWindow(pcli->hwndContactList, SW_SHOW);
+				ShowWindow(g_clistApi.hwndContactList, SW_SHOW);
 				state = TRUE;
 				break;
 
 			case STATE_OFF:
-				ShowWindow(pcli->hwndContactList, SW_HIDE);
+				ShowWindow(g_clistApi.hwndContactList, SW_HIDE);
 				state = FALSE;
 				break;
 
 			case STATE_TOGGLE:
-				state = !IsWindowVisible(pcli->hwndContactList);
-				ShowWindow(pcli->hwndContactList, (state) ? SW_SHOW : SW_HIDE);
+				state = !IsWindowVisible(g_clistApi.hwndContactList);
+				ShowWindow(g_clistApi.hwndContactList, (state) ? SW_SHOW : SW_HIDE);
 				break;
 
 			default:
@@ -531,7 +531,7 @@ void HandleQuitCommand(PCommand command, TArgument *argv, int argc, PReply reply
 			CallService("CloseAction", 0, 0);
 
 			// try another quit method
-			PostMessage(pcli->hwndContactList, WM_COMMAND, ID_ICQ_EXIT, 0);
+			PostMessage(g_clistApi.hwndContactList, WM_COMMAND, ID_ICQ_EXIT, 0);
 
 			reply->code = MIMRES_SUCCESS;
 			mir_snwprintf(reply->message, TranslateT("Issued a quit command."));
@@ -548,7 +548,7 @@ void HandleQuitCommand(PCommand command, TArgument *argv, int argc, PReply reply
 				CallService("CloseAction", 0, 0);
 
 				//try another quit method
-				PostMessage(pcli->hwndContactList, WM_COMMAND, ID_ICQ_EXIT, 0);
+				PostMessage(g_clistApi.hwndContactList, WM_COMMAND, ID_ICQ_EXIT, 0);
 
 				reply->code = MIMRES_SUCCESS;
 				mir_snwprintf(reply->message, TranslateT("Issued a quit and wait command."));
@@ -720,7 +720,7 @@ void HandleMessageCommand(PCommand command, TArgument *argv, int argc, PReply re
 
 			if (hContact) {
 				bShouldProcessAcks = TRUE;
-				ptrA szMessage(Utf8EncodeW(message));
+				ptrA szMessage(mir_utf8encodeW(message));
 				HANDLE hProcess = (HANDLE)ProtoChainSend(hContact, PSS_MESSAGE, 0, szMessage);
 				const int MAX_COUNT = 60;
 				int counter = 0;
@@ -1436,9 +1436,8 @@ void HandleVersionCommand(PCommand command, TArgument*, int argc, PReply reply)
 		}
 		else {
 			char miranda[512];
-			DWORD v = pluginInfo.version;
 			Miranda_GetVersionText(miranda, _countof(miranda));
-			mir_snwprintf(reply->message, L"Miranda %S\nCmdLine v.%d.%d.%d.%d", miranda, ((v >> 24) & 0xFF), ((v >> 16) & 0xFF), ((v >> 8) & 0xFF), (v & 0xFF));
+			mir_snwprintf(reply->message, L"Miranda %S\nCmdLine v.%d.%d.%d.%d", miranda, __MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM);
 		}
 	}
 	else HandleWrongParametersCount(command, reply);

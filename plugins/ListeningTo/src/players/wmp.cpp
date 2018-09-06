@@ -1,4 +1,4 @@
-/* 
+/*
 Copyright (C) 2005-2009 Ricardo Pescuma Domenecci
 
 This is free software; you can redistribute it and/or
@@ -14,7 +14,7 @@ Library General Public License for more details.
 You should have received a copy of the GNU Library General Public
 License along with this file; see the file license.txt.  If
 not, write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  
+Boston, MA 02111-1307, USA.
 */
 
 #include "../stdafx.h"
@@ -35,11 +35,11 @@ WindowsMediaPlayer::WindowsMediaPlayer()
 
 	WNDCLASS wc = {};
 	wc.lpfnWndProc = ReceiverWndProc;
-	wc.hInstance = hInst;
+	wc.hInstance = g_plugin.getInst();
 	wc.lpszClassName = WMP_WINDOWCLASS;
 	RegisterClass(&wc);
 
-	hWnd = CreateWindow(WMP_WINDOWCLASS, LPGENW("Miranda ListeningTo WMP receiver"), 0, 0, 0, 0, 0, nullptr, nullptr, hInst, nullptr);
+	hWnd = CreateWindow(WMP_WINDOWCLASS, LPGENW("Miranda ListeningTo WMP receiver"), 0, 0, 0, 0, 0, nullptr, nullptr, g_plugin.getInst(), nullptr);
 }
 
 WindowsMediaPlayer::~WindowsMediaPlayer()
@@ -52,7 +52,7 @@ WindowsMediaPlayer::~WindowsMediaPlayer()
 	DestroyWindow(hWnd);
 	hWnd = nullptr;
 
-	UnregisterClass(WMP_WINDOWCLASS, hInst);
+	UnregisterClass(WMP_WINDOWCLASS, g_plugin.getInst());
 	singleton = nullptr;
 }
 

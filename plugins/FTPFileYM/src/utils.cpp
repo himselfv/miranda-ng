@@ -24,9 +24,9 @@ extern UploadDialog *uDlg;
 int Utils::getDeleteTimeMin()
 {
 	switch (opt.timeRange) {
-	case (Options::TR_MINUTES) : return (opt.iDeleteTime);
-	case (Options::TR_HOURS) : return (opt.iDeleteTime * 60);
-	case (Options::TR_DAYS) : return (opt.iDeleteTime * 60 * 24);
+	case (Options::TR_MINUTES): return (opt.iDeleteTime);
+	case (Options::TR_HOURS): return (opt.iDeleteTime * 60);
+	case (Options::TR_DAYS): return (opt.iDeleteTime * 60 * 24);
 	}
 
 	return -1;
@@ -47,14 +47,14 @@ int Utils::msgBoxA(char *szMsg, UINT uType)
 HICON Utils::loadIconEx(const char *szName)
 {
 	char buff[100];
-	mir_snprintf(buff, "%s_%s", MODULE, szName);
+	mir_snprintf(buff, "%s_%s", MODULENAME, szName);
 	return IcoLib_GetIcon(buff);
 }
 
 HANDLE Utils::getIconHandle(const char *szName)
 {
 	char buff[100];
-	mir_snprintf(buff, "%s_%s", MODULE, szName);
+	mir_snprintf(buff, "%s_%s", MODULENAME, szName);
 	return IcoLib_GetIconHandle(buff);
 }
 
@@ -111,7 +111,7 @@ void Utils::curlSetOpt(CURL *hCurl, ServerList::FTP *ftp, char *url, struct curl
 	if (ftp->m_bPassive)
 		curl_easy_setopt(hCurl, CURLOPT_FTPPORT, 0);
 	else {
-		ptrA localip(db_get_sa(NULL, MODULE, "LocalIP"));
+		ptrA localip(db_get_sa(NULL, MODULENAME, "LocalIP"));
 		if (localip)
 			curl_easy_setopt(hCurl, CURLOPT_FTPPORT, localip);
 		else
@@ -170,7 +170,7 @@ INT_PTR CALLBACK Utils::DlgProcSetFileName(HWND hwndDlg, UINT msg, WPARAM wParam
 
 bool Utils::setFileNameDlg(wchar_t *nameBuff)
 {
-	if (DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_DLG_NAME), nullptr, DlgProcSetFileName, (LPARAM)nameBuff) == IDOK)
+	if (DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_DLG_NAME), nullptr, DlgProcSetFileName, (LPARAM)nameBuff) == IDOK)
 		return true;
 	else
 		return false;

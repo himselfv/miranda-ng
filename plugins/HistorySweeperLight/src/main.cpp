@@ -21,11 +21,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 
-HINSTANCE hInst;
-
-int hLangpack;
+CMPlugin g_plugin;
 
 LIST<void> g_hWindows(5, PtrKeySortT);
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 static PLUGININFOEX pluginInfoEx =
 {
@@ -41,13 +41,13 @@ static PLUGININFOEX pluginInfoEx =
 	{ 0x1d9bf74a, 0x44a8, 0x4b3f, { 0xa6, 0xe5, 0x73, 0x6, 0x9d, 0x3a, 0x89, 0x79 } }
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(ModuleName, pluginInfoEx)
+{}
 
-int OnIconPressed(WPARAM hContact, LPARAM lParam)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static int OnIconPressed(WPARAM hContact, LPARAM lParam)
 {
 	StatusIconClickData *sicd = (StatusIconClickData *)lParam;
 
@@ -70,7 +70,7 @@ int OnIconPressed(WPARAM hContact, LPARAM lParam)
 	return 0;
 }
 
-int OnModulesLoaded(WPARAM, LPARAM)
+static int OnModulesLoaded(WPARAM, LPARAM)
 {
 	int sweep = db_get_b(NULL, ModuleName, "SweepHistory", 0);
 
@@ -88,40 +88,33 @@ int OnModulesLoaded(WPARAM, LPARAM)
 		sid.szTooltip = LPGEN("Delete all events");
 
 	sid.flags = MBF_HIDDEN;
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 
 	sid.dwId = 1;
 	sid.hIcon = LoadIconEx("act1");
 	sid.szTooltip = time_stamp_strings[db_get_b(NULL, ModuleName, "StartupShutdownOlder", 0)];
 	sid.flags = MBF_HIDDEN;
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 
 	sid.dwId = 2;
 	sid.hIcon = LoadIconEx("act2");
 	sid.szTooltip = keep_strings[db_get_b(NULL, ModuleName, "StartupShutdownKeep", 0)];
 	sid.flags = MBF_HIDDEN;
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 
 	sid.dwId = 3;
 	sid.hIcon = LoadIconEx("actDel");
 	sid.szTooltip = LPGEN("Delete all events");
 	sid.flags = MBF_HIDDEN;
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 
 	HookEvent(ME_MSG_WINDOWEVENT, OnWindowEvent);
 	HookEvent(ME_MSG_ICONPRESSED, OnIconPressed);
 	return 0;
 }
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+int CMPlugin::Load()
 {
-	return &pluginInfoEx;
-}
-
-extern "C" __declspec(dllexport) int Load(void)
-{
-	mir_getLP(&pluginInfoEx);
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, OnModulesLoaded);
 	HookEvent(ME_OPT_INITIALISE, HSOptInitialise);
 
@@ -129,7 +122,9 @@ extern "C" __declspec(dllexport) int Load(void)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	ShutdownAction();
 	return 0;

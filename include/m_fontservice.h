@@ -9,6 +9,24 @@
 #include <m_core.h>
 #endif
 
+struct MBaseFontObject
+{
+	char     group[64];	// [TRANSLATED-BY-CORE]
+	char     name[64];	// [TRANSLATED-BY-CORE]
+	char     dbSettingsGroup[32];
+	char     setting[32];
+	DWORD    flags;
+};
+
+struct MBaseFontObjectW
+{
+	wchar_t    group[64];
+	wchar_t    name[64];
+	char       dbSettingsGroup[32];
+	char       setting[32];
+	DWORD      flags;
+};
+
 //////////////////////////////////////////////////////////////////////////
 //
 //  FONTS
@@ -66,14 +84,8 @@ struct FontSettingsW
 // are translated by the core, which may lead to double translation.
 // Use LPGEN instead which are just dummy wrappers/markers for "lpgen.pl".
 
-struct FontID
+struct FontID : public MBaseFontObject
 {
-	int   cbSize;
-	char  group[64];               // [TRANSLATED-BY-CORE] group the font belongs to - this is the 'Font Group' list in the options page
-	char  name[64];                // [TRANSLATED-BY-CORE] this is the name of the font setting - e.g. 'contacts' in the 'contact list' group
-	char  dbSettingsGroup[32];     // the 'module' in the database where the font data is stored
-	char  prefix[32];              // this is prepended to the settings used to store this font's data in the db
-	DWORD flags;                   // bitwise OR of the FIDF_* flags above
 	FontSettings deffontsettings;  // defaults, valid if flags & FIDF_DEFAULTVALID
 	int   order;                   // controls the order in the font group in which the fonts are listed in the UI (if order fields are equal,
 											 // they will be ordered alphabetically by name)
@@ -81,14 +93,8 @@ struct FontID
 	char  backgroundName[64];
 };
 
-struct FontIDW
+struct FontIDW : public MBaseFontObjectW
 {
-	int     cbSize;
-	wchar_t group[64];             // [TRANSLATED-BY-CORE] group the font belongs to - this is the 'Font Group' list in the options page
-	wchar_t name[64];              // [TRANSLATED-BY-CORE] this is the name of the font setting - e.g. 'contacts' in the 'contact list' group
-	char    dbSettingsGroup[32];   // the 'module' in the database where the font data is stored
-	char    prefix[32];            // this is prepended to the settings used to store this font's data in the db
-	DWORD   flags;                 // bitwise OR of the FIDF_* flags above
 	FontSettingsW deffontsettings; // defaults, valid if flags & FIDF_DEFAULTVALID
 	int     order;                 // controls the order in the font group in which the fonts are listed in the UI (if order fields are equal,
 											 // they will be ordered alphabetically by name)
@@ -97,8 +103,8 @@ struct FontIDW
 };
 
 // register a font
-EXTERN_C MIR_APP_DLL(int) Font_Register(FontID *pFont, int = hLangpack);
-EXTERN_C MIR_APP_DLL(int) Font_RegisterW(FontIDW *pFont, int = hLangpack);
+EXTERN_C MIR_APP_DLL(int) Font_Register(FontID *pFont, HPLUGIN);
+EXTERN_C MIR_APP_DLL(int) Font_RegisterW(FontIDW *pFont, HPLUGIN);
 
 // get a font
 // will fill the logfont structure passed in with the user's choices, or the default if it was set and the user has not chosen a font yet,
@@ -132,27 +138,15 @@ __forceinline COLORREF Font_GetW(FontIDW &p, LOGFONTW *pFont)
 // are translated by the core, which may lead to double translation.
 // Use LPGEN instead which are just dummy wrappers/markers for "lpgen.pl".
 
-struct ColourID
+struct ColourID : public MBaseFontObject
 {
-	int      cbSize;
-	char     group[64];	// [TRANSLATED-BY-CORE]
-	char     name[64];	// [TRANSLATED-BY-CORE]
-	char     dbSettingsGroup[32];
-	char     setting[32];
-	DWORD    flags;		// not used
 	COLORREF defcolour; // default value
 	int      order;
 };
 
 // a font identifier structure - used for registering a font, and getting one out again
-struct ColourIDW
+struct ColourIDW : public MBaseFontObjectW
 {
-	int      cbSize;
-	wchar_t  group[64];	// [TRANSLATED-BY-CORE]
-	wchar_t  name[64];	// [TRANSLATED-BY-CORE]
-	char     dbSettingsGroup[32];
-	char     setting[32];
-	DWORD    flags;      // not used
 	COLORREF defcolour;  // default value
 	int      order;
 };
@@ -161,8 +155,8 @@ struct ColourIDW
 // [note - a colour with name 'Background' [translated!] has special meaning and will be used as the background colour of
 // the font list box in the options, for the given group]
 
-EXTERN_C MIR_APP_DLL(int) Colour_Register(ColourID *pFont, int = hLangpack);
-EXTERN_C MIR_APP_DLL(int) Colour_RegisterW(ColourIDW *pFont, int = hLangpack);
+EXTERN_C MIR_APP_DLL(int) Colour_Register(ColourID *pFont, HPLUGIN);
+EXTERN_C MIR_APP_DLL(int) Colour_RegisterW(ColourIDW *pFont, HPLUGIN);
 
 // get a colour
 EXTERN_C MIR_APP_DLL(COLORREF) Colour_Get(const char *szGroup, const char *szName);
@@ -191,27 +185,15 @@ struct FONTEFFECT
 	DWORD    secondaryColour;   // ARGB
 };
 
-struct EffectID
+struct EffectID : public MBaseFontObject
 {
-	int        cbSize;
-	char       group[64];
-	char       name[64];
-	char       dbSettingsGroup[32];
-	char       setting[32];
-	DWORD      flags;
 	FONTEFFECT defeffect;
 	int        order;
 	FONTEFFECT value;
 };
 
-struct EffectIDW
+struct EffectIDW : public MBaseFontObjectW
 {
-	int        cbSize;
-	wchar_t    group[64];
-	wchar_t    name[64];
-	char       dbSettingsGroup[32];
-	char       setting[32];
-	DWORD      flags;
 	FONTEFFECT defeffect;
 	int        order;
 	FONTEFFECT value;
@@ -221,8 +203,8 @@ struct EffectIDW
 // wparam = (EffectID *)&effect_id
 // lparam = 0
 
-EXTERN_C MIR_APP_DLL(int) Effect_Register(EffectID *pEffect, int = hLangpack);
-EXTERN_C MIR_APP_DLL(int) Effect_RegisterW(EffectIDW *pEffect, int = hLangpack);
+EXTERN_C MIR_APP_DLL(int) Effect_Register(EffectID *pEffect, HPLUGIN);
+EXTERN_C MIR_APP_DLL(int) Effect_RegisterW(EffectIDW *pEffect, HPLUGIN);
 
 // get a effect
 // wparam = (EffectID *)&effect_id (only name and group matter)
@@ -236,8 +218,8 @@ EXTERN_C MIR_APP_DLL(int) Effect_GetW(const wchar_t *wszGroup, const wchar_t *sz
 // wparam = lparam = 0
 #define ME_EFFECT_RELOAD      "Effect/Reload"
 
-EXTERN_C MIR_APP_DLL(void) KillModuleFonts(int hLangpack);
-EXTERN_C MIR_APP_DLL(void) KillModuleColours(int hLangpack);
-EXTERN_C MIR_APP_DLL(void) KillModuleEffects(int hLangpack);
+EXTERN_C MIR_APP_DLL(void) KillModuleFonts(HPLUGIN);
+EXTERN_C MIR_APP_DLL(void) KillModuleColours(HPLUGIN);
+EXTERN_C MIR_APP_DLL(void) KillModuleEffects(HPLUGIN);
 
 #endif // _FONT_SERVICE_API_INC

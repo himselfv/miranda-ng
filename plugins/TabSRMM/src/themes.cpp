@@ -1006,7 +1006,7 @@ void CSkin::setFileName()
 {
 	DBVARIANT dbv;
 	if (0 == db_get_ws(0, SRMSGMOD_T, "ContainerSkin", &dbv)) {
-		PathToAbsoluteW(dbv.ptszVal, m_tszFileName, M.getSkinPath());
+		PathToAbsoluteW(dbv.pwszVal, m_tszFileName, M.getSkinPath());
 		db_free(&dbv);
 	}
 	else
@@ -2394,7 +2394,7 @@ void CSkin::extractSkinsAndLogo(bool fForceOverwrite) const
 	m_fAeroSkinsValid = true;
 
 	for (auto &it : my_default_skin)
-		if (!Utils::extractResource(g_hInst, it.ulID, L"SKIN_GLYPH", tszBasePath, it.tszName, fForceOverwrite))
+		if (!Utils::extractResource(g_plugin.getInst(), it.ulID, L"SKIN_GLYPH", tszBasePath, it.tszName, fForceOverwrite))
 			m_fAeroSkinsValid = false;
 }
 

@@ -125,27 +125,6 @@ void GetLinkedModulesInfo(wchar_t *moduleName, CMStringW &buffer)
 				importData++; //go to next record
 			}
 		}
-
-		bool found = false;
-		PIMAGE_EXPORT_DIRECTORY exportData = (PIMAGE_EXPORT_DIRECTORY)ImageDirectoryEntryToData(dllAddr, FALSE,
-			IMAGE_DIRECTORY_ENTRY_EXPORT, &tableSize);
-		if (exportData) {
-			ULONG *funcAddr = (ULONG*)ImageRvaToVa(nthdrs, dllAddr, exportData->AddressOfNames, nullptr);
-			for (unsigned i = 0; i < exportData->NumberOfNames; ++i) {
-				char *funcName = (char*)ImageRvaToVa(nthdrs, dllAddr, funcAddr[i], nullptr);
-				if (mir_strcmp(funcName, "DatabasePluginInfo") == 0) {
-					buffer.Append(L"    This dll is a Miranda database plugin, another database is active right now\r\n");
-					found = true;
-					break;
-				}
-				else if (mir_strcmp(funcName, "MirandaPluginInfoEx") == 0) {
-					found = true;
-					break;
-				}
-			}
-		}
-		if (!found)
-			buffer.Append(L"    This dll is not a Miranda plugin and should be removed from plugins directory\r\n");
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER) {}
 
@@ -208,7 +187,7 @@ static void GetPluginsString(CMStringW &buffer, unsigned &flags)
 			continue;
 		}
 
-		PLUGININFOEX *pi = GetMirInfo(hModule);
+		const PLUGININFOEX *pi = GetMirInfo(hModule);
 		if (pi != nullptr) {
 			wchar_t timebuf[30] = L"";
 			GetLastWriteTime(&FindFileData.ftLastWriteTime, timebuf, 30);
@@ -443,10 +422,7 @@ void PrintVersionInfo(CMStringW& buffer, unsigned flags)
 
 	wchar_t profpn[MAX_PATH];
 	mir_snwprintf(profpn, L"%s\\%s", profpathfull, profname);
-
-	DATABASELINK *db = FindDatabasePlugin(profpn);
-
-	buffer.AppendFormat(L"Profile: %s (%s)\r\n", profpn, db->szFullName);
+	buffer.AppendFormat(L"Profile: %s\r\n", profpn);
 
 	if (flags & VI_FLAG_PRNVAR) {
 		WIN32_FIND_DATA FindFileData;
@@ -463,9 +439,6 @@ void PrintVersionInfo(CMStringW& buffer, unsigned flags)
 
 	GetLanguagePackString(buffer);
 	buffer.Append(L"\r\n");
-
-	// buffer.AppendFormat(L"Nightly: %s\r\n"), wcsstr(vertxt, L"alpha")) ? L"Yes") : L"No")); 
-	// buffer.AppendFormat(L"Unicode: %s\r\n"), wcsstr(vertxt, L"Unicode")) ? L"Yes") : L"No")); 
 
 	GetPluginsString(buffer, flags);
 
@@ -529,16 +502,12 @@ void CreateCrashReport(HANDLE hDumpFile, PEXCEPTION_POINTERS exc_ptr, const wcha
 	frame.AddrFrame.Mode = AddrModeFlat;
 	frame.AddrStack.Mode = AddrModeFlat;
 
-	const PLUGININFOEX *pluginInfoEx = GetPluginInfoEx();
-
 	wchar_t curtime[30];
 	GetISO8061Time(nullptr, curtime, 30);
 
 	CMStringW buffer;
-	buffer.AppendFormat(L"Miranda Crash Report from %s. Crash Dumper v.%d.%d.%d.%d\r\n",
-		curtime,
-		HIBYTE(HIWORD(pluginInfoEx->version)), LOBYTE(HIWORD(pluginInfoEx->version)),
-		HIBYTE(LOWORD(pluginInfoEx->version)), LOBYTE(LOWORD(pluginInfoEx->version)));
+	buffer.AppendFormat(L"Miranda Crash Report from %s. Crash Dumper v.%d.%d.%d.%d\r\n", 
+		curtime, __MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM);
 
 	int crashpos = buffer.GetLength();
 
@@ -607,7 +576,7 @@ void CreateCrashReport(HANDLE hDumpFile, PEXCEPTION_POINTERS exc_ptr, const wcha
 
 		if (crashpos != 0) {
 			HMODULE hModule = (HMODULE)Module.BaseOfImage;
-			PLUGININFOEX *pi = GetMirInfo(hModule);
+			const PLUGININFOEX *pi = GetMirInfo(hModule);
 			if (pi != nullptr) {
 				if (pi->shortName) {
 					CMStringW crashcause;
@@ -635,6 +604,6 @@ void CreateCrashReport(HANDLE hDumpFile, PEXCEPTION_POINTERS exc_ptr, const wcha
 	if (len > 8192)
 		free(dst);
 
-	if (db_get_b(0, PluginName, "ShowCrashMessageBox", 1) && msg && IDYES == MessageBox(nullptr, msg, L"Miranda Crash Dumper", MB_YESNO | MB_ICONERROR | MB_TASKMODAL | MB_DEFBUTTON2 | MB_TOPMOST))
+	if (db_get_b(0, MODULENAME, "ShowCrashMessageBox", 1) && msg && IDYES == MessageBox(nullptr, msg, L"Miranda Crash Dumper", MB_YESNO | MB_ICONERROR | MB_TASKMODAL | MB_DEFBUTTON2 | MB_TOPMOST))
 		StoreStringToClip(buffer);
 }

@@ -18,9 +18,17 @@
 #include "resource.h"
 #include "version.h"
 
-#define SETTINGSNAME "XSoundNotify"
+#define MODULENAME "XSoundNotify"
 #define SETTINGSKEY "XSNPlugin_sound"
 #define SETTINGSIGNOREKEY "XSNPlugin_ignore"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 struct XSN_Data
 {
@@ -40,7 +48,6 @@ struct XSN_Data
 
 extern LIST<XSN_Data> XSN_Users;
 
-extern HINSTANCE hInst;
 extern MWindowList hChangeSoundDlgList;
 extern BYTE isIgnoreSound, isOwnSound;
 

@@ -1,6 +1,8 @@
 #include "commonheaders.h"
 
-int hLangpack = 0;
+CMPlugin g_plugin;
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
@@ -15,29 +17,16 @@ PLUGININFOEX pluginInfoEx = {
 	{ 0x1B2A39E5, 0xE2F6, 0x494D, { 0x95, 0x8D, 0x18, 0x08, 0xFD, 0x11, 0x0D, 0xD5 } }
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD mirandaVersion)
-{
-	return &pluginInfoEx;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL APIENTRY DllMain(HINSTANCE hInst, DWORD dwReason, LPVOID)
-{
-	g_hInst = hInst;
-	if (dwReason == DLL_PROCESS_ATTACH) {
-		INITCOMMONCONTROLSEX icce = { sizeof(icce), ICC_LISTVIEW_CLASSES | ICC_TAB_CLASSES };
-		InitCommonControlsEx(&icce);
-	}
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // basic events: onModuleLoad, onModulesLoad, onShutdown
 
 static HGENMENU MyAddMenuItem(LPCWSTR name, int pos, LPCSTR szUid, HICON hicon, LPCSTR service, int flags = 0, WPARAM wParam = 0)
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.flags = flags | CMIF_HIDDEN | CMIF_UNICODE;
 	mi.position = pos;
 	mi.hIcolibItem = hicon;
@@ -50,7 +39,7 @@ static HGENMENU MyAddMenuItem(LPCWSTR name, int pos, LPCSTR szUid, HICON hicon, 
 
 static HGENMENU MyAddSubItem(HGENMENU hRoot, LPCSTR name, int pos, int poppos, LPCSTR service, WPARAM wParam = 0)
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.flags = CMIF_HIDDEN | CMIF_SYSTEM;
 	mi.position = pos;
 	mi.name.a = (char*)name;
@@ -209,8 +198,8 @@ static int onModulesLoaded(WPARAM, LPARAM)
 	loadContactList();
 
 	// add new skin sound
-	Skin_AddSound("IncomingSecureMessage", LPGENW("SecureIM"), LPGENW("Incoming Secure Message"), L"Sounds\\iSecureMessage.wav");
-	Skin_AddSound("OutgoingSecureMessage", LPGENW("SecureIM"), LPGENW("Outgoing Secure Message"), L"Sounds\\oSecureMessage.wav");
+	g_plugin.addSound("IncomingSecureMessage", LPGENW("SecureIM"), LPGENW("Incoming Secure Message"), L"Sounds\\iSecureMessage.wav");
+	g_plugin.addSound("OutgoingSecureMessage", LPGENW("SecureIM"), LPGENW("Outgoing Secure Message"), L"Sounds\\oSecureMessage.wav");
 
 	// init extra icons
 	for (int i = 0; i < _countof(g_IEC); i++)
@@ -284,11 +273,12 @@ static int onShutdown(WPARAM, LPARAM)
 /////////////////////////////////////////////////////////////////////////////////////////
 // Load
 
-extern "C" __declspec(dllexport) int __cdecl Load(void)
+int CMPlugin::Load(void)
 {
-	mir_getLP(&pluginInfoEx);
+	INITCOMMONCONTROLSEX icce = { sizeof(icce), ICC_LISTVIEW_CLASSES | ICC_TAB_CLASSES };
+	InitCommonControlsEx(&icce);
 
-	DisableThreadLibraryCalls(g_hInst);
+	DisableThreadLibraryCalls(g_plugin.getInst());
 
 	char temp[MAX_PATH];
 	GetTempPath(sizeof(temp), temp);
@@ -360,7 +350,7 @@ extern "C" __declspec(dllexport) int __cdecl Load(void)
 /////////////////////////////////////////////////////////////////////////////////////////
 // Unload
 
-extern "C" __declspec(dllexport) int __cdecl Unload()
+int CMPlugin::Unload()
 {
 	freelib();
 	return 0;

@@ -2,7 +2,7 @@
 ;============================================================
 ;  File: Weather.dll
 ;  Plugin: Weather
-;  Version: 0.4.0.3
+;  Version: 0.4.0.4
 ;  Authors: Miranda NG team
 ;============================================================
 [Retrieves weather information and displays it in your contact list.]
@@ -344,10 +344,10 @@ Povolit/zakázat automatickou aktualizaci
 Zakázat automatickou aktualizaci
 [Auto Update Disabled]
 Povolit automatickou aktualizaci
-[Weather Condition Changed]
-Počasí (změna počasí)
-[Weather Alert Issued]
-Počasí (varování)
+[Condition Changed]
+Změna počasí
+[Alert Issued]
+Varování
 ;file \plugins\Weather\src\weather_addstn.cpp
 [Current weather information for %s.]
 Aktuální informace o počasí pro %s.

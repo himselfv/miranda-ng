@@ -19,20 +19,7 @@
 
 #include "stdafx.h"
 
-HINSTANCE hInst;
-int hLangpack = 0;
-CLIST_INTERFACE *pcli;
-
-/////////////////////////////////////////////////////////////////////////////////////////
-// dll entry point
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID)
-{
-	if (fdwReason == DLL_PROCESS_ATTACH)
-		hInst = hinstDLL;
-
-	return TRUE;
-}
+CMPlugin g_plugin;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // returns plugin's extended information
@@ -41,7 +28,7 @@ PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
-	__DESC,
+	__DESCRIPTION,
 	__AUTHOR,
 	__COPYRIGHT,
 	__AUTHORWEB,
@@ -50,9 +37,14 @@ PLUGININFOEX pluginInfoEx = {
 	{ 0xfadd4a8a, 0x1fd0, 0x4398, { 0x83, 0xbd, 0xe3, 0x78, 0xb8, 0x5e, 0xd8, 0xf1 } }
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
+CFakePlugin::CFakePlugin(const char *szModuleName) :
+	CMPluginBase(szModuleName, pluginInfoEx)
 {
-	return &pluginInfoEx;
+	m_hInst = g_plugin.getInst();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -75,8 +67,6 @@ int OnModulesLoaded(WPARAM, LPARAM)
 	g_bMirandaLoaded = true;
 
 	HookEvent(ME_OPT_INITIALISE, OnCommonOptionsInit);
-
-	////////////////////////////////////////////////////////////////////////////////////////
 
 	for (auto &pa : Accounts())
 		if (IsSuitableProto(pa))
@@ -106,11 +96,8 @@ int OnAccChanged(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-	pcli = Clist_GetInterface();
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, OnModulesLoaded);
 	HookEvent(ME_PROTO_ACCLISTCHANGED, OnAccChanged);
 
@@ -129,7 +116,7 @@ extern "C" int __declspec(dllexport) Load(void)
 /////////////////////////////////////////////////////////////////////////////////////////
 // plugin's exit point
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	if (g_KSEnabled)
 		KeepStatusUnload();

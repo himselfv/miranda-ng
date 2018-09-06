@@ -17,16 +17,20 @@
 #include "resource.h"
 #include "Version.h"
 
-typedef
-	struct {
-		int MouseX, MouseY;
-		bool SnappedX, SnappedY;
-	} TWorkingVariables;
+struct TWorkingVariables
+{
+	int MouseX, MouseY;
+	bool SnappedX, SnappedY;
+};
 
+#define MODULENAME "MagneticWindows"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
 
-#define MODULE_NAME "MagneticWindows"
-extern HINSTANCE hInst;
+	int Load() override;
+};
 
 void WindowStart();
 bool WindowOpen(HWND);

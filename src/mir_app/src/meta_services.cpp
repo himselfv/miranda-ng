@@ -111,7 +111,7 @@ INT_PTR Meta_LoadIcon(WPARAM wParam, LPARAM)
 		return 0;
 	}
 
-	return (INT_PTR)LoadImage(g_hInst, MAKEINTRESOURCE(id), IMAGE_ICON,
+	return (INT_PTR)LoadImage(g_plugin.getInst(), MAKEINTRESOURCE(id), IMAGE_ICON,
 		(wParam & PLIF_SMALL) ? g_iIconX : g_iIconSX,
 		(wParam & PLIF_SMALL) ? g_iIconY : g_iIconSY, 0);
 }
@@ -285,17 +285,14 @@ int Meta_HandleACK(WPARAM, LPARAM lParam)
 	// change the hContact in the avatar info struct, if it's the avatar we're using - else drop it
 	if (ack->type == ACKTYPE_AVATAR) {
 		if (ack->result == ACKRESULT_SUCCESS || ack->result == ACKRESULT_FAILED || ack->result == ACKRESULT_STATUS) {
-			DBVARIANT dbv;
-
 			// change avatar if the most online supporting avatars changes, or if we don't have one
 			MCONTACT hMostOnline = Meta_GetMostOnlineSupporting(cc, PFLAGNUM_4, PF4_AVATARS);
 			if (ack->hContact == 0 || ack->hContact != hMostOnline)
 				return 0;
 
-			if (!db_get(ack->hContact, "ContactPhoto", "File", &dbv)) {
-				db_set_ws(cc->contactID, "ContactPhoto", "File", dbv.ptszVal);
-				db_free(&dbv);
-			}
+			ptrW wszFile(db_get_wsa(ack->hContact, "ContactPhoto", "File"));
+			if (wszFile)
+				db_set_ws(cc->contactID, "ContactPhoto", "File", wszFile);
 
 			if (ack->hProcess) {
 				PROTO_AVATAR_INFORMATION ai;
@@ -403,7 +400,7 @@ int Meta_SettingChanged(WPARAM hContact, LPARAM lParam)
 
 			DBVARIANT dbv;
 			if (proto && !db_get_ws(hContact, proto, "Nick", &dbv)) {
-				db_set_ws(ccMeta->contactID, META_PROTO, buffer, dbv.ptszVal);
+				db_set_ws(ccMeta->contactID, META_PROTO, buffer, dbv.pwszVal);
 				db_free(&dbv);
 			}
 			else db_unset(ccMeta->contactID, META_PROTO, buffer);
@@ -617,7 +614,7 @@ static int Meta_SrmmIconClicked(WPARAM hMeta, LPARAM lParam)
 		InsertMenuItem(hMenu, i, TRUE, &mii);
 	}
 
-	UINT res = TrackPopupMenu(hMenu, TPM_NONOTIFY | TPM_RETURNCMD | TPM_BOTTOMALIGN | TPM_LEFTALIGN, sicd->clickLocation.x, sicd->clickLocation.y, 0, cli.hwndContactTree, nullptr);
+	UINT res = TrackPopupMenu(hMenu, TPM_NONOTIFY | TPM_RETURNCMD | TPM_BOTTOMALIGN | TPM_LEFTALIGN, sicd->clickLocation.x, sicd->clickLocation.y, 0, g_clistApi.hwndContactTree, nullptr);
 	if (res > 0) {
 		MCONTACT hChosen = Meta_GetContactHandle(cc, res - 1);
 
@@ -652,7 +649,7 @@ int Meta_ModulesLoaded(WPARAM, LPARAM)
 	sid.flags = MBF_UNICODE;
 	sid.tszTooltip = LPGENW("Select metacontact");
 	sid.hIcon = Skin_LoadProtoIcon(META_PROTO, ID_STATUS_ONLINE);
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 	return 0;
 }
 
@@ -662,7 +659,7 @@ static VOID CALLBACK sttMenuThread(PVOID param)
 
 	TPMPARAMS tpmp = { 0 };
 	tpmp.cbSize = sizeof(tpmp);
-	BOOL menuRet = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, menuMousePoint.x, menuMousePoint.y, cli.hwndContactList, &tpmp);
+	BOOL menuRet = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, menuMousePoint.x, menuMousePoint.y, g_clistApi.hwndContactList, &tpmp);
 
 	Clist_MenuProcessCommand(LOWORD(menuRet), MPCF_CONTACTMENU, (INT_PTR)param);
 
@@ -899,7 +896,7 @@ void Meta_InitServices()
 	HookEvent(ME_MC_DEFAULTTCHANGED, Meta_CallMostOnline);
 
 	// redirect nudge events
-	hEventNudge = CreateHookableEvent(META_PROTO "/Nudge");
+	hEventNudge = CreateHookableEvent(META_PROTO PE_NUDGE);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

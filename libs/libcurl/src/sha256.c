@@ -29,9 +29,17 @@
 
 #if defined(USE_OPENSSL)
 
+#include <openssl/opensslv.h>
+
+#if (OPENSSL_VERSION_NUMBER >= 0x0090800fL)
+#define USE_OPENSSL_SHA256
+#endif
+
+#endif
+
+#ifdef USE_OPENSSL_SHA256
 /* When OpenSSL is available we use the SHA256-function from OpenSSL */
 #include <openssl/sha.h>
-
 #else
 
 /* When no other crypto library is available we use this code segment */
@@ -122,8 +130,7 @@ static const unsigned long K[64] = {
 static int sha256_compress(struct sha256_state *md,
                            unsigned char *buf)
 {
-  unsigned long S[8], W[64], t0, t1;
-  unsigned long t;
+  unsigned long S[8], W[64];
   int i;
   /* copy state into S */
   for(i = 0; i < 8; i++) {
@@ -138,12 +145,13 @@ static int sha256_compress(struct sha256_state *md,
       W[i - 16];
   }
   /* Compress */
-#define RND(a,b,c,d,e,f,g,h,i)                    \
-  t0 = h + Sigma1(e) + Ch(e, f, g) + K[i] + W[i]; \
-  t1 = Sigma0(a) + Maj(a, b, c);                  \
-  d += t0;                                        \
+#define RND(a,b,c,d,e,f,g,h,i)                                  \
+  unsigned long t0 = h + Sigma1(e) + Ch(e, f, g) + K[i] + W[i]; \
+  unsigned long t1 = Sigma0(a) + Maj(a, b, c);                  \
+  d += t0;                                                      \
   h = t0 + t1;
   for(i = 0; i < 64; ++i) {
+    unsigned long t;
     RND(S[0], S[1], S[2], S[3], S[4], S[5], S[6], S[7], i);
     t = S[7]; S[7] = S[6]; S[6] = S[5]; S[5] = S[4];
     S[4] = S[3]; S[3] = S[2]; S[2] = S[1]; S[1] = S[0]; S[0] = t;
@@ -234,7 +242,7 @@ static int SHA256_Final(unsigned char *out,
     sha256_compress(md, md->buf);
     md->curlen = 0;
   }
-  /* pad upto 56 bytes of zeroes */
+  /* pad up to 56 bytes of zeroes */
   while(md->curlen < 56) {
     md->buf[md->curlen++] = (unsigned char)0;
   }

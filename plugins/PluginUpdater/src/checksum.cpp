@@ -18,6 +18,8 @@
 
 int debug = 0;
 
+#pragma comment(lib, "version.lib")
+
 struct MFileMapping
 {
 	PBYTE  ptr;
@@ -58,13 +60,14 @@ static void PatchResourceEntry(PIMAGE_RESOURCE_DIRECTORY_ENTRY pIRDE, PBYTE pBas
 
 static void PatchResourcesDirectory(PIMAGE_RESOURCE_DIRECTORY pIRD, PBYTE pBase)
 {
+	UINT i;
 	pIRD->TimeDateStamp = 0;
 
 	PIMAGE_RESOURCE_DIRECTORY_ENTRY pIRDE = PIMAGE_RESOURCE_DIRECTORY_ENTRY(pIRD + 1);
-	for (UINT i = 0; i < pIRD->NumberOfNamedEntries; i++, pIRDE++)
+	for (i = 0; i < pIRD->NumberOfNamedEntries; i++, pIRDE++)
 		PatchResourceEntry(pIRDE, pBase);
 
-	for (UINT i = 0; i < pIRD->NumberOfIdEntries; i++, pIRDE++)
+	for (i = 0; i < pIRD->NumberOfIdEntries; i++, pIRDE++)
 		PatchResourceEntry(pIRDE, pBase);
 }
 

@@ -95,7 +95,7 @@ bool LoadMsgDlgFont(int i, LOGFONT* lf, COLORREF * colour)
 
 void RegisterSRMMFonts(void)
 {
-	FontIDW fontid = { sizeof(fontid) };
+	FontIDW fontid = {};
 	fontid.flags = FIDF_ALLOWREREGISTER | FIDF_DEFAULTVALID;
 	for (int i = 0; i < _countof(fontOptionsList); i++) {
 		strncpy_s(fontid.dbSettingsGroup, SRMMMOD, _TRUNCATE);
@@ -104,7 +104,7 @@ void RegisterSRMMFonts(void)
 
 		char idstr[10];
 		mir_snprintf(idstr, "SRMFont%d", i);
-		strncpy_s(fontid.prefix, idstr, _TRUNCATE);
+		strncpy_s(fontid.setting, idstr, _TRUNCATE);
 		fontid.order = i;
 
 		fontid.flags &= ~FIDF_CLASSMASK;
@@ -117,16 +117,16 @@ void RegisterSRMMFonts(void)
 		fontid.deffontsettings.charset = MsgDlgGetFontDefaultCharset(fontOptionsList[i].szDefFace);
 		wcsncpy_s(fontid.backgroundGroup, LPGENW("Message sessions") L"/" LPGENW("Message log"), _TRUNCATE);
 		wcsncpy_s(fontid.backgroundName, LPGENW("Background"), _TRUNCATE);
-		Font_RegisterW(&fontid);
+		g_plugin.addFont(&fontid);
 	}
 
-	ColourIDW colourid = { sizeof(colourid) };
+	ColourIDW colourid = {};
 	strncpy_s(colourid.dbSettingsGroup, SRMMMOD, _TRUNCATE);
 	strncpy_s(colourid.setting, SRMSGSET_BKGCOLOUR, _TRUNCATE);
 	colourid.defcolour = SRMSGDEFSET_BKGCOLOUR;
 	wcsncpy_s(colourid.name, LPGENW("Background"), _TRUNCATE);
 	wcsncpy_s(colourid.group, LPGENW("Message sessions") L"/" LPGENW("Message log"), _TRUNCATE);
-	Colour_RegisterW(&colourid);
+	g_plugin.addColor(&colourid);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -150,7 +150,7 @@ statusValues[] =
 	{ PF2_ONTHEPHONE, LPGENW("On the phone") }
 };
 
-class COptionMainDlg : public CPluginDlgBase
+class COptionMainDlg : public CDlgBase
 {
 	CCtrlEdit  edtNFlash, edtAvatarH, edtSecs;
 	CCtrlCheck chkAutoMin, chkAutoClose, chkSavePerContact, chkDoNotStealFocus, chkStatusWin;
@@ -193,7 +193,7 @@ class COptionMainDlg : public CPluginDlgBase
 
 public:
 	COptionMainDlg() :
-		CPluginDlgBase(g_hInst, IDD_OPT_MSGDLG, SRMMMOD),
+		CDlgBase(g_plugin, IDD_OPT_MSGDLG),
 		tree(this, IDC_POPLIST),
 		edtSecs(this, IDC_SECONDS),
 		edtNFlash(this, IDC_NFLASHES),
@@ -245,7 +245,7 @@ public:
 		CreateLink(chkDoNotStealFocus, g_dat.bDoNotStealFocus);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		FillCheckBoxTree(g_dat.popupFlags);
 
@@ -256,9 +256,10 @@ public:
 
 		chkCascade.Enable(!g_dat.bSavePerContact);
 		chkCtrlSupport.Enable(!g_dat.bAutoClose);
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		g_dat.popupFlags = MakeCheckBoxTreeFlags();
 
@@ -268,6 +269,7 @@ public:
 		g_dat.msgTimeout = msgTimeout;
 
 		Srmm_Broadcast(DM_OPTIONSAPPLIED, TRUE, 0);
+		return true;
 	}
 
 	void onChange_AutoMin(CCtrlCheck*)
@@ -307,7 +309,7 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-class COptionLogDlg : public CPluginDlgBase
+class COptionLogDlg : public CDlgBase
 {
 	HBRUSH hBkgColourBrush;
 
@@ -317,7 +319,7 @@ class COptionLogDlg : public CPluginDlgBase
 
 public:
 	COptionLogDlg() :
-		CPluginDlgBase(g_hInst, IDD_OPT_MSGLOG, SRMMMOD),
+		CDlgBase(g_plugin, IDD_OPT_MSGLOG),
 		chkSecs(this, IDC_SHOWSECS),
 		chkDate(this, IDC_SHOWDATES),
 		chkTime(this, IDC_SHOWTIMES),
@@ -342,7 +344,7 @@ public:
 		CreateLink(chkShowNames, g_dat.bShowNames);
 	}
 	
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		switch (g_dat.iLoadHistory) {
 		case LOADHISTORY_UNREAD:
@@ -366,9 +368,10 @@ public:
 		spinTime.SetPosition(g_dat.nLoadTime);
 
 		onChange_Time(nullptr);
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		if (chkLoadCount.GetState())
 			g_dat.iLoadHistory = LOADHISTORY_COUNT;
@@ -382,9 +385,10 @@ public:
 		FreeMsgLogIcons();
 		LoadMsgLogIcons();
 		Srmm_Broadcast(DM_OPTIONSAPPLIED, TRUE, 0);
+		return true;
 	}
 
-	virtual void OnDestroy() override
+	void OnDestroy() override
 	{
 		DeleteObject(hBkgColourBrush);
 	}
@@ -411,7 +415,7 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-class COptionTypingDlg : public CPluginDlgBase
+class COptionTypingDlg : public CDlgBase
 {
 	HANDLE hItemNew, hItemUnknown;
 
@@ -420,7 +424,7 @@ class COptionTypingDlg : public CPluginDlgBase
 
 public:
 	COptionTypingDlg() :
-		CPluginDlgBase(g_hInst, IDD_OPT_MSGTYPE, SRMMMOD),
+		CDlgBase(g_plugin, IDD_OPT_MSGTYPE),
 		clist(this, IDC_CLIST),
 		chkType(this, IDC_SHOWNOTIFY),
 		chkTypeWin(this, IDC_TYPEWIN),
@@ -474,7 +478,7 @@ public:
 		}
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		CLCINFOITEM cii = { sizeof(cii) };
 		cii.flags = CLCIIF_GROUPFONT | CLCIIF_CHECKBOX;
@@ -491,12 +495,14 @@ public:
 		clist.OnOptionsChanged = Callback(this, &COptionTypingDlg::ResetCList);
 
 		onChange_ShowNotify(nullptr);
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		SaveList();
 		Srmm_Broadcast(DM_OPTIONSAPPLIED, TRUE, 0);
+		return true;
 	}
 
 	void onChange_Clist(CCtrlClc::TEventInfo*)
@@ -531,7 +537,7 @@ class COptionsTabDlg : public CDlgBase
 
 public:
 	COptionsTabDlg() :
-		CDlgBase(g_hInst, IDD_OPT_TABS),
+		CDlgBase(g_plugin, IDD_OPT_TABS),
 		m_chkTabs(this, IDC_USETABS),
 		m_chkTabsBottom(this, IDC_TABSBOTTOM),
 		m_chkTabsClose(this, IDC_CLOSETABS)
@@ -539,15 +545,16 @@ public:
 		m_chkTabs.OnChange = Callback(this, &COptionsTabDlg::onChange_Tabs);
 	}
 
-	virtual void OnInitDialog() override
+	bool OnInitDialog() override
 	{
 		m_chkTabs.SetState(g_Settings.bTabsEnable);
 		m_chkTabsBottom.SetState(g_Settings.bTabsAtBottom);
 		m_chkTabsClose.SetState(g_Settings.bTabCloseOnDblClick);
 		onChange_Tabs(&m_chkTabs);
+		return true;
 	}
 
-	virtual void OnApply() override
+	bool OnApply() override
 	{
 		BYTE bOldValue = db_get_b(0, CHAT_MODULE, "Tabs", 1);
 
@@ -555,7 +562,7 @@ public:
 		db_set_b(0, CHAT_MODULE, "TabBottom", m_chkTabsBottom.GetState());
 		db_set_b(0, CHAT_MODULE, "TabCloseOnDblClick", m_chkTabsClose.GetState());
 
-		pci->ReloadSettings();
+		g_chatApi.ReloadSettings();
 
 		if (bOldValue != db_get_b(0, CHAT_MODULE, "Tabs", 1)) {
 			if (g_pTabDialog != nullptr)
@@ -563,6 +570,7 @@ public:
 			g_Settings.bTabsEnable = db_get_b(0, CHAT_MODULE, "Tabs", 1) != 0;
 		}
 		else Chat_UpdateOptions();
+		return true;
 	}
 
 	void onChange_Tabs(CCtrlCheck *pCheck)
@@ -584,19 +592,19 @@ static int OptInitialise(WPARAM wParam, LPARAM)
 
 	odp.szTitle.a = LPGEN("Message sessions");
 	odp.pDialog = new COptionMainDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Messaging log");
 	odp.pDialog = new COptionLogDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Typing notify");
 	odp.pDialog = new COptionTypingDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Tabs");
 	odp.pDialog = new COptionsTabDlg();
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	ChatOptionsInitialize(wParam);
 	return 0;

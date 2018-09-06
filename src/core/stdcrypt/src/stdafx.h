@@ -41,7 +41,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h>
 
 #include <win2k.h>
-
 #include <m_system.h>
 #include <newpluginapi.h>
 #include <m_utils.h>
@@ -68,7 +67,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdcrypt.h"
 
-extern HINSTANCE hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
 
 bool getRandomBytes(BYTE *buf, size_t bufLen);
 void slow_hash(const void *buf, size_t bufLen, BYTE *tmpHash);

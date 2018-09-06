@@ -153,7 +153,7 @@ void SvcHomepageRebuildMenu()
 
 	if (!ghMenuItem) {
 		// insert contact menuitem
-		CMenuItem mi;
+		CMenuItem mi(&g_plugin);
 		SET_UID(mi, 0xdb78c16e, 0x50db, 0x4a40, 0x80, 0x0, 0xd1, 0xa4, 0x1c, 0x1b, 0xa3, 0x2d);
 		mi.position = -2000010000;
 		mi.hIcolibItem = IcoLib_GetIcon(ICO_BTN_GOTO);
@@ -176,9 +176,9 @@ bool SvcHomepageEnableExtraIcons(bool bEnable, bool bUpdateDB)
 
 	if (bUpdateDB) {
 		bChanged = g_eiHome != bEnable;
-		db_set_b(NULL, MODNAME, SET_CLIST_EXTRAICON_HOMEPAGE, g_eiHome = bEnable);
+		db_set_b(NULL, MODULENAME, SET_CLIST_EXTRAICON_HOMEPAGE, g_eiHome = bEnable);
 	}
-	else bChanged = g_eiHome = db_get_b(NULL, MODNAME, SET_CLIST_EXTRAICON_HOMEPAGE, DEFVAL_CLIST_EXTRAICON_HOMEPAGE) != 0;
+	else bChanged = g_eiHome = db_get_b(NULL, MODULENAME, SET_CLIST_EXTRAICON_HOMEPAGE, DEFVAL_CLIST_EXTRAICON_HOMEPAGE) != 0;
 
 	if (g_eiHome) {
 		// hook events

@@ -19,10 +19,9 @@
 
 #include "stdafx.h"
 
-HINSTANCE g_hInst;
 static HGENMENU hUserMenu;
 HANDLE hExtraIcon;
-int hLangpack;
+CMPlugin g_plugin;
 
 Opts Options;
 
@@ -41,7 +40,9 @@ enum
 	ICON_BOTH
 };
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -51,19 +52,14 @@ PLUGININFOEX pluginInfo = {
 	__AUTHORWEB,
 	UNICODE_AWARE,
 	// {DACE7D41-DFA9-4772-89AE-A59A6153E6B2}
-	{ 0xdace7d41, 0xdfa9, 0x4772, { 0x89, 0xae, 0xa5, 0x9a, 0x61, 0x53, 0xe6, 0xb2 } }
+	{0xdace7d41, 0xdfa9, 0x4772, {0x89, 0xae, 0xa5, 0x9a, 0x61, 0x53, 0xe6, 0xb2}}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	g_hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 INT_PTR getIconToUse(MCONTACT hContact, LPARAM)
 {
@@ -166,17 +162,15 @@ int onModulesLoaded(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	HookEvent(ME_SYSTEM_MODULESLOADED, onModulesLoaded);
 	HookEvent(ME_DB_CONTACT_SETTINGCHANGED, onContactSettingChanged);
 	HookEvent(ME_CLIST_EXTRA_IMAGE_APPLY, onExtraImageApplying);
 	HookEvent(ME_DB_CONTACT_ADDED, onDBContactAdded);
 	CreateServiceFunction("AuthState/MenuItem", onAuthMenuSelected);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0xc5a784ea, 0x8b07, 0x4b95, 0xa2, 0xb2, 0x84, 0x9d, 0x87, 0x43, 0x7e, 0xda);
 	mi.position = -1999901005;
 	mi.flags = CMIF_UNICODE;
@@ -185,12 +179,7 @@ extern "C" int __declspec(dllexport) Load(void)
 	hUserMenu = Menu_AddContactMenuItem(&mi);
 
 	// IcoLib support
-	Icon_Register(g_hInst, LPGEN("Auth state"), iconList, _countof(iconList));
+	g_plugin.registerIcon(LPGEN("Auth state"), iconList);
 
-	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload(void)
-{
 	return 0;
 }

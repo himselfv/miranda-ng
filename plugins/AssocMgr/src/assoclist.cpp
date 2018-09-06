@@ -9,7 +9,7 @@ modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either version 2
 of the License,  or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful, 
+This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
@@ -21,27 +21,9 @@ Foundation,  Inc.,  59 Temple Place - Suite 330,  Boston,  MA  02111-1307,  USA.
 
 #include "stdafx.h"
 
-// Options
-extern HINSTANCE hInst;
-static HANDLE hHookOptInit;
-
 /************************* Assoc List *****************************/
 
-typedef struct
-{
-	char *pszClassName;    // class name as used in registry and db
-	wchar_t *pszDescription;
-	HINSTANCE hInstance;   // allowed to be NULL for miranda32.exe
-	WORD nIconResID;
-	char *pszService;
-	WORD flags;            // set of FTDF_* and UTDF_* flags
-	char *pszFileExt;      // file type: NULL for url type
-	char *pszMimeType;     // file type: allowed to be NULL
-	wchar_t *pszVerbDesc;    // file type: allowed to be NULL
-} ASSOCDATA;
-
-static ASSOCDATA *pAssocList; // protected by csAssocList
-static int nAssocListCount;   // protected by csAssocList
+static OBJLIST<ASSOCDATA> arAssocList(10, PtrKeySortT);
 static mir_cs csAssocList;
 
 /************************* Assoc Enabled **************************/
@@ -50,7 +32,7 @@ static BOOL IsAssocEnabled(const ASSOCDATA *assoc)
 {
 	char szSetting[MAXMODULELABELLENGTH];
 	mir_snprintf(szSetting, "enabled_%s", assoc->pszClassName);
-	return db_get_b(NULL, "AssocMgr", szSetting, (BYTE)!(assoc->flags&FTDF_DEFAULTDISABLED)) != 0;
+	return db_get_b(NULL, MODULENAME, szSetting, (BYTE)!(assoc->flags&FTDF_DEFAULTDISABLED)) != 0;
 }
 
 static void SetAssocEnabled(const ASSOCDATA *assoc, BOOL fEnabled)
@@ -58,13 +40,13 @@ static void SetAssocEnabled(const ASSOCDATA *assoc, BOOL fEnabled)
 	char szSetting[MAXMODULELABELLENGTH];
 	wchar_t szDLL[MAX_PATH], szBuf[MAX_PATH];
 	mir_snprintf(szSetting, "enabled_%s", assoc->pszClassName);
-	db_set_b(NULL, "AssocMgr", szSetting, (BYTE)fEnabled);
+	db_set_b(NULL, MODULENAME, szSetting, (BYTE)fEnabled);
 	// dll name for uninstall
-	if (assoc->hInstance != nullptr && assoc->hInstance != hInst && assoc->hInstance != GetModuleHandle(nullptr))
+	if (assoc->hInstance != nullptr && assoc->hInstance != g_plugin.getInst() && assoc->hInstance != GetModuleHandle(nullptr))
 		if (GetModuleFileName(assoc->hInstance, szBuf, _countof(szBuf)))
 			if (PathToRelativeW(szBuf, szDLL)) {
 				mir_snprintf(szSetting, "module_%s", assoc->pszClassName);
-				db_set_ws(NULL, "AssocMgr", szSetting, szDLL);
+				db_set_ws(NULL, MODULENAME, szSetting, szDLL);
 			}
 }
 
@@ -72,43 +54,39 @@ static void DeleteAssocEnabledSetting(const ASSOCDATA *assoc)
 {
 	char szSetting[MAXMODULELABELLENGTH];
 	mir_snprintf(szSetting, "enabled_%s", assoc->pszClassName);
-	db_unset(NULL, "AssocMgr", szSetting);
+	db_unset(NULL, MODULENAME, szSetting);
 	// dll name for uninstall
 	mir_snprintf(szSetting, "module_%s", assoc->pszClassName);
-	db_unset(NULL, "AssocMgr", szSetting);
+	db_unset(NULL, MODULENAME, szSetting);
 }
 
 void CleanupAssocEnabledSettings(void)
 {
-	int nSettingsCount;
-	char **ppszSettings, *pszSuffix;
-	DBVARIANT dbv;
-	int i;
-	HANDLE hFile;
-	wchar_t szDLL[MAX_PATH];
-	char szSetting[MAXMODULELABELLENGTH];
-
 	// delete old enabled_* settings if associated plugin no longer present
-	if (EnumDbPrefixSettings("AssocMgr", "enabled_", &ppszSettings, &nSettingsCount)) {
+	int nSettingsCount;
+	char **ppszSettings;
+	if (EnumDbPrefixSettings(MODULENAME, "enabled_", &ppszSettings, &nSettingsCount)) {
 		mir_cslock lck(csAssocList);
-		for (i = 0; i < nSettingsCount; ++i) {
-			pszSuffix = &ppszSettings[i][8];
+		for (int i = 0; i < nSettingsCount; ++i) {
+			char *pszSuffix = &ppszSettings[i][8];
+			char szSetting[MAXMODULELABELLENGTH];
 			mir_snprintf(szSetting, "module_%s", pszSuffix);
-			if (!db_get_ws(NULL, "AssocMgr", szSetting, &dbv)) {
-				if (PathToAbsoluteW(dbv.ptszVal, szDLL)) {
+			ptrW wszPath(db_get_wsa(NULL, MODULENAME, szSetting));
+			if (wszPath != nullptr) {
+				wchar_t szDLL[MAX_PATH];
+				if (PathToAbsoluteW(wszPath, szDLL)) {
 					// file still exists?
-					hFile = CreateFile(szDLL, 0, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+					HANDLE hFile = CreateFile(szDLL, 0, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
 					if (hFile == INVALID_HANDLE_VALUE) {
-						db_unset(NULL, "AssocMgr", ppszSettings[i]);
-						db_unset(NULL, "AssocMgr", szSetting);
+						db_unset(NULL, MODULENAME, ppszSettings[i]);
+						db_unset(NULL, MODULENAME, szSetting);
 					}
 					else CloseHandle(hFile);
 				}
-				mir_free(dbv.ptszVal);
 			}
 			mir_free(ppszSettings[i]);
 		}
-		mir_free(ppszSettings); // does NULL check
+		mir_free(ppszSettings);
 	}
 }
 
@@ -118,8 +96,10 @@ static __inline void RememberMimeTypeAdded(const char *pszMimeType, const char *
 {
 	char szSetting[MAXMODULELABELLENGTH];
 	mir_snprintf(szSetting, "mime_%s", pszMimeType);
-	if (fAdded) db_set_s(NULL, "AssocMgr", szSetting, pszFileExt);
-	else db_unset(NULL, "AssocMgr", szSetting);
+	if (fAdded)
+		db_set_s(NULL, MODULENAME, szSetting, pszFileExt);
+	else
+		db_unset(NULL, MODULENAME, szSetting);
 }
 
 static __inline BOOL WasMimeTypeAdded(const char *pszMimeType)
@@ -128,33 +108,36 @@ static __inline BOOL WasMimeTypeAdded(const char *pszMimeType)
 	DBVARIANT dbv;
 	BOOL fAdded = FALSE;
 	mir_snprintf(szSetting, "mime_%s", pszMimeType);
-	if (!db_get(NULL, "AssocMgr", szSetting, &dbv)) fAdded = TRUE;
-	else db_free(&dbv);
+	if (!db_get(NULL, MODULENAME, szSetting, &dbv))
+		fAdded = TRUE;
+	else
+		db_free(&dbv);
 	return fAdded;
 }
 
 void CleanupMimeTypeAddedSettings(void)
 {
-	int nSettingsCount;
-	char **ppszSettings, *pszSuffix;
-	DBVARIANT dbv;
-	int i, j;
-
 	// delete old mime_* settings and unregister the associated mime type
-	if (EnumDbPrefixSettings("AssocMgr", "mime_", &ppszSettings, &nSettingsCount)) {
+	int nSettingsCount;
+	char **ppszSettings;
+	if (EnumDbPrefixSettings(MODULENAME, "mime_", &ppszSettings, &nSettingsCount)) {
 		mir_cslock lck(csAssocList);
-		for (i = 0; i < nSettingsCount; ++i) {
-			pszSuffix = &ppszSettings[i][5];
-			for (j = 0; j < nAssocListCount; ++j)
-				if (!mir_strcmp(pszSuffix, pAssocList[j].pszMimeType))
+		for (int i = 0; i < nSettingsCount; ++i) {
+			char *pszSuffix = &ppszSettings[i][5];
+			ASSOCDATA *p = nullptr;
+			for (auto &it : arAssocList)
+				if (!mir_strcmp(pszSuffix, it->pszMimeType)) {
+					p = it;
 					break; // mime type in current list
-			if (j == nAssocListCount) { // mime type not in current list
-				if (!db_get(NULL, "AssocMgr", ppszSettings[i], &dbv)) {
-					if (dbv.type == DBVT_ASCIIZ)
-						RemoveRegMimeType(pszSuffix, dbv.pszVal);
+				}
+			
+			if (p == nullptr) { // mime type not in current list
+				DBVARIANT dbv;
+				if (!db_get_s(NULL, MODULENAME, ppszSettings[i], &dbv)) {
+					RemoveRegMimeType(pszSuffix, dbv.pszVal);
 					db_free(&dbv);
 				}
-				db_unset(NULL, "AssocMgr", ppszSettings[i]);
+				db_unset(NULL, MODULENAME, ppszSettings[i]);
 			}
 			mir_free(ppszSettings[i]);
 		}
@@ -191,71 +174,39 @@ static void NotifyAssocChange(BOOL fNow)
 /************************* Assoc List Utils ***********************/
 
 // this function assumes it has got the csAssocList mutex
-static int FindAssocItem(const char *pszClassName)
+static ASSOCDATA* FindAssocItem(const char *pszClassName)
 {
-	int i;
-	for (i = 0; i < nAssocListCount; ++i)
-		if (!mir_strcmp(pszClassName, pAssocList[i].pszClassName))
-			return i;
-	return -1;
+	for (auto &it : arAssocList)
+		if (!mir_strcmp(pszClassName, it->pszClassName))
+			return it;
+
+	return nullptr;
 }
 
 BOOL IsRegisteredAssocItem(const char *pszClassName)
 {
-	int index;
 	mir_cslock lck(csAssocList);
-	index = FindAssocItem(pszClassName);
-	return index != -1;
-}
-
-
-// this function assumes it has got the csAssocList mutex
-static ASSOCDATA* CopyAssocItem(const ASSOCDATA *assoc)
-{
-	ASSOCDATA *assoc2;
-	assoc2 = (ASSOCDATA*)mir_alloc(sizeof(ASSOCDATA));
-	if (assoc2 == nullptr) return nullptr;
-	assoc2->pszClassName = mir_strdup(assoc->pszClassName);
-	assoc2->pszDescription = mir_wstrdup(assoc->pszDescription);
-	assoc2->hInstance = assoc->hInstance;
-	assoc2->nIconResID = assoc->nIconResID;
-	assoc2->pszService = mir_strdup(assoc->pszService);
-	assoc2->flags = assoc->flags;
-	assoc2->pszFileExt = mir_strdup(assoc->pszFileExt);
-	assoc2->pszMimeType = mir_strdup(assoc->pszMimeType);
-	assoc2->pszVerbDesc = mir_wstrdup(assoc->pszVerbDesc);
-	if (assoc2->pszClassName == nullptr || assoc2->pszDescription == nullptr ||
-		(assoc2->pszFileExt == nullptr && assoc->pszFileExt != nullptr)) {
-		mir_free(assoc2->pszClassName);   // does NULL check
-		mir_free(assoc2->pszDescription); // does NULL check
-		mir_free(assoc2->pszService);     // does NULL check
-		mir_free(assoc2->pszFileExt);     // does NULL check
-		mir_free(assoc2->pszMimeType);    // does NULL check
-		mir_free(assoc2->pszVerbDesc);    // does NULL check
-		mir_free(assoc2);
-		return nullptr;
-	}
-	return assoc2;
+	return FindAssocItem(pszClassName) != nullptr;
 }
 
 // this function assumes it has got the csAssocList mutex
 // this function assumes CoInitialize() has been called before
-static int ReplaceImageListAssocIcon(HIMAGELIST himl, const ASSOCDATA *assoc, int iPrevIndex)
+static int ReplaceImageListAssocIcon(HIMAGELIST himl, ASSOCDATA *assoc, int iPrevIndex)
 {
-	HICON hIcon = nullptr;
-	int index;
-	if (himl == nullptr) return -1;
+	if (himl == nullptr)
+		return -1;
 
 	// load icon
-	hIcon = LoadRegClassSmallIcon(assoc->pszClassName);
+	HICON hIcon = LoadRegClassSmallIcon(assoc);
 	if (hIcon == nullptr) {
 		SHFILEINFOA sfi;
 		if (SHGetFileInfoA((assoc->pszFileExt != nullptr) ? assoc->pszFileExt : "", FILE_ATTRIBUTE_NORMAL, &sfi, sizeof(sfi), SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES))
 			hIcon = sfi.hIcon; // WinXP: this icon is not updated until the process exits
 	}
 	// add icon
-	if (hIcon == nullptr) return -1;
-	index = ImageList_ReplaceIcon(himl, iPrevIndex, hIcon);
+	if (hIcon == nullptr)
+		return -1;
+	int index = ImageList_ReplaceIcon(himl, iPrevIndex, hIcon);
 	DestroyIcon(hIcon);
 	return index;
 }
@@ -275,12 +226,11 @@ static wchar_t* GetAssocTypeDesc(const ASSOCDATA *assoc)
 // this function assumes it has got the csAssocList mutex
 static BOOL IsAssocRegistered(const ASSOCDATA *assoc)
 {
-	BOOL fSuccess = FALSE, fIsUrl, fUseMainCmdLine;
-
-	fIsUrl = (assoc->pszFileExt == nullptr);
-	fUseMainCmdLine = (assoc->pszService == nullptr);
+	BOOL fIsUrl = (assoc->pszFileExt == nullptr);
+	BOOL fUseMainCmdLine = (assoc->pszService == nullptr);
 
 	// class
+	BOOL fSuccess = FALSE;
 	wchar_t *pszRunCmd = MakeRunCommand(fUseMainCmdLine, !fUseMainCmdLine);
 	if (pszRunCmd != nullptr)
 		fSuccess = IsRegClass(assoc->pszClassName, pszRunCmd);
@@ -309,7 +259,7 @@ static BOOL EnsureAssocRegistered(const ASSOCDATA *assoc)
 		if (!IsRegClass(assoc->pszClassName, pszRunCmd)) {
 			// class icon
 			if (!assoc->nIconResID && fIsUrl) pszIconLoc = MakeIconLocation(nullptr, 0); // miranda logo
-			else if (!assoc->nIconResID) pszIconLoc = MakeIconLocation(hInst, IDI_MIRANDAFILE); // generic file
+			else if (!assoc->nIconResID) pszIconLoc = MakeIconLocation(g_plugin.getInst(), IDI_MIRANDAFILE); // generic file
 			else pszIconLoc = MakeIconLocation(assoc->hInstance, assoc->nIconResID);
 			// register class
 			if (fUseMainCmdLine) pszDdeCmd = nullptr;
@@ -341,11 +291,8 @@ static BOOL EnsureAssocRegistered(const ASSOCDATA *assoc)
 // call GetLastError() on error to get more error details
 static BOOL UnregisterAssoc(const ASSOCDATA *assoc)
 {
-	BOOL fIsUrl, fUseMainCmdLine;
-	wchar_t *pszAppFileName;
-
-	fIsUrl = (assoc->pszFileExt == nullptr);
-	fUseMainCmdLine = (assoc->pszService == nullptr);
+	BOOL fIsUrl = (assoc->pszFileExt == nullptr);
+	BOOL fUseMainCmdLine = (assoc->pszService == nullptr);
 
 	// class might have been registered by another instance
 	wchar_t *pszRunCmd = MakeRunCommand(fUseMainCmdLine, !fUseMainCmdLine);
@@ -365,8 +312,9 @@ static BOOL UnregisterAssoc(const ASSOCDATA *assoc)
 				RemoveRegMimeType(assoc->pszMimeType, assoc->pszFileExt);
 				RememberMimeTypeAdded(assoc->pszMimeType, assoc->pszFileExt, FALSE);
 			}
+		
 		// open-with entry
-		pszAppFileName = MakeAppFileName(fUseMainCmdLine);
+		wchar_t *pszAppFileName = MakeAppFileName(fUseMainCmdLine);
 		if (pszAppFileName != nullptr)
 			RemoveRegOpenWithExtEntry(pszAppFileName, assoc->pszFileExt);
 		mir_free(pszAppFileName); // does NULL check
@@ -379,7 +327,7 @@ static BOOL UnregisterAssoc(const ASSOCDATA *assoc)
 // * FILETYPEDESC and URLTYPEDESC structures.
 // * the head is identical for both structures.
 
-typedef struct
+struct TYPEDESCHEAD
 {
 	int cbSize;  // either sizeof(FILETYPEDESC) or sizeof(URLTYPEDESC)
 	const void *pszDescription;
@@ -387,29 +335,21 @@ typedef struct
 	UINT nIconResID;
 	const char *pszService;
 	DWORD flags;
-} TYPEDESCHEAD;
+};
 
 // ownership of pszClassName,  pszFileExt,  pszVerbDesc and pszMimeType is transfered
 // to the storage list on success
-static BOOL AddNewAssocItem_Worker(char *pszClassName, const TYPEDESCHEAD *tdh, char *pszFileExt, wchar_t *pszVerbDesc, char *pszMimeType)
+static bool AddNewAssocItem_Worker(char *pszClassName, const TYPEDESCHEAD *tdh, char *pszFileExt, wchar_t *pszVerbDesc, char *pszMimeType)
 {
-	ASSOCDATA *pAssocListBuf, *assoc;
-
 	// is already in list?
 	mir_cslock lck(csAssocList);
-	int index = FindAssocItem(pszClassName);
-	if (index != -1) return FALSE;
-
-	// resize storage array
-	pAssocListBuf = (ASSOCDATA*)mir_realloc(pAssocList, (nAssocListCount + 1)*sizeof(ASSOCDATA));
-	if (pAssocListBuf == nullptr)
-		return FALSE;
-	pAssocList = pAssocListBuf;
+	if (FindAssocItem(pszClassName) != nullptr)
+		return false;
 
 	// init new item
-	assoc = &pAssocList[nAssocListCount];
+	ASSOCDATA *assoc = new ASSOCDATA();
 	assoc->pszClassName = pszClassName; // no dup here
-	assoc->pszDescription = s2t(tdh->pszDescription, tdh->flags&FTDF_UNICODE, TRUE); // does NULL check
+	assoc->pszDescription = s2t(tdh->pszDescription, tdh->flags & FTDF_UNICODE, TRUE); // does NULL check
 	assoc->hInstance = tdh->hInstance; // hInstance is allowed to be NULL for miranda32.exe
 	assoc->nIconResID = (WORD)tdh->nIconResID; // default icon selected later on
 	assoc->pszService = mir_strdup(tdh->pszService); // does NULL check
@@ -420,31 +360,27 @@ static BOOL AddNewAssocItem_Worker(char *pszClassName, const TYPEDESCHEAD *tdh, 
 
 	// error check
 	if (assoc->pszDescription == nullptr || (assoc->pszService == nullptr && tdh->pszService != nullptr)) {
-		mir_free(assoc->pszService);     // does NULL check
-		mir_free(assoc->pszDescription); // does NULL check
-		return FALSE;
+		delete assoc;
+		return false;
 	}
 
 	// add registry keys 
 	if (IsAssocEnabled(assoc))
 		EnsureAssocRegistered(assoc);
 
-	++nAssocListCount;
-	NotifyAssocChange(FALSE);
-	return TRUE;
+	arAssocList.insert(assoc);
+	NotifyAssocChange(false);
+	return true;
 }
 
 // ownership of pszClassName is *not* transferd to storage list
-static BOOL RemoveAssocItem_Worker(const char *pszClassName)
+static bool RemoveAssocItem_Worker(const char *pszClassName)
 {
-	ASSOCDATA *pAssocListBuf, *assoc;
-
 	// find index
 	mir_cslock lck(csAssocList);
-	int index = FindAssocItem(pszClassName);
-	if (index == -1)
-		return FALSE;
-	assoc = &pAssocList[index];
+	ASSOCDATA *assoc = FindAssocItem(pszClassName);
+	if (assoc == nullptr)
+		return false;
 
 	// delete registry keys and db setting
 	UnregisterAssoc(assoc);
@@ -452,20 +388,8 @@ static BOOL RemoveAssocItem_Worker(const char *pszClassName)
 		RememberMimeTypeAdded(assoc->pszMimeType, assoc->pszFileExt, FALSE);
 	DeleteAssocEnabledSetting(assoc);
 
-	// free memory
-	mir_free(assoc->pszClassName);
-	mir_free(assoc->pszDescription);
-	mir_free(assoc->pszService);
-	mir_free(assoc->pszFileExt);  // does NULL check
-	mir_free(assoc->pszVerbDesc); // does NULL check
-	mir_free(assoc->pszMimeType); // does NULL check
-
 	// resize storage array
-	if ((index + 1) < nAssocListCount)
-		memmove(assoc, &pAssocList[index + 1], ((nAssocListCount - index - 1)*sizeof(ASSOCDATA)));
-	pAssocListBuf = (ASSOCDATA*)mir_realloc(pAssocList, (nAssocListCount - 1)*sizeof(ASSOCDATA));
-	if (pAssocListBuf != nullptr) pAssocList = pAssocListBuf;
-	--nAssocListCount;
+	arAssocList.remove(assoc);
 
 	NotifyAssocChange(FALSE);
 	return TRUE;
@@ -484,7 +408,7 @@ static INT_PTR ServiceAddNewFileType(WPARAM, LPARAM lParam)
 	char *pszFileExt = mir_strdup(ftd->pszFileExt);
 	char *pszClassName = MakeFileClassName(ftd->pszFileExt);
 	if (pszFileExt != nullptr && pszClassName != nullptr) {
-		wchar_t *pszVerbDesc = s2t(ftd->pwszVerbDesc, ftd->flags&FTDF_UNICODE, TRUE); // does NULL check
+		wchar_t *pszVerbDesc = s2t(ftd->pwszVerbDesc, ftd->flags & FTDF_UNICODE, TRUE); // does NULL check
 		char *pszMimeType = mir_strdup(ftd->pszMimeType); // does NULL check
 		if (AddNewAssocItem_Worker(pszClassName, (TYPEDESCHEAD*)ftd, pszFileExt, pszVerbDesc, pszMimeType))
 			// no need to free pszClassName,  pszFileExt, pszVerbDesc and pszMimeType, 
@@ -512,7 +436,6 @@ static INT_PTR ServiceRemoveFileType(WPARAM, LPARAM lParam)
 static INT_PTR ServiceAddNewUrlType(WPARAM, LPARAM lParam)
 {
 	const URLTYPEDESC *utd = (URLTYPEDESC*)lParam;
-
 	if (utd->cbSize < sizeof(URLTYPEDESC))
 		return 1;
 	if (utd->pszService == nullptr)
@@ -546,15 +469,12 @@ static INT_PTR ServiceRemoveUrlType(WPARAM, LPARAM lParam)
 
 static BOOL InvokeHandler_Worker(const char *pszClassName, const wchar_t *pszParam, INT_PTR *res)
 {
-	void *pvParam;
-	char *pszService;
-
 	// find it in list
 	mir_cslock lck(csAssocList);
-	int index = FindAssocItem(pszClassName);
-	if (index == -1)
-		return FALSE;
-	ASSOCDATA *assoc = &pAssocList[index];
+	ASSOCDATA *assoc = FindAssocItem(pszClassName);
+	if (assoc == nullptr)
+		return false;
+
 	// no service specified? correct registry to use main commandline
 	if (assoc->pszService == nullptr) {
 		EnsureAssocRegistered(assoc);
@@ -564,9 +484,10 @@ static BOOL InvokeHandler_Worker(const char *pszClassName, const wchar_t *pszPar
 			*res = 0; // success
 		return TRUE;
 	}
+	
 	// get params
-	pszService = mir_strdup(assoc->pszService);
-	pvParam = t2s(pszParam, assoc->flags&FTDF_UNICODE, FALSE);
+	char *pszService = mir_strdup(assoc->pszService);
+	void *pvParam = t2s(pszParam, assoc->flags & FTDF_UNICODE, FALSE);
 
 	// call service
 	if (pszService != nullptr && pvParam != nullptr)
@@ -578,16 +499,15 @@ static BOOL InvokeHandler_Worker(const char *pszClassName, const wchar_t *pszPar
 
 INT_PTR InvokeFileHandler(const wchar_t *pszFileName)
 {
-	char *pszClassName, *pszFileExt;
 	INT_PTR res = CALLSERVICE_NOTFOUND;
 
 	// find extension
 	wchar_t *p = (wchar_t*)wcsrchr(pszFileName, '.');
 	if (p != nullptr) {
-		pszFileExt = t2a(p);
+		char *pszFileExt = mir_u2a(p);
 		if (pszFileExt != nullptr) {
 			// class name
-			pszClassName = MakeFileClassName(pszFileExt);
+			char *pszClassName = MakeFileClassName(pszFileExt);
 			if (pszClassName != nullptr)
 				if (!InvokeHandler_Worker(pszClassName, pszFileName, &res)) {
 					// correct registry on error (no longer in list)
@@ -603,17 +523,16 @@ INT_PTR InvokeFileHandler(const wchar_t *pszFileName)
 
 INT_PTR InvokeUrlHandler(const wchar_t *pszUrl)
 {
-	char *pszClassName, *pszProtoPrefix, *p;
 	INT_PTR res = CALLSERVICE_NOTFOUND;
 
 	// find prefix
-	pszProtoPrefix = t2a(pszUrl);
+	char *pszProtoPrefix = mir_u2a(pszUrl);
 	if (pszProtoPrefix != nullptr) {
-		p = strchr(pszProtoPrefix, ':');
+		char *p = strchr(pszProtoPrefix, ':');
 		if (p != nullptr) {
 			*(++p) = 0; // remove trailing :
 			// class name
-			pszClassName = MakeUrlClassName(pszProtoPrefix);
+			char *pszClassName = MakeUrlClassName(pszProtoPrefix);
 			if (pszClassName != nullptr)
 				if (!InvokeHandler_Worker(pszClassName, pszUrl, &res))
 					// correct registry on error (no longer in list)
@@ -632,7 +551,7 @@ static int CALLBACK ListViewSortDesc(LPARAM lParam1, LPARAM lParam2, LPARAM lPar
 	int cmp;
 	if (((ASSOCDATA*)lParam1)->pszFileExt != nullptr && ((ASSOCDATA*)lParam2)->pszFileExt != nullptr)
 		cmp = CompareStringA((LCID)lParamSort, 0, ((ASSOCDATA*)lParam1)->pszFileExt, -1, ((ASSOCDATA*)lParam2)->pszFileExt, -1);
-	else if (((ASSOCDATA*)lParam1)->pszFileExt == ((ASSOCDATA*)lParam2)->pszFileExt) // both NULL
+	else if (((ASSOCDATA*)lParam1)->pszFileExt.get() == ((ASSOCDATA*)lParam2)->pszFileExt.get()) // both NULL
 		cmp = CompareStringA((LCID)lParamSort, 0, ((ASSOCDATA*)lParam1)->pszClassName, -1, ((ASSOCDATA*)lParam2)->pszClassName, -1);
 	else // different types,  incomparable
 		cmp = (((ASSOCDATA*)lParam1)->pszFileExt == nullptr) ? CSTR_LESS_THAN : CSTR_GREATER_THAN;
@@ -646,13 +565,12 @@ static int CALLBACK ListViewSortDesc(LPARAM lParam1, LPARAM lParam2, LPARAM lPar
 static INT_PTR CALLBACK AssocListOptDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	LVITEM lvi;
-	ASSOCDATA *assoc;
 
 	switch (msg) {
 	case WM_INITDIALOG:
+		TranslateDialogDefault(hwndDlg);
+		CoInitialize(nullptr);
 		{
-			TranslateDialogDefault(hwndDlg);
-			CoInitialize(nullptr);
 			HWND hwndList = GetDlgItem(hwndDlg, IDC_ASSOCLIST);
 
 			ListView_SetUnicodeFormat(hwndList, TRUE);
@@ -676,7 +594,7 @@ static INT_PTR CALLBACK AssocListOptDlgProc(HWND hwndDlg, UINT msg, WPARAM wPara
 			{
 				HDC hdc = GetDC(hwndList);
 				if (hdc != nullptr) { // BITSPIXEL is compatible with ILC_COLOR flags
-					himl = ImageList_Create(GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), GetDeviceCaps(hdc, BITSPIXEL) | ILC_MASK, nAssocListCount, 0);
+					himl = ImageList_Create(GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), GetDeviceCaps(hdc, BITSPIXEL) | ILC_MASK, arAssocList.getCount(), 0);
 					ReleaseDC(hwndList, hdc);
 				}
 				else himl = nullptr;
@@ -685,16 +603,15 @@ static INT_PTR CALLBACK AssocListOptDlgProc(HWND hwndDlg, UINT msg, WPARAM wPara
 			// enum assoc list
 			lvi.iSubItem = 0;
 			lvi.mask = LVIF_TEXT | LVIF_PARAM | LVIF_IMAGE;
-			for (int i = 0; i < nAssocListCount; ++i) {
-				assoc = &pAssocList[i];
+			for (auto &it : arAssocList) {
 				lvi.iItem = 0;
-				lvi.lParam = (LPARAM)CopyAssocItem(assoc);
-				lvi.pszText = GetAssocTypeDesc(assoc);
-				lvi.iImage = ReplaceImageListAssocIcon(himl, assoc, -1);
+				lvi.lParam = (LPARAM)new ASSOCDATA(*it);
+				lvi.pszText = GetAssocTypeDesc(it);
+				lvi.iImage = ReplaceImageListAssocIcon(himl, it, -1);
 				lvi.iItem = ListView_InsertItem(hwndList, &lvi);
 				if (lvi.iItem != -1) {
-					ListView_SetItemText(hwndList, lvi.iItem, 1, assoc->pszDescription);
-					ListView_SetCheckState(hwndList, lvi.iItem, IsAssocEnabled(assoc) && IsAssocRegistered(assoc));
+					ListView_SetItemText(hwndList, lvi.iItem, 1, it->pszDescription);
+					ListView_SetCheckState(hwndList, lvi.iItem, IsAssocEnabled(it) && IsAssocRegistered(it));
 				}
 			}
 			// sort items (before moving to groups)
@@ -728,8 +645,9 @@ static INT_PTR CALLBACK AssocListOptDlgProc(HWND hwndDlg, UINT msg, WPARAM wPara
 				lvi.iSubItem = 0;
 				lvi.mask = LVIF_PARAM | LVIF_GROUPID;
 				for (lvi.iItem = 0; ListView_GetItem(hwndList, &lvi); ++lvi.iItem) {
-					assoc = (ASSOCDATA*)lvi.lParam;
-					if (assoc == nullptr) continue; // groups
+					ASSOCDATA *assoc = (ASSOCDATA*)lvi.lParam;
+					if (assoc == nullptr)
+						continue; // groups
 					lvi.iGroupId = (assoc->pszFileExt == nullptr) + 1;
 					ListView_SetItem(hwndList, &lvi);
 				}
@@ -738,7 +656,7 @@ static INT_PTR CALLBACK AssocListOptDlgProc(HWND hwndDlg, UINT msg, WPARAM wPara
 			ListView_SetItemState(hwndList, lvi.iItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 			ListView_SetColumnWidth(hwndList, 1, LVSCW_AUTOSIZE_USEHEADER); // size to fit window
 			// only while running
-			CheckDlgButton(hwndDlg, IDC_ONLYWHILERUNNING, (BOOL)db_get_b(NULL, "AssocMgr", "OnlyWhileRunning", SETTING_ONLYWHILERUNNING_DEFAULT) ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hwndDlg, IDC_ONLYWHILERUNNING, (BOOL)db_get_b(NULL, MODULENAME, "OnlyWhileRunning", SETTING_ONLYWHILERUNNING_DEFAULT) ? BST_CHECKED : BST_UNCHECKED);
 
 			// autostart
 			wchar_t *pszRunCmd = MakeRunCommand(TRUE, TRUE);
@@ -758,8 +676,9 @@ static INT_PTR CALLBACK AssocListOptDlgProc(HWND hwndDlg, UINT msg, WPARAM wPara
 			lvi.iSubItem = 0;
 			lvi.mask = LVIF_PARAM | LVIF_IMAGE;
 			for (lvi.iItem = 0; ListView_GetItem(hwndList, &lvi); ++lvi.iItem) {
-				assoc = (ASSOCDATA*)lvi.lParam;
-				if (assoc == nullptr) continue; // groups
+				ASSOCDATA *assoc = (ASSOCDATA*)lvi.lParam;
+				if (assoc == nullptr)
+					continue; // groups
 				lvi.iImage = ReplaceImageListAssocIcon(himl, assoc, lvi.iImage);
 				ListView_SetItem(hwndList, &lvi);
 			}
@@ -785,6 +704,19 @@ static INT_PTR CALLBACK AssocListOptDlgProc(HWND hwndDlg, UINT msg, WPARAM wPara
 		}
 		break;
 
+	case WM_DESTROY:
+		{
+			HWND hwndList = GetDlgItem(hwndDlg, IDC_ASSOCLIST);
+			lvi.iSubItem = 0;
+			lvi.mask = LVIF_PARAM;
+			mir_cslock lck(csAssocList);
+			for (lvi.iItem = 0; ListView_GetItem(hwndList, &lvi); ++lvi.iItem) {
+				ASSOCDATA *assoc = (ASSOCDATA*)lvi.lParam;
+				delete assoc;
+			}
+		}
+		break;
+
 	case WM_NCDESTROY:
 		CoUninitialize();
 		return TRUE;
@@ -799,7 +731,7 @@ static INT_PTR CALLBACK AssocListOptDlgProc(HWND hwndDlg, UINT msg, WPARAM wPara
 		return TRUE;
 
 	case WM_NOTIFY:
-		NMHDR *nmhdr = (NMHDR*)lParam;
+		NMHDR * nmhdr = (NMHDR*)lParam;
 		switch (nmhdr->idFrom) {
 		case IDC_ASSOCLIST:
 			switch (nmhdr->code) {
@@ -817,7 +749,7 @@ static INT_PTR CALLBACK AssocListOptDlgProc(HWND hwndDlg, UINT msg, WPARAM wPara
 				if (IsWindowVisible(nmhdr->hwndFrom))
 					PostMessage(GetParent(hwndDlg), PSM_CHANGED, 0, 0);
 				return TRUE;
-			
+
 			case LVN_KEYDOWN:
 				// workaround for WinXP (ListView with groups):
 				// eat keyboard navigation that goes beyond the first item in list
@@ -865,7 +797,7 @@ static INT_PTR CALLBACK AssocListOptDlgProc(HWND hwndDlg, UINT msg, WPARAM wPara
 				BOOL fEnabled, fRegFailed = FALSE;
 
 				// only while running
-				db_set_b(NULL, "AssocMgr", "OnlyWhileRunning", (BYTE)(IsDlgButtonChecked(hwndDlg, IDC_ONLYWHILERUNNING) != 0));
+				db_set_b(NULL, MODULENAME, "OnlyWhileRunning", (BYTE)(IsDlgButtonChecked(hwndDlg, IDC_ONLYWHILERUNNING) != 0));
 
 				// save enabled assoc items
 				HWND hwndList = GetDlgItem(hwndDlg, IDC_ASSOCLIST);
@@ -873,8 +805,9 @@ static INT_PTR CALLBACK AssocListOptDlgProc(HWND hwndDlg, UINT msg, WPARAM wPara
 				lvi.mask = LVIF_PARAM;
 				mir_cslock lck(csAssocList);
 				for (lvi.iItem = 0; ListView_GetItem(hwndList, &lvi); ++lvi.iItem) {
-					assoc = (ASSOCDATA*)lvi.lParam;
-					if (assoc == nullptr) continue; // groups
+					ASSOCDATA *assoc = (ASSOCDATA*)lvi.lParam;
+					if (assoc == nullptr)
+						continue; // groups
 					fEnabled = ListView_GetCheckState(hwndList, lvi.iItem);
 					SetAssocEnabled(assoc, fEnabled);
 
@@ -913,15 +846,14 @@ static INT_PTR CALLBACK AssocListOptDlgProc(HWND hwndDlg, UINT msg, WPARAM wPara
 
 static int AssocListOptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_ASSOCLIST);
 	odp.position = 900000100; // network opts  =  900000000
 	odp.szGroup.a = LPGEN("Services"); // autotranslated
 	odp.szTitle.a = LPGEN("Associations"); // autotranslated
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = AssocListOptDlgProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -934,11 +866,7 @@ void InitAssocList(void)
 	icc.dwSize = sizeof(icc);
 	icc.dwICC = ICC_LISTVIEW_CLASSES;
 	InitCommonControlsEx(&icc);
-	hHookOptInit = HookEvent(ME_OPT_INITIALISE, AssocListOptInit);
-
-	// Assoc List
-	pAssocList = nullptr;
-	nAssocListCount = 0;
+	HookEvent(ME_OPT_INITIALISE, AssocListOptInit);
 
 	// Services
 	CreateServiceFunction(MS_ASSOCMGR_ADDNEWFILETYPE, ServiceAddNewFileType);
@@ -979,7 +907,7 @@ void InitAssocList(void)
 		ftd.pszFileExt = ".dat";
 		ftd.pszMimeType = nullptr;
 		ftd.pwszDescription = TranslateT("Miranda NG database");
-		ftd.hInstance = hInst;
+		ftd.hInstance = g_plugin.getInst();
 		ftd.nIconResID = IDI_MIRANDAFILE;
 		ftd.pwszVerbDesc = nullptr;
 		ftd.pszService = nullptr;
@@ -990,30 +918,16 @@ void InitAssocList(void)
 
 void UninitAssocList(void)
 {
-	// Options
-	UnhookEvent(hHookOptInit);
-
 	// Assoc List
-	BYTE fOnlyWhileRunning = db_get_b(NULL, "AssocMgr", "OnlyWhileRunning", SETTING_ONLYWHILERUNNING_DEFAULT);
-	for (int i = 0; i < nAssocListCount; ++i) {
-		ASSOCDATA *assoc = &pAssocList[i];
-
-		// remove registry keys
+	BYTE fOnlyWhileRunning = db_get_b(NULL, MODULENAME, "OnlyWhileRunning", SETTING_ONLYWHILERUNNING_DEFAULT);
+	for (auto &it : arAssocList)
 		if (fOnlyWhileRunning)
-			UnregisterAssoc(assoc);
-
-		mir_free(assoc->pszClassName);
-		mir_free(assoc->pszDescription);
-		mir_free(assoc->pszService);
-		mir_free(assoc->pszFileExt);
-		mir_free(assoc->pszVerbDesc);
-		mir_free(assoc->pszMimeType);
-	}
-	mir_free(pAssocList);
+			UnregisterAssoc(it); // remove registry keys
 
 	// Notify Shell
-	if (fOnlyWhileRunning && nAssocListCount)
+	if (fOnlyWhileRunning && arAssocList.getCount())
 		NotifyAssocChange(TRUE);
+	arAssocList.destroy();
 
 	// unregister open-with app
 	if (fOnlyWhileRunning) {
@@ -1021,7 +935,7 @@ void UninitAssocList(void)
 		ptrW pszAppFileName(MakeAppFileName(TRUE));
 		if (pszAppFileName != NULL)
 			RemoveRegOpenWith(pszAppFileName);
-		
+
 		// assocmgr.dll
 		pszAppFileName = MakeAppFileName(FALSE);
 		if (pszAppFileName != NULL)

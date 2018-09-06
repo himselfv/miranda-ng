@@ -420,11 +420,10 @@ private:
 
 struct CMPlugin : public ACCPROTOPLUGIN<CIrcProto>
 {
-	CMPlugin() :
-		ACCPROTOPLUGIN<CIrcProto>("IRC")
-	{
-		SetUniqueId("Nick");
-	}
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
 };
 
 #endif // _IRCPROTO_H_

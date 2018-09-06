@@ -236,7 +236,7 @@ static INT_PTR CALLBACK DlgProcHistory(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 		break;
 
 	case WM_SIZE:
-		Utils_ResizeDialog(hwndDlg, hInst, MAKEINTRESOURCEA(IDD_HISTORY), HistoryDlgResizer);
+		Utils_ResizeDialog(hwndDlg, g_plugin.getInst(), MAKEINTRESOURCEA(IDD_HISTORY), HistoryDlgResizer);
 		return TRUE;
 
 	case WM_COMMAND:
@@ -247,7 +247,7 @@ static INT_PTR CALLBACK DlgProcHistory(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			return TRUE;
 
 		case IDC_FIND:
-			ShowWindow(CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_HISTORY_FIND), hwndDlg, DlgProcHistoryFind, (LPARAM)hwndDlg), SW_SHOW);
+			ShowWindow(CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_HISTORY_FIND), hwndDlg, DlgProcHistoryFind, (LPARAM)hwndDlg), SW_SHOW);
 			return TRUE;
 
 		case IDC_DELETEHISTORY:
@@ -370,7 +370,7 @@ static INT_PTR UserHistoryCommand(WPARAM wParam, LPARAM)
 		SetFocus(hwnd);
 		return 0;
 	}
-	CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_HISTORY), NULL, DlgProcHistory, wParam);
+	CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_HISTORY), NULL, DlgProcHistory, wParam);
 	return 0;
 }
 
@@ -399,7 +399,7 @@ static int PreShutdownHistoryModule(WPARAM, LPARAM)
 
 int LoadHistoryModule(void)
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x28848d7a, 0x6995, 0x4799, 0x82, 0xd7, 0x18, 0x40, 0x3d, 0xe3, 0x71, 0xc4);
 	mi.position = 1000090000;
 	mi.hIcolibItem = Skin_GetIconHandle(SKINICON_OTHER_HISTORY);

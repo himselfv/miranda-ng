@@ -20,5 +20,11 @@
 
 #define MODULENAME "MessageState"
 
-extern HINSTANCE g_hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
+
 extern IconItem Icons[];

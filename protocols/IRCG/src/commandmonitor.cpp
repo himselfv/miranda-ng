@@ -96,7 +96,7 @@ VOID CALLBACK OnlineNotifTimerProc3(HWND, UINT, UINT_PTR idEvent, DWORD)
 	CMStringW name = GetWord(ppro->m_channelsToWho, 0);
 	if (name.IsEmpty()) {
 		ppro->m_channelsToWho = L"";
-		int count = pci->SM_GetCount(ppro->m_szModuleName);
+		int count = g_chatApi.SM_GetCount(ppro->m_szModuleName);
 		for (int i = 0; i < count; i++) {
 			GC_INFO gci = { 0 };
 			gci.Flags = GCF_BYINDEX | GCF_NAME | GCF_TYPE | GCF_COUNT;
@@ -156,7 +156,7 @@ VOID CALLBACK OnlineNotifTimerProc(HWND, UINT, UINT_PTR idEvent, DWORD)
 			if (!bAdvanced) {
 				db_free(&dbv);
 				if (!ppro->getWString(hContact, "Nick", &dbv)) {
-					ppro->m_namesToUserhost += CMStringW(dbv.ptszVal) + L" ";
+					ppro->m_namesToUserhost += CMStringW(dbv.pwszVal) + L" ";
 					db_free(&dbv);
 				}
 			}
@@ -167,9 +167,9 @@ VOID CALLBACK OnlineNotifTimerProc(HWND, UINT, UINT_PTR idEvent, DWORD)
 				wchar_t* DBNick = nullptr;
 				wchar_t* DBWildcard = nullptr;
 				if (!ppro->getWString(hContact, "Nick", &dbv))
-					DBNick = dbv.ptszVal;
+					DBNick = dbv.pwszVal;
 				if (!ppro->getWString(hContact, "UWildcard", &dbv2))
-					DBWildcard = dbv2.ptszVal;
+					DBWildcard = dbv2.pwszVal;
 
 				if (DBNick && (!DBWildcard || !WCCmp(CharLower(DBWildcard), CharLower(DBNick))))
 					ppro->m_namesToWho += CMStringW(DBNick) + L" ";
@@ -1366,7 +1366,7 @@ bool CIrcProto::OnIrc_ENDNAMES(const CIrcMessage *pmsg)
 					int k = 0;
 
 					while (!command.IsEmpty()) {
-						command = GetWord(dbv.ptszVal, k);
+						command = GetWord(dbv.pwszVal, k);
 						k++;
 						if (!command.IsEmpty()) {
 							CMStringW S = command.Mid(1);
@@ -1378,7 +1378,7 @@ bool CIrcProto::OnIrc_ENDNAMES(const CIrcMessage *pmsg)
 					}
 
 					if (!command.IsEmpty()) {
-						save += GetWordAddress(dbv.ptszVal, k);
+						save += GetWordAddress(dbv.pwszVal, k);
 						switch (command[0]) {
 						case 'M':
 							Chat_Control(m_szModuleName, sID, WINDOW_HIDDEN);
@@ -1743,17 +1743,17 @@ bool CIrcProto::OnIrc_WHOIS_NO_USER(const CIrcMessage *pmsg)
 
 			DBVARIANT dbv;
 			if (!getWString(hContact, "Default", &dbv)) {
-				setWString(hContact, "Nick", dbv.ptszVal);
+				setWString(hContact, "Nick", dbv.pwszVal);
 
 				DBVARIANT dbv2;
 				if (getByte(hContact, "AdvancedMode", 0) == 0)
-					DoUserhostWithReason(1, ((CMStringW)L"S" + dbv.ptszVal), true, dbv.ptszVal);
+					DoUserhostWithReason(1, ((CMStringW)L"S" + dbv.pwszVal), true, dbv.pwszVal);
 				else {
 					if (!getWString(hContact, "UWildcard", &dbv2)) {
-						DoUserhostWithReason(2, ((CMStringW)L"S" + dbv2.ptszVal), true, dbv2.ptszVal);
+						DoUserhostWithReason(2, ((CMStringW)L"S" + dbv2.pwszVal), true, dbv2.pwszVal);
 						db_free(&dbv2);
 					}
-					else DoUserhostWithReason(2, ((CMStringW)L"S" + dbv.ptszVal), true, dbv.ptszVal);
+					else DoUserhostWithReason(2, ((CMStringW)L"S" + dbv.pwszVal), true, dbv.pwszVal);
 				}
 				setString(hContact, "User", "");
 				setString(hContact, "Host", "");
@@ -1811,7 +1811,7 @@ bool CIrcProto::OnIrc_JOINERROR(const CIrcMessage *pmsg)
 			int i = 0;
 
 			while (!command.IsEmpty()) {
-				command = GetWord(dbv.ptszVal, i);
+				command = GetWord(dbv.pwszVal, i);
 				i++;
 
 				if (!command.IsEmpty() && pmsg->parameters[0] == command.Mid(1))
@@ -2117,7 +2117,7 @@ bool CIrcProto::OnIrc_USERHOST_REPLY(const CIrcMessage *pmsg)
 					channel = (command.c_str() + 1);
 					mess.Format(L"/MODE %s +b *!*@%s%%newl/KICK %s %s %%question=\"%s\",\"%s\",\"%s\"",
 						channel.c_str(), host.c_str(), channel.c_str(), nick.c_str(),
-						TranslateT("Please enter the reason"), TranslateT("Ban'n Kick"), TranslateT("Jerk"));
+						TranslateT("Please enter the reason"), TranslateT("Ban'n Kick"), "");
 					break;
 				}
 
@@ -2353,7 +2353,7 @@ bool CIrcProto::DoOnConnect(const CIrcMessage*)
 	}
 
 	if (m_rejoinChannels) {
-		int count = pci->SM_GetCount(m_szModuleName);
+		int count = g_chatApi.SM_GetCount(m_szModuleName);
 		for (int i = 0; i < count; i++) {
 			GC_INFO gci = { 0 };
 			gci.Flags = GCF_BYINDEX | GCF_DATA | GCF_NAME | GCF_TYPE;
@@ -2390,8 +2390,8 @@ int CIrcProto::DoPerform(const char* event)
 
 	DBVARIANT dbv;
 	if (!getWString(sSetting, &dbv)) {
-		if (!my_strstri(dbv.ptszVal, L"/away"))
-			PostIrcMessageWnd(nullptr, NULL, dbv.ptszVal);
+		if (!my_strstri(dbv.pwszVal, L"/away"))
+			PostIrcMessageWnd(nullptr, NULL, dbv.pwszVal);
 		else
 			mir_forkthread(AwayWarningThread);
 		db_free(&dbv);

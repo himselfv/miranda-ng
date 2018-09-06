@@ -19,10 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "stdafx.h"
-
-#pragma comment(lib, "delayimp.lib")
-
-int hLangpack = 0;
+#include "..\..\build\appstub\appstub.cpp"
 
 wchar_t* GetProgramName(wchar_t *programName, size_t size)
 {
@@ -42,44 +39,21 @@ void PrintUsage()
 	wchar_t name[128];
 	GetProgramName(name, _countof(name));
 
-	wprintf(TranslateT("%s usage:\n"), name);
-	wprintf(TranslateT("%s <command> [<param> [<param> [...]]].\n"), name);
-	wprintf(TranslateT("This will tell Miranda to run the specified command. The commands can have zero, one or more parameters. Use '%s help' to get a list of possible commands.\n"), name);
-	wprintf(TranslateT("No command can have more than %d parameters.\n"), MAX_ARGUMENTS - 1);
+	wprintf(TranslateW_LP(L"%s usage:\n"), name);
+	wprintf(TranslateW_LP(L"%s <command> [<param> [<param> [...]]].\n"), name);
+	wprintf(TranslateW_LP(L"This will tell Miranda to run the specified command. The commands can have zero, one or more parameters. Use '%s help' to get a list of possible commands.\n"), name);
+	wprintf(TranslateW_LP(L"No command can have more than %d parameters.\n"), MAX_ARGUMENTS - 1);
 }
 
 void ShowVersion()
 {
 	wchar_t name[128];
 	GetProgramName(name, _countof(name));
-	wprintf(TranslateT("%s version %s"), name, __VERSION_STRING_DOTS);
+	wprintf(TranslateW_LP(L"%s version %s"), name, __VERSION_STRING_DOTS);
 }
 
 int wmain(int argc, wchar_t *argv[])
 {
-	wchar_t wszPath[MAX_PATH];
-	wcsncpy_s(wszPath, argv[0], _TRUNCATE);
-
-	// if current dir isn't set
-	for (int i = lstrlenW(wszPath); i >= 0; i--)
-		if (wszPath[i] == '\\') {
-			wszPath[i] = 0;
-			break;
-		}
-
-	SetCurrentDirectoryW(wszPath);
-
-	lstrcatW(wszPath, L"\\libs");
-	SetDllDirectoryW(wszPath);
-
-#ifdef _DEBUG
-	lstrcatW(wszPath, L"\\ucrtbased.dll");
-#else
-	lstrcatW(wszPath, L"\\ucrtbase.dll");
-#endif
-	LoadLibraryW(wszPath);
-
-	////////////////////////////////////////////////////////////////////////////////////////
 	_setmode(_fileno(stdout), _O_U16TEXT);
 	if (argc == 2 && !wcscmp(argv[1], L"-v")) {
 		ShowVersion();
@@ -103,7 +77,7 @@ int wmain(int argc, wchar_t *argv[])
 		wprintf(L"%s\n", reply->message);
 	}
 	else {
-		wprintf(TranslateT("Unknown command '%s'.\n"), argv[1]);
+		wprintf(TranslateW_LP(L"Unknown command '%s'.\n"), argv[1]);
 		error = 0;
 	}
 

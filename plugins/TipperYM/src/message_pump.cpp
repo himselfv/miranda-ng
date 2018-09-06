@@ -56,7 +56,7 @@ bool NeedWaitForContent(CLCINFOTIPEX *clcitex)
 
 		if (opt.bWaitForStatusMsg && !bStatusMsgReady)
 		{
-			db_unset(hContact, MODULE, "TempStatusMsg");
+			db_unset(hContact, MODULENAME, "TempStatusMsg");
 			if (CanRetrieveStatusMsg(hContact, szProto) && ProtoChainSend(hContact, PSS_GETAWAYMSG, 0, 0))
 			{
 				if (WaitForContentTimerID)
@@ -124,7 +124,7 @@ unsigned int CALLBACK MessagePumpThread(void*)
 			if (!NeedWaitForContent(clcitex)) {
 				if (hwndTip)
 					MyDestroyWindow(hwndTip);
-				hwndTip = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, POP_WIN_CLASS, nullptr, WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, hInst, (LPVOID)clcitex);
+				hwndTip = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, POP_WIN_CLASS, nullptr, WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, g_plugin.getInst(), (LPVOID)clcitex);
 
 				if (clcitex) {
 					mir_free(clcitex);
@@ -161,7 +161,7 @@ unsigned int CALLBACK MessagePumpThread(void*)
 					}
 
 					if (swzMsg) {
-						db_set_ws((DWORD_PTR)clcitex->hItem, MODULE, "TempStatusMsg", swzMsg);
+						db_set_ws((DWORD_PTR)clcitex->hItem, MODULENAME, "TempStatusMsg", swzMsg);
 						mir_free(swzMsg);
 					}
 
@@ -214,7 +214,7 @@ void InitMessagePump()
 	WNDCLASSEX wcl = {0};
 	wcl.cbSize = sizeof(wcl);
 	wcl.lpfnWndProc = PopupWindowProc;
-	wcl.hInstance = hInst;
+	wcl.hInstance = g_plugin.getInst();
 	wcl.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wcl.hbrBackground = (HBRUSH)GetStockObject(LTGRAY_BRUSH);
 	wcl.lpszClassName = POP_WIN_CLASS;
@@ -230,14 +230,14 @@ void InitMessagePump()
 void DeinitMessagePump()
 {
 	PostMPMessage(WM_QUIT, 0, 0);
-	UnregisterClass(POP_WIN_CLASS, hInst);
+	UnregisterClass(POP_WIN_CLASS, g_plugin.getInst());
 	FreeLibrary(hDwmapiDll);
 }
 
 INT_PTR ShowTip(WPARAM wParam, LPARAM lParam)
 {
 	CLCINFOTIP *clcit = (CLCINFOTIP *)lParam;
-	HWND clist = pcli->hwndContactTree;
+	HWND clist = g_clistApi.hwndContactTree;
 	
 	if (clcit->isGroup) return 0; // no group tips (since they're pretty useless)
 	if (clcit->isTreeFocused == 0 && !opt.bShowNoFocus && clist == WindowFromPoint(clcit->ptCursor)) return 0;
@@ -269,7 +269,7 @@ int ShowTipHook(WPARAM wParam, LPARAM lParam)
 INT_PTR ShowTipW(WPARAM wParam, LPARAM lParam)
 {
 	CLCINFOTIP *clcit = (CLCINFOTIP *)lParam;
-	HWND clist = pcli->hwndContactTree;
+	HWND clist = g_clistApi.hwndContactTree;
 
 	if (clcit->isGroup) return 0; // no group tips (since they're pretty useless)
 	if (clcit->isTreeFocused == 0 && !opt.bShowNoFocus && clist == WindowFromPoint(clcit->ptCursor)) return 0;

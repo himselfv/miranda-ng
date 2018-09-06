@@ -2,7 +2,7 @@
 ;============================================================
 ;  File: Clist_nicer.dll
 ;  Plugin: Clist nicer
-;  Version: 0.9.3.1
+;  Version: 0.9.3.2
 ;  Authors: Pixel, egoDust, cyreve, Nightwish
 ;============================================================
 [Displays contacts, event notifications, protocol status.]
@@ -128,8 +128,6 @@ Przenieś zdarzenia na górę listy lub grupy
 Nie oddzielaj rozłączonych kontaktów
 [Hide as offline]
 Ukryj jako rozłączone:
-[Tree hide offline]
-Drzewo ukryj rozłączonych
 [Right align contacts]
 Wyrównanie do prawej
 [Avatars]
@@ -258,8 +256,6 @@ ms
 Ukryj pionowy pasek przewijania
 [Gray out entire list when:]
 Przyciemnij całą listę kiedy:
-[Tree gray out]
-Drzewo wyszarzone
 [Contact list background]
 Tło listy kontaktów
 [Use Windows colors]
@@ -430,32 +426,6 @@ Pokaż drugą linię:
 Rysuj nakładkę na awatarze
 [Show local time]
 Pokaż czas kontaktu
-[&Main menu]
-&Menu główne
-[E&xit]
-W&yjdź
-[&Status]
-&Status
-[&Offline\tCtrl+0]
-&Rozłączony\tCtrl+0
-[On&line\tCtrl+1]
-&Dostępny\tCtrl+1
-[&Away\tCtrl+2]
-&Zaraz wracam\tCtrl+2
-[&Not available\tCtrl+3]
-&Wrócę później\tCtrl+3
-[Occ&upied\tCtrl+4]
-Za&jęty\tCtrl+4
-[&Do not disturb\tCtrl+5]
-&Nie przeszkadzać\tCtrl+5
-[&Free for chat\tCtrl+6]
-&Chętny do rozmowy\tCtrl+6
-[&Invisible\tCtrl+7]
-N&iewidoczny\tCtrl+7
-[On the &phone\tCtrl+8]
-Pod &telefonem\tCtrl+8
-[Out to &lunch\tCtrl+9]
-Na &obiedzie\tCtrl+9
 ;file \plugins\Clist_nicer\src\CLCButton.cpp
 [Show menu]
 Pokaż menu
@@ -731,6 +701,10 @@ Rysuj zatopioną ramkę
 &Ukryj/pokaż
 [&Find/add contacts...]
 &Szukaj/Dodaj kontakty...
+[&Main menu]
+&Menu główne
+[&Status]
+&Status
 [Appearance]
 Personalizacja
 [&Options...]

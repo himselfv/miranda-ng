@@ -60,27 +60,12 @@ uses
   scheduler in 'tasks\scheduler.pas';
 
 {$r options.res}
+{$r version.res}
 
 const
   PluginName  = 'Action Manager';
 var
   hevaction,hHookChanged,hevinout:THANDLE;
-
-
-function MirandaPluginInfoEx(mirandaVersion:dword):PPLUGININFOEX; cdecl;
-begin
-  result:=@PluginInfo;
-  PluginInfo.cbSize     :=SizeOf(TPLUGININFOEX);
-  PluginInfo.shortName  :='Action manager';
-  PluginInfo.version    :=$00030001;
-  PluginInfo.description:='Plugin for manage hotkeys to open contact window, insert text, '+
-                          'run program and call services';
-  PluginInfo.author     :='Awkward';
-  PluginInfo.copyright  :='(c) 2007-13 Awkward';
-  PluginInfo.homepage   :='https://miranda-ng.org/p/Actman/';
-  PluginInfo.flags      :=UNICODE_AWARE;
-  PluginInfo.uuid       :=MIID_ACTMAN;
-end;
 
 {$include i_const.inc}
 
@@ -136,18 +121,13 @@ begin
   begin
     if p^.Hash=0 then
       p^.Hash:=Hash(p^.Name,StrLen(p^.Name));
-    //!! must add icon registration in icolib
-{
-    StrCopy(pc,p^.Name);
-    ii.szDescr  :=p^.Name;
-    ii.DefIconID:=;
-    Icon_Register(hInstance,'Actions',@ii,1);
-}
+    
     sid.hDefaultIcon   :=LoadImageA(hInstance,p^.Icon,IMAGE_ICON,16,16,0);
     sid.szDescription.a:=p^.Name;
     StrCopy(pc,p^.Name);
     Skin_AddIcon(@sid);
-    DestroyIcon(sid.hDefaultIcon);
+ 
+   DestroyIcon(sid.hDefaultIcon);
 
     p:=p^.Next;
   end;
@@ -264,9 +244,19 @@ begin
 end;
 
 exports
-  Load, Unload,
-  MirandaPluginInfoEx;
+  Load, Unload;
 
 begin
   DisableThreadLibraryCalls(hInstance);
+
+  PluginInfo.cbSize     :=SizeOf(TPLUGININFOEX);
+  PluginInfo.shortName  :='Action manager';
+  PluginInfo.version    :=$00030001;
+  PluginInfo.description:='Plugin for manage hotkeys to open contact window, insert text, '+
+                          'run program and call services';
+  PluginInfo.author     :='Awkward';
+  PluginInfo.copyright  :='(c) 2007-13 Awkward';
+  PluginInfo.homepage   :='https://miranda-ng.org/p/Actman/';
+  PluginInfo.flags      :=UNICODE_AWARE;
+  PluginInfo.uuid       :=MIID_ACTMAN;
 end.

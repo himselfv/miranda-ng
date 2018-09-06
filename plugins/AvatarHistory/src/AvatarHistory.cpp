@@ -23,15 +23,13 @@ Avatar History Plugin
 */
 #include "stdafx.h"
 
-HINSTANCE hInst;
-
 DWORD mirVer;
 
 HANDLE hFolder = nullptr;
 
 wchar_t profilePath[MAX_PATH];		// database profile path (read at startup only)
 wchar_t basedir[MAX_PATH];
-int hLangpack = 0;
+CMPlugin g_plugin;
 MWindowList hAvatarWindowsList = nullptr;
 
 int OptInit(WPARAM wParam, LPARAM lParam);
@@ -42,7 +40,9 @@ wchar_t* GetOldStyleAvatarName(wchar_t *fn, MCONTACT hContact);
 
 void InitMenuItem();
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -55,18 +55,9 @@ PLUGININFOEX pluginInfo = {
 	{0xdbe8c990, 0x7aa0, 0x458d, {0xba, 0xb7, 0x33, 0xeb, 0x7, 0x23, 0x8e, 0x71}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // services
@@ -114,11 +105,11 @@ static int AvatarChanged(WPARAM hContact, LPARAM lParam)
 		return 0;
 
 	DBVARIANT dbvOldHash = { 0 };
-	bool ret = (db_get_ws(hContact, MODULE_NAME, "AvatarHash", &dbvOldHash) == 0);
+	bool ret = (db_get_ws(hContact, MODULENAME, "AvatarHash", &dbvOldHash) == 0);
 
 	CONTACTAVATARCHANGEDNOTIFICATION* avatar = (CONTACTAVATARCHANGEDNOTIFICATION*)lParam;
 	if (avatar == nullptr) {
-		if (!ret || !mir_wstrcmp(dbvOldHash.ptszVal, L"-")) {
+		if (!ret || !mir_wstrcmp(dbvOldHash.pwszVal, L"-")) {
 			//avoid duplicate "removed avatar" notifications
 			//do not notify on an empty profile
 			ShowDebugPopup(hContact, L"AVH Debug", L"Removed avatar, no avatar before... skipping");
@@ -128,13 +119,13 @@ static int AvatarChanged(WPARAM hContact, LPARAM lParam)
 		Skin_PlaySound("avatar_removed");
 
 		// Is a flash avatar or avs could not load it
-		db_set_ws(hContact, MODULE_NAME, "AvatarHash", L"-");
+		db_set_ws(hContact, MODULENAME, "AvatarHash", L"-");
 
 		if (ContactEnabled(hContact, "AvatarPopups", AVH_DEF_AVPOPUPS) && opts.popup_show_removed)
 			ShowPopup(hContact, nullptr, opts.popup_removed);
 	}
 	else {
-		if (ret && !mir_wstrcmp(dbvOldHash.ptszVal, avatar->hash)) {
+		if (ret && !mir_wstrcmp(dbvOldHash.pwszVal, avatar->hash)) {
 			// same avatar hash, skipping
 			ShowDebugPopup(hContact, L"AVH Debug", L"Hashes are the same... skipping");
 			db_free(&dbvOldHash);
@@ -287,44 +278,42 @@ static INT_PTR CALLBACK FirstRunDlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPA
 	return FALSE;
 }
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	CoInitialize(nullptr);
 
 	// Is first run?
-	if (db_get_b(NULL, MODULE_NAME, "FirstRun", 1)) {
+	if (db_get_b(NULL, MODULENAME, "FirstRun", 1)) {
 		// Show dialog
-		int ret = DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_FIRST_RUN), nullptr, FirstRunDlgProc, 0);
+		int ret = DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_FIRST_RUN), nullptr, FirstRunDlgProc, 0);
 		if (ret == 0)
 			return -1;
 
 		// Write settings
 
-		db_set_b(NULL, MODULE_NAME, "LogToDisk", 1);
+		db_set_b(NULL, MODULENAME, "LogToDisk", 1);
 
 		if (ret == IDC_MIR_SAME)
-			db_set_b(NULL, MODULE_NAME, "LogKeepSameFolder", 1);
+			db_set_b(NULL, MODULENAME, "LogKeepSameFolder", 1);
 		else
-			db_set_b(NULL, MODULE_NAME, "LogKeepSameFolder", 0);
+			db_set_b(NULL, MODULENAME, "LogKeepSameFolder", 0);
 
 		if (ret == IDC_MIR_SHORT || ret == IDC_SHORT || ret == IDC_DUP)
-			db_set_b(NULL, MODULE_NAME, "LogPerContactFolders", 1);
+			db_set_b(NULL, MODULENAME, "LogPerContactFolders", 1);
 		else
-			db_set_b(NULL, MODULE_NAME, "LogPerContactFolders", 0);
+			db_set_b(NULL, MODULENAME, "LogPerContactFolders", 0);
 
 		if (ret == IDC_DUP)
-			db_set_b(NULL, MODULE_NAME, "StoreAsHash", 0);
+			db_set_b(NULL, MODULENAME, "StoreAsHash", 0);
 		else
-			db_set_b(NULL, MODULE_NAME, "StoreAsHash", 1);
+			db_set_b(NULL, MODULENAME, "StoreAsHash", 1);
 
 		if (ret == IDC_MIR_SAME || ret == IDC_MIR_PROTO || ret == IDC_MIR_SHORT)
-			db_set_b(NULL, MODULE_NAME, "LogToHistory", 1);
+			db_set_b(NULL, MODULENAME, "LogToHistory", 1);
 		else
-			db_set_b(NULL, MODULE_NAME, "LogToHistory", 0);
+			db_set_b(NULL, MODULENAME, "LogToHistory", 0);
 
-		db_set_b(NULL, MODULE_NAME, "FirstRun", 0);
+		db_set_b(NULL, MODULENAME, "FirstRun", 0);
 	}
 
 	LoadOptions();
@@ -340,8 +329,8 @@ extern "C" __declspec(dllexport) int Load(void)
 
 	Profile_GetPathW(MAX_PATH, profilePath);
 
-	Skin_AddSound("avatar_changed", LPGENW("Avatar history"), LPGENW("Contact changed avatar"));
-	Skin_AddSound("avatar_removed", LPGENW("Avatar history"), LPGENW("Contact removed avatar"));
+	g_plugin.addSound("avatar_changed", LPGENW("Avatar history"), LPGENW("Contact changed avatar"));
+	g_plugin.addSound("avatar_removed", LPGENW("Avatar history"), LPGENW("Contact removed avatar"));
 
 	hAvatarWindowsList = WindowList_Create();
 
@@ -350,7 +339,7 @@ extern "C" __declspec(dllexport) int Load(void)
 	return 0;
 }
 
-extern "C" __declspec(dllexport) int Unload(void)
+int CMPlugin::Unload()
 {
 	WindowList_Destroy(hAvatarWindowsList);
 	return 0;

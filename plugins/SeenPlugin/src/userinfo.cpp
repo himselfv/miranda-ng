@@ -70,11 +70,10 @@ int UserinfoInit(WPARAM wparam, LPARAM lparam)
 
 	if (IsWatchedProtocol(szProto) && !db_get_b(hContact, szProto, "ChatRoom", false)) {
 		OPTIONSDIALOGPAGE uip = { sizeof(uip) };
-		uip.hInstance = hInstance;
 		uip.pszTemplate = MAKEINTRESOURCEA(IDD_USERINFO);
 		uip.szTitle.a = LPGEN("Last seen");
 		uip.pfnDlgProc = UserinfoDlgProc;
-		UserInfo_AddPage(wparam, &uip);
+		g_plugin.addUserInfo(wparam, &uip);
 	}
 	return 0;
 }

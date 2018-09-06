@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdafx.h"
 
 CErrorDlg::CErrorDlg(const wchar_t *pwszDescr, HWND hWnd, MessageSendQueueItem *pItem)
-	: CDlgBase(g_hInst, IDD_MSGSENDERROR),
+	: CDlgBase(g_plugin, IDD_MSGSENDERROR),
 	m_wszText(mir_utf8decodeW(pItem->sendBuffer)),
 	m_wszDescr(pwszDescr != nullptr ? pwszDescr : TranslateT("An unknown error has occurred.")),
 	m_hwndParent(hWnd),
@@ -43,7 +43,7 @@ CErrorDlg::CErrorDlg(const wchar_t *pwszDescr, HWND hWnd, MessageSendQueueItem *
 	m_btnCancel.OnClick = Callback(this, &CErrorDlg::onCancel);
 }
 
-void CErrorDlg::OnInitDialog()
+bool CErrorDlg::OnInitDialog()
 {
 	ShowWindow(GetParent(m_hwndParent), SW_RESTORE);
 	
@@ -59,6 +59,7 @@ void CErrorDlg::OnInitDialog()
 	GetWindowRect(m_hwnd, &rc);
 	GetWindowRect(GetParent(m_hwndParent), &rcParent);
 	SetWindowPos(m_hwnd, HWND_TOP, rcParent.left + (rcParent.right - rcParent.left - rc.right + rc.left) / 2, rcParent.top + (rcParent.bottom - rcParent.top - rc.bottom + rc.top) / 2, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
+	return true;
 }
 
 void CErrorDlg::onOk(CCtrlButton*)

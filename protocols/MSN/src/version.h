@@ -19,13 +19,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #define __MAJOR_VERSION          0
-#define __MINOR_VERSION          14
-#define __RELEASE_NUM            0
-#define __BUILD_NUM              2
+#define __MINOR_VERSION          95
+#define __RELEASE_NUM            9
+#define __BUILD_NUM              1
 
 #include <stdver.h>
 
 #define __PLUGIN_NAME            "MSN protocol"
+#define __FILENAME               "MSN.dll"
 #define __DESCRIPTION            "Microsoft Network (MSN) protocol support for Miranda NG."
 #define __AUTHOR                 "Boris Krasnovskiy, George Hazan, Richard Hughes, leecher"
 #define __COPYRIGHT              "© 2001-18 Richard Hughes, George Hazan, Boris Krasnovskiy, leecher"

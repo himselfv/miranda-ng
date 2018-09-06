@@ -46,15 +46,17 @@ struct MUUID
 };
 
 __forceinline bool operator==(const MUUID &p1, const MUUID &p2)
-{	return memcmp(&p1, &p2, sizeof(MUUID)) == 0;
+{
+	return memcmp(&p1, &p2, sizeof(MUUID)) == 0;
 }
 __forceinline bool operator!=(const MUUID &p1, const MUUID &p2)
-{	return memcmp(&p1, &p2, sizeof(MUUID)) != 0;
+{
+	return memcmp(&p1, &p2, sizeof(MUUID)) != 0;
 }
 
-MIR_APP_DLL(int) GetPluginLangId(const MUUID &uuid, int hLangpack);
+MIR_APP_DLL(int) GetPluginLangId(const MUUID &uuid, int langId);
 MIR_APP_DLL(int) IsPluginLoaded(const MUUID &uuid);
-MIR_APP_DLL(int) SetServiceModePlugin(const wchar_t *wszPluginName);
+MIR_APP_DLL(int) SetServiceModePlugin(const wchar_t *wszPluginName, WPARAM = 0, LPARAM = 0);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Used to define the end of the MirandaPluginInterface list
@@ -72,7 +74,6 @@ MIR_APP_DLL(int) SetServiceModePlugin(const wchar_t *wszPluginName);
 #define MIID_UIHISTORY      {0x7f7e3d98, 0xce1f, 0x4962, {0x82, 0x84, 0x96, 0x85, 0x50, 0xf1, 0xd3, 0xd9}}
 #define MIID_AUTOAWAY       {0x9c87f7dc, 0x3bd7, 0x4983, {0xb7, 0xfb, 0xb8, 0x48, 0xfd, 0xbc, 0x91, 0xf0}}
 #define MIID_USERONLINE     {0x130829e0, 0x2463, 0x4ff8, {0xbb, 0xc8, 0xce, 0x73, 0xc0, 0x18, 0x84, 0x42}}
-#define MIID_IDLE           {0x296f9f3b, 0x5b6f, 0x40e5, {0x8f, 0xb0, 0xa6, 0x49, 0x6c, 0x18, 0xbf, 0x0a}}
 #define MIID_CRYPTO         {0x415ca6e1, 0x895f, 0x40e6, {0x87, 0xbd, 0x9b, 0x39, 0x60, 0x16, 0xd0, 0xe5}}
 #define MIID_SSL            {0x3bbbbd20, 0x20e6, 0x479b, {0xbd, 0x4b, 0xe8, 0x4d, 0xe2, 0x62, 0x71, 0x20}}
 
@@ -138,12 +139,6 @@ struct PLUGININFOEX
 #define ME_SYSTEM_MODULEUNLOAD "Miranda/System/UnloadModule"
 
 /////////////////////////////////////////////////////////////////////////////////////////
-// initializes the plugin-specific translation context  v0.10.0+
-// always returns 0
-
-EXTERN_C MIR_CORE_DLL(void) mir_getLP(const PLUGININFOEX *pInfo, int *_hLang = &hLangpack);
-
-/////////////////////////////////////////////////////////////////////////////////////////
 // plugin's class
 
 // initializes an empty account
@@ -152,16 +147,20 @@ typedef struct PROTO_INTERFACE* (*pfnInitProto)(const char* szModuleName, const 
 // deallocates an account instance
 typedef int(*pfnUninitProto)(PROTO_INTERFACE*);
 
-class MIR_APP_EXPORT CMPluginBase
+#pragma warning(push)
+#pragma warning(disable:4275)
+
+class MIR_APP_EXPORT CMPluginBase : public MNonCopyable
 {
 	void tryOpenLog();
 
 protected:
-	const char *m_szModuleName;
-	HANDLE m_hLogger = nullptr;
 	HINSTANCE m_hInst;
+	const char *m_szModuleName;
+	const PLUGININFOEX &m_pInfo;
+	HANDLE m_hLogger = nullptr;
 
-	CMPluginBase(const char *moduleName);
+	CMPluginBase(const char *moduleName, const PLUGININFOEX &pInfo);
 	~CMPluginBase();
 
 	// pass one of PROTOTYPE_* constants as type
@@ -172,8 +171,54 @@ public:
 	void debugLogA(LPCSTR szFormat, ...);
 	void debugLogW(LPCWSTR wszFormat, ...);
 
+	__forceinline const PLUGININFOEX& getInfo() const { return m_pInfo; }
+	__forceinline const char* getModule() const { return m_szModuleName; }
+
 	__forceinline HINSTANCE getInst() const { return m_hInst; }
 	__forceinline void setInst(HINSTANCE hInst) { m_hInst = hInst; }
+
+	virtual int Load();
+	virtual int Unload();
+
+	////////////////////////////////////////////////////////////////////////////////////////
+	// registering module's resources
+
+	template <size_t _Size>
+	__forceinline void registerIcon(const char *szSection, IconItem(&pIcons)[_Size], const char *prefix = nullptr)
+	{
+		Icon_Register(m_hInst, szSection, pIcons, _Size, prefix, this);
+	}
+
+	template <size_t _Size>
+	__forceinline void registerIconW(const wchar_t *szSection, IconItemT(&pIcons)[_Size], const char *prefix = nullptr)
+	{
+		Icon_RegisterT(m_hInst, szSection, pIcons, _Size, prefix, this);
+	}
+
+	int addOptions(WPARAM wParam, struct OPTIONSDIALOGPAGE *odp);
+	void openOptions(const wchar_t *pszGroup, const wchar_t *pszPage = 0, const wchar_t *pszTab = 0);
+	void openOptionsPage(const wchar_t *pszGroup, const wchar_t *pszPage = 0, const wchar_t *pszTab = 0);
+
+	HANDLE addIcon(const struct SKINICONDESC*);
+	HANDLE addTTB(const struct TTBButton*);
+
+	HGENMENU addRootMenu(int hMenuObject, LPCWSTR ptszName, int position, HANDLE hIcoLib = nullptr);
+
+	int addFont(struct FontID *pFont);
+	int addFont(struct FontIDW *pFont);
+
+	int addColor(struct ColourID *pColor);
+	int addColor(struct ColourIDW *pColor);
+
+	int addEffect(struct EffectID *pEffect);
+	int addEffect(struct EffectIDW *pEffect);
+
+	int addFrame(const struct CLISTFrame*);
+	int addHotkey(const struct HOTKEYDESC*);
+	int addSound(const char *name, const wchar_t *section, const wchar_t *description, const wchar_t *defaultFile = nullptr);
+	int addUserInfo(WPARAM wParam, struct OPTIONSDIALOGPAGE *odp);
+
+	////////////////////////////////////////////////////////////////////////////////////////
 
 	__forceinline INT_PTR delSetting(const char *name)
 	{
@@ -320,6 +365,8 @@ public:
 	}
 };
 
+#pragma warning(pop)
+
 extern struct CMPlugin g_plugin;
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -331,16 +378,9 @@ template<class T> class PLUGIN : public CMPluginBase
 {
 	typedef CMPluginBase CSuper;
 
-public:
-	static BOOL WINAPI RawDllMain(HINSTANCE hInstance, DWORD, LPVOID)
-	{
-		g_plugin.setInst(hInstance);
-		return TRUE;
-	}
-
 protected:
-	PLUGIN(const char *moduleName)
-		: CSuper(moduleName)
+	__forceinline PLUGIN(const char *moduleName, const PLUGININFOEX &pInfo)
+		: CSuper(moduleName, pInfo)
 	{}
 
 	__forceinline HANDLE CreatePluginEvent(const char *name)
@@ -380,8 +420,8 @@ template<class P> class ACCPROTOPLUGIN : public PLUGIN<CMPlugin>
 	typedef PLUGIN<CMPlugin> CSuper;
 
 protected:
-	ACCPROTOPLUGIN(const char *moduleName) :
-		CSuper(moduleName)
+	ACCPROTOPLUGIN(const char *moduleName, const PLUGININFOEX &pInfo) :
+		CSuper(moduleName, pInfo)
 	{
 		CMPluginBase::RegisterProtocol(1002, &fnInit, &fnUninit);
 	}
@@ -419,5 +459,16 @@ public:
 
 template<class P>
 OBJLIST<P> ACCPROTOPLUGIN<P>::g_arInstances(1, PtrKeySortT);
+
+#ifndef __NO_CMPLUGIN_NEEDED
+#ifdef _DEBUG
+#pragma comment(lib, "cmstubd.lib")
+#else
+#pragma comment(lib, "cmstub.lib")
+#endif
+#endif
+
+EXTERN_C MIR_APP_DLL(HINSTANCE) GetInstByAddress(void* codePtr);
+EXTERN_C MIR_APP_DLL(CMPluginBase&) GetPluginByInstance(HINSTANCE hInst);
 
 #endif // M_NEWPLUGINAPI_H__

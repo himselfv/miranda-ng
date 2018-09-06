@@ -126,7 +126,7 @@ INT_PTR Popup_AddPopup2(WPARAM wParam, LPARAM lParam)
 	if (ppd->lchContact)
 		proto = GetContactProto(ppd->lchContact);
 
-	BYTE bShowMode = proto ? db_get_b(ppd->lchContact, MODULNAME, "ShowMode", PU_SHOWMODE_AUTO) : PU_SHOWMODE_AUTO;
+	BYTE bShowMode = proto ? db_get_b(ppd->lchContact, MODULENAME, "ShowMode", PU_SHOWMODE_AUTO) : PU_SHOWMODE_AUTO;
 
 	if (bShowMode == PU_SHOWMODE_BLOCK)
 		return -1;
@@ -138,7 +138,7 @@ INT_PTR Popup_AddPopup2(WPARAM wParam, LPARAM lParam)
 		if (PopupOptions.DisableWhenFullscreen && (bShowMode != PU_SHOWMODE_FULLSCREEN) && IsFullScreen())
 			return -1;
 
-		if (db_get_dw(NULL, MODULNAME, LPGEN("Global Status"), 0) & Proto_Status2Flag_My(CallService(MS_CLIST_GETSTATUSMODE, 0, 0)))
+		if (db_get_dw(NULL, MODULENAME, LPGEN("Global Status"), 0) & Proto_Status2Flag_My(CallService(MS_CLIST_GETSTATUSMODE, 0, 0)))
 			return -1;
 
 		if ((disableWhen & 0x0000FFFF) & Proto_Status2Flag_My(CallService(MS_CLIST_GETSTATUSMODE, 0, 0)))
@@ -147,7 +147,7 @@ INT_PTR Popup_AddPopup2(WPARAM wParam, LPARAM lParam)
 		if (proto) {
 			char prefix[128];
 			mir_snprintf(prefix, LPGEN("Protocol Status") "/%s", GetContactProto(ppd->lchContact));
-			if (db_get_dw(NULL, MODULNAME, prefix, 0) & Proto_Status2Flag_My(Proto_GetStatus(proto)))
+			if (db_get_dw(NULL, MODULENAME, prefix, 0) & Proto_Status2Flag_My(Proto_GetStatus(proto)))
 				return -1;
 			if (((disableWhen >> 16) & 0xFFFF0000) & Proto_Status2Flag_My(Proto_GetStatus(proto)))
 				return -1;
@@ -368,44 +368,44 @@ INT_PTR Popup_RegisterPopupClass(WPARAM, LPARAM lParam)
 	ptd->pszTreeRoot = mir_a2u(pc->pszName);
 	ptd->pupClass.pszName = mir_strdup(pc->pszName);
 	if (pc->flags & PCF_UNICODE) {
-		ptd->pupClass.pwszDescription = mir_wstrdup(pc->pwszDescription);
-		ptd->pszDescription = mir_wstrdup(pc->pwszDescription);
+		ptd->pupClass.pszDescription.w = mir_wstrdup(pc->pszDescription.w);
+		ptd->pszDescription = mir_wstrdup(pc->pszDescription.w);
 	}
 	else {
-		ptd->pupClass.pszDescription = mir_strdup(pc->pszDescription);
-		ptd->pszDescription = mir_a2u(pc->pszDescription);
+		ptd->pupClass.pszDescription.a = mir_strdup(pc->pszDescription.a);
+		ptd->pszDescription = mir_a2u(pc->pszDescription.a);
 	}
 	LoadClassSettings(ptd, PU_MODULCLASS);
 
 	// we ignore pc->colorText and use fonts.text as default (if no setting found in DB)
 	mir_snprintf(setting, "%s/TextCol", ptd->pupClass.pszName);
 	ptd->pupClass.colorText = (COLORREF)db_get_dw(NULL, PU_MODULCLASS, setting, fonts.clText/*pc->colorText*/);
-	FontIDW fid = { 0 };
-	fid.cbSize = sizeof(FontIDW);
-	mir_snwprintf(fid.group, _A2W(PU_FNT_AND_COLOR) L"/%S", ptd->pupClass.pszName);
-	mir_strncpy(fid.dbSettingsGroup, PU_MODULCLASS, _countof(fid.dbSettingsGroup) - 1);
+	
+	FontIDW fid = {};
+	mir_snwprintf(fid.group, L"%S/%s", PU_FNT_AND_COLOR, ptd->pszDescription);
+	strncpy_s(fid.dbSettingsGroup, PU_MODULCLASS, _TRUNCATE);
 	fid.flags = FIDF_DEFAULTVALID;
 	fid.deffontsettings.charset = DEFAULT_CHARSET;
 	fid.deffontsettings.size = -11;
-	mir_wstrncpy(fid.deffontsettings.szFace, L"Verdana", _countof(fid.deffontsettings.szFace) - 1);
-	mir_wstrncpy(fid.name, _A2W(PU_FNT_NAME_TEXT), _countof(fid.name) - 1);
-	mir_strncpy(fid.prefix, setting, _countof(fid.prefix));
-	mir_snprintf(fid.prefix, "%s/Text", ptd->pupClass.pszName);  // result is "%s/TextCol"
+	wcsncpy_s(fid.deffontsettings.szFace, L"Verdana", _TRUNCATE);
+	wcsncpy_s(fid.name, _A2W(PU_FNT_NAME_TEXT), _TRUNCATE);
+	strncpy_s(fid.setting, setting, _TRUNCATE);
+	mir_snprintf(fid.setting, "%s/Text", ptd->pupClass.pszName);  // result is "%s/TextCol"
 	fid.deffontsettings.style = 0;
 	fid.deffontsettings.colour = fonts.clText;
-	Font_RegisterW(&fid);
+	g_plugin.addFont(&fid);
 
 	// we ignore pc->colorBack and use fonts.clBack as default (if no setting found in DB)
 	mir_snprintf(setting, "%s/BgCol", ptd->pupClass.pszName);
 	ptd->pupClass.colorBack = (COLORREF)db_get_dw(NULL, PU_MODULCLASS, setting, (DWORD)fonts.clBack/*pc->colorBack*/);
-	ColourIDW cid = { 0 };
-	cid.cbSize = sizeof(ColourIDW);
-	mir_snwprintf(cid.group, _A2W(PU_FNT_AND_COLOR) L"/%S", ptd->pupClass.pszName);
-	mir_strncpy(cid.dbSettingsGroup, PU_MODULCLASS, _countof(fid.dbSettingsGroup));
-	mir_wstrncpy(cid.name, PU_COL_BACK_NAME, _countof(cid.name));
+	
+	ColourIDW cid = {};
+	mir_snwprintf(cid.group, L"%S/%s", PU_FNT_AND_COLOR, ptd->pszDescription);
+	wcsncpy_s(cid.name, PU_COL_BACK_NAME, _TRUNCATE);
+	strncpy_s(cid.dbSettingsGroup, PU_MODULCLASS, _TRUNCATE);
 	mir_snprintf(cid.setting, "%s/BgCol", ptd->pupClass.pszName);
 	cid.defcolour = fonts.clBack;
-	Colour_RegisterW(&cid);
+	g_plugin.addColor(&cid);
 
 	gTreeData.insert(ptd);
 	num_classes++;

@@ -126,7 +126,7 @@ void CIconPool::RegisterIcon(const char *name, wchar_t *filename, int iconid, wc
 	sid.description.w = szDescription;
 	sid.flags = SIDF_ALL_UNICODE;
 	sid.iDefaultIndex = iconid;
-	item->m_hIcolibItem = IcoLib_AddIcon(&sid);
+	item->m_hIcolibItem = IcoLib_AddIcon(&sid, &g_plugin);
 
 	m_items.insert(item);
 }
@@ -293,7 +293,7 @@ static HICON LoadTransportIcon(char *filename, int i, char *IconName, wchar_t *S
 		sid.defaultFile.a = szMyPath;
 		sid.iDefaultIndex = i;
 		sid.flags = SIDF_UNICODE;
-		IcoLib_AddIcon(&sid);
+		g_plugin.addIcon(&sid);
 	}
 	return IcoLib_GetIcon(IconName);
 }
@@ -522,10 +522,10 @@ static IconItem sharedIconList4[] =
 
 void g_IconsInit()
 {
-	Icon_Register(g_plugin.getInst(), LPGEN("Protocols") "/" LPGEN("Jabber"), sharedIconList1, _countof(sharedIconList1), GLOBAL_SETTING_PREFIX);
-	Icon_Register(g_plugin.getInst(), LPGEN("Protocols") "/" LPGEN("Jabber") "/" LPGEN("Dialogs"), sharedIconList2, _countof(sharedIconList2), GLOBAL_SETTING_PREFIX);
-	Icon_Register(g_plugin.getInst(), LPGEN("Protocols") "/" LPGEN("Dialogs") "/" LPGEN("Discovery"), sharedIconList3, _countof(sharedIconList3), GLOBAL_SETTING_PREFIX);
-	Icon_Register(g_plugin.getInst(), LPGEN("Protocols") "/" LPGEN("Dialogs") "/" LPGEN("Privacy"), sharedIconList4, _countof(sharedIconList4), GLOBAL_SETTING_PREFIX);
+	g_plugin.registerIcon(LPGEN("Protocols") "/" LPGEN("Jabber"), sharedIconList1, GLOBAL_SETTING_PREFIX);
+	g_plugin.registerIcon(LPGEN("Protocols") "/" LPGEN("Jabber") "/" LPGEN("Dialogs"), sharedIconList2, GLOBAL_SETTING_PREFIX);
+	g_plugin.registerIcon(LPGEN("Protocols") "/" LPGEN("Jabber") "/" LPGEN("Dialogs") "/" LPGEN("Discovery"), sharedIconList3, GLOBAL_SETTING_PREFIX);
+	g_plugin.registerIcon(LPGEN("Protocols") "/" LPGEN("Jabber") "/" LPGEN("Dialogs") "/" LPGEN("Privacy"), sharedIconList4, GLOBAL_SETTING_PREFIX);
 }
 
 HANDLE g_GetIconHandle(int iconId)

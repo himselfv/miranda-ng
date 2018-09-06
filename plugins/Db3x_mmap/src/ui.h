@@ -9,7 +9,7 @@ class CSelectCryptoDialog : public CDlgBase
 	CRYPTO_PROVIDER *m_selected;
 public:
 	CSelectCryptoDialog(CRYPTO_PROVIDER **provs, size_t count) : 
-		CDlgBase(g_hInst, IDD_SELECT_CRYPTOPROVIDER), 
+		CDlgBase(g_plugin, IDD_SELECT_CRYPTOPROVIDER), 
 		m_combo(this, IDC_SELECTCRYPT_COMBO), 
 		m_descr(this, IDC_CRYPTOPROVIDER_DESCR),
 		m_provs(provs), 
@@ -19,7 +19,7 @@ public:
 		m_combo.OnChange = Callback(this, &CSelectCryptoDialog::OnComboChanged);
 	}
 
-	void OnInitDialog()
+	bool OnInitDialog() override
 	{
 		for (size_t i = 0; i < m_provscount; i++)
 		{
@@ -28,11 +28,13 @@ public:
 		}
 		m_combo.SetCurSel(0);
 		SetDescr(m_provs[0]);
+		return true;
 	}
 
-	void OnClose()
+	bool OnClose() override
 	{
 		m_selected = m_provs[ m_combo.GetItemData(m_combo.GetCurSel()) ];
+		return true;
 	}
 
 	void OnComboChanged(CCtrlCombo*)
@@ -42,7 +44,7 @@ public:
 
 	void SetDescr(CRYPTO_PROVIDER *prov)
 	{
-		m_descr.SetText(prov->ptszDescr);
+		m_descr.SetText(prov->szDescr.w);
 	}
 
 	inline CRYPTO_PROVIDER* GetSelected()

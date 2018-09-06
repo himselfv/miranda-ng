@@ -158,7 +158,7 @@ INT_PTR CALLBACK SendSmsDlgProc(HWND hWndDlg, UINT message, WPARAM wParam, LPARA
 			SetDlgItemText(hWndDlg, IDC_COUNT, tszSign);
 		}
 
-		if (Utils_RestoreWindowPosition(hWndDlg, (DB_SMS_GetByte(NULL, "SavePerContact", 0) ? psswdWindowData->hMyContact : NULL), PROTOCOL_NAMEA, "send")) {// def pos
+		if (Utils_RestoreWindowPosition(hWndDlg, (DB_SMS_GetByte(NULL, "SavePerContact", 0) ? psswdWindowData->hMyContact : NULL), MODULENAME, "send")) {// def pos
 			SetWindowPos(hWndDlg, nullptr, 200, 200, 400, 350, SWP_NOZORDER);
 		}
 		InvalidateRect(GetDlgItem(hWndDlg, IDC_MESSAGE), nullptr, FALSE);
@@ -403,7 +403,8 @@ INT_PTR CALLBACK SendSmsDlgProc(HWND hWndDlg, UINT message, WPARAM wParam, LPARA
 						mir_wstrcat(tszPhone, L" SMS");
 						for (DWORD i = 0; bCont; i++) {
 							mir_snprintf(szBuff, "MyPhone%d", i);
-							if (db_get(psswdWindowData->hMyContact, "UserInfo", szBuff, &dbv)) bCont = FALSE;
+							if (db_get(psswdWindowData->hMyContact, "UserInfo", szBuff, &dbv))
+								bCont = FALSE;
 							db_free(&dbv);
 						}
 						DB_SetStringW(psswdWindowData->hMyContact, "UserInfo", szBuff, tszPhone);
@@ -580,7 +581,7 @@ void SendSMSWindowRemove(HWND hWndDlg)
 	if (psswdWindowData) {
 		DB_SMS_SetDword(NULL, "LastProto", SendDlgItemMessage(hWndDlg, IDC_ACCOUNTS, CB_GETCURSEL, 0, 0));
 		SendSMSWindowMultipleSet(hWndDlg, FALSE);
-		Utils_SaveWindowPosition(hWndDlg, (DB_SMS_GetByte(NULL, "SavePerContact", 0) ? psswdWindowData->hMyContact : NULL), PROTOCOL_NAMEA, "send");
+		Utils_SaveWindowPosition(hWndDlg, (DB_SMS_GetByte(NULL, "SavePerContact", 0) ? psswdWindowData->hMyContact : NULL), MODULENAME, "send");
 
 		ListMTLock(&ssSMSSettings.lmtSendSMSWindowsListMT);
 		ListMTItemDelete(&ssSMSSettings.lmtSendSMSWindowsListMT, &psswdWindowData->lmtListMTItem);

@@ -82,6 +82,10 @@ Transferts de fichiers
 Autre
 [Choose appropriate accounts for import]
 
+[Enter file name for import:]
+
+[Check duplicates]
+
 ;file \plugins\Import\src\import.cpp
 [<New account>]
 <Nouveau compte>
@@ -168,6 +172,11 @@ Profil Miranda-IM
 [All Files]
 Tous les fichiers
 [You cannot import your current profile into itself]
+
+;file \plugins\Import\src\ui.cpp
+[Import history for %s]
+
+[JSON file]
 
 ;file \plugins\Import\src\utils.cpp
 [Skipping duplicate group %s.]

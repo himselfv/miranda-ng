@@ -20,9 +20,6 @@
 #ifndef MSG_EXP_UTILS_H
 #define MSG_EXP_UTILS_H
 
-#define tstring wstring
-#define _DBGetString _DBGetStringW
-
 enum ENDialogAction
 {
 	eDAPromptUser,
@@ -30,57 +27,44 @@ enum ENDialogAction
 	eDANothing
 };
 
-extern ENDialogAction enRenameAction;
-extern ENDialogAction enDeleteAction;
+extern ENDialogAction g_enRenameAction;
+extern ENDialogAction g_enDeleteAction;
 
 extern int nMaxLineWidth;
-extern tstring sExportDir;
-extern tstring sDefaultFile;
-extern tstring sTimeFormat;
-extern map<tstring, string::size_type, less<tstring> > clFileTo1ColWidth;
+extern wstring g_sExportDir;
+extern wstring g_sDefaultFile;
+extern wstring g_sTimeFormat;
+extern map<wstring, string::size_type, less<wstring> > clFileTo1ColWidth;
 
-extern bool bAppendNewLine;
-extern bool bUseUtf8InNewFiles;
-extern bool bUseLessAndGreaterInExport;
+extern bool g_bAppendNewLine;
+extern bool g_bUseJson;
+extern bool g_bUseUtf8InNewFiles;
+extern bool g_bUseLessAndGreaterInExport;
 
-extern bool bReplaceHistory;
+extern bool g_bReplaceHistory;
 
-tstring sGetErrorString(DWORD dwError);
-tstring sGetErrorString();
-void DisplayLastError(const wchar_t *pszError);
-void DisplayErrorDialog(const wchar_t *pszError, tstring& sFilePath, DBEVENTINFO *dbei);
-
-wchar_t *CheckedTranslate(const wchar_t *szEng, int nFormatCount = -1);
-
-void SaveSettings();
-void ShowDebugInfo();
+void LogLastError(const wchar_t *pszError);
+void DisplayErrorDialog(const wchar_t *pszError, wstring &sFilePath, DBEVENTINFO *dbei);
 
 bool bIsExportEnabled(MCONTACT hContact);
-HANDLE openCreateFile(tstring sFilePath);
-bool bExportEvent(MCONTACT hContact, MEVENT hDbEvent, HANDLE hFile, tstring sFilePath, bool bAppendOnly);
+HANDLE openCreateFile(wstring sFilePath);
+bool bExportEvent(MCONTACT hContact, MEVENT hDbEvent, HANDLE hFile, wstring sFilePath, bool bAppendOnly);
 
 int nExportEvent(WPARAM wparam, LPARAM lparam);
 int nContactDeleted(WPARAM wparam, LPARAM lparam);
 
 wchar_t* GetMyOwnNick(MCONTACT hContact);
 
-tstring __inline _DBGetStringW(MCONTACT hContact, const char *szModule, const char *szSetting, const wchar_t *pszError);
-string __inline _DBGetStringA(MCONTACT hContact, const char *szModule, const char *szSetting, const char *pszError);
-
-void ReplaceAll(tstring &sSrc, const wchar_t *pszReplace, const tstring &sNew);
-void ReplaceAll(tstring &sSrc, const wchar_t *pszReplace, const wchar_t *pszNew);
+wstring __inline _DBGetStringW(MCONTACT hContact, const char *szModule, const char *szSetting, const wchar_t *pszError);
 
 void UpdateFileToColWidth();
 
 bool bReadMirandaDirAndPath();
-tstring GetFilePathFromUser(MCONTACT hContact);
+wstring GetFilePathFromUser(MCONTACT hContact);
 
-void ReplaceDefines(MCONTACT hContact, tstring & sTarget);
-void ReplaceTimeVariables(tstring &sRet);
+void ReplaceDefines(MCONTACT hContact, wstring & sTarget);
+void ReplaceTimeVariables(wstring &sRet);
 
-bool bCreatePathToFile(tstring sFilePath);
-
-bool bWriteIndentedToFile(HANDLE hFile, int nIndent, const char *pszSrc, bool bUtf8File);
 bool bWriteIndentedToFile(HANDLE hFile, int nIndent, const wchar_t *pszSrc, bool bUtf8File);
 bool bWriteNewLine(HANDLE hFile, DWORD dwIndent);
 bool bIsUtf8Header(BYTE * pucByteOrder);

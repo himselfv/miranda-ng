@@ -2,26 +2,26 @@
 	ClientChangeNotify - Plugin for Miranda IM
 	Copyright (c) 2006-2008 Chervov Dmitry
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "stdafx.h"
 
 // ================================================ Popup options ================================================
 
-COptPage g_PopupOptPage(MOD_NAME, nullptr);
+COptPage g_PopupOptPage(MODULENAME, nullptr);
 
 void EnablePopupOptDlgControls()
 {
@@ -128,7 +128,7 @@ INT_PTR CALLBACK PopupOptDlg(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 				DBCONTACTWRITESETTING cws = {};
 				cws.szModule = "ICQ";
 				cws.szSetting = DB_MIRVER;
-				db_set_s(NULL, MOD_NAME, DB_OLDMIRVER, "ICQ Lite v5");
+				db_set_s(NULL, MODULENAME, DB_OLDMIRVER, "ICQ Lite v5");
 				ContactSettingChanged(NULL, (LPARAM)&cws); // simulate a version change
 				delete g_PreviewOptPage;
 				g_PreviewOptPage = nullptr;
@@ -167,9 +167,8 @@ int OptionsDlgInit(WPARAM wParam, LPARAM)
 		optDi.szTitle.a = LPGEN("ClientChangeNotify");
 		optDi.pfnDlgProc = PopupOptDlg;
 		optDi.pszTemplate = MAKEINTRESOURCEA(IDD_POPUPOPTDLG);
-		optDi.hInstance = g_hInstance;
 		optDi.flags = ODPF_BOLDGROUPS;
-		Options_AddPage(wParam, &optDi);
+		g_plugin.addOptions(wParam, &optDi);
 	}
 	return 0;
 }

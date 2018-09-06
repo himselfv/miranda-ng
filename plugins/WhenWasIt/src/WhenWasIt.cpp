@@ -20,16 +20,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 
-char ModuleName[] = "WhenWasIt";
-HINSTANCE hInstance;
 HWND hBirthdaysDlg = nullptr;
 HWND hUpcomingDlg = nullptr;
 MWindowList hAddBirthdayWndsList = nullptr;
-int hLangpack;
+
+CMPlugin g_plugin;
 
 CommonData commonData = { 0 };
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -42,16 +43,15 @@ PLUGININFOEX pluginInfo = {
 	{ 0x2ff96c84, 0xb0b5, 0x470e, { 0xbb, 0xf9, 0x90, 0x7b, 0x9f, 0x3f, 0x5d, 0x2f } }
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX *MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" int __declspec(dllexport) Load(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Load()
 {
 	Log("%s", "Entering function " __FUNCTION__);
-
-	mir_getLP(&pluginInfo);
 
 	INITCOMMONCONTROLSEX icex;
 	icex.dwSize = sizeof(icex);
@@ -68,9 +68,9 @@ extern "C" int __declspec(dllexport) Load(void)
 
 	hAddBirthdayWndsList = WindowList_Create();
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.position = 10000000;
-	mi.root = Menu_CreateRoot(MO_MAIN, LPGENW("Birthdays (When Was It)"), mi.position);
+	mi.root = g_plugin.addRootMenu(MO_MAIN, LPGENW("Birthdays (When Was It)"), mi.position);
 	Menu_ConfigureItem(mi.root, MCI_OPT_UID, "95D842AE-FCCE-43C9-87E3-C28546B7E00E");
 
 	SET_UID(mi, 0x4efbd640, 0xabbd, 0x470e, 0x9a, 0xa, 0x64, 0x76, 0x1a, 0x74, 0xf3, 0x24);
@@ -120,21 +120,23 @@ extern "C" int __declspec(dllexport) Load(void)
 	hotkey.pszName = "wwi_birthday_list";
 	hotkey.szDescription.a = LPGEN("Birthday list");
 	hotkey.pszService = MS_WWI_LIST_SHOW;
-	Hotkey_Register(&hotkey);
+	g_plugin.addHotkey(&hotkey);
 
 	hotkey.pszName = "wwi_check_birthdays";
 	hotkey.szDescription.a = LPGEN("Check for birthdays");
 	hotkey.pszService = MS_WWI_CHECK_BIRTHDAYS;
-	Hotkey_Register(&hotkey);
+	g_plugin.addHotkey(&hotkey);
 
-	Skin_AddSound(BIRTHDAY_NEAR_SOUND, LPGENW("WhenWasIt"), LPGENW("Birthday near"));
-	Skin_AddSound(BIRTHDAY_TODAY_SOUND, LPGENW("WhenWasIt"), LPGENW("Birthday today"));
+	g_plugin.addSound(BIRTHDAY_NEAR_SOUND, LPGENW("WhenWasIt"), LPGENW("Birthday near"));
+	g_plugin.addSound(BIRTHDAY_TODAY_SOUND, LPGENW("WhenWasIt"), LPGENW("Birthday today"));
 
 	Log("%s", "Leaving function " __FUNCTION__);
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload()
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	Log("%s", "Entering function " __FUNCTION__);
 
@@ -152,10 +154,4 @@ extern "C" int __declspec(dllexport) Unload()
 
 	Log("%s", "Leaving function " __FUNCTION__);
 	return 0;
-}
-
-bool WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInstance = hinstDLL;
-	return TRUE;
 }

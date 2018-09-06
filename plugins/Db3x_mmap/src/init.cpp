@@ -23,10 +23,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 
-int hLangpack;
+CMPlugin g_plugin;
 
-static PLUGININFOEX pluginInfo =
-{
+LIST<CDb3Mmap> g_Dbs(1, HandleKeySortT);
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_DATABASE, MIID_LAST };
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -36,12 +43,12 @@ static PLUGININFOEX pluginInfo =
 	__AUTHORWEB,
 	UNICODE_AWARE | STATIC_PLUGIN,
 	//{F7A6B27C-9D9C-4A42-BE86-A448AE109161}
-	{ 0xf7a6b27c, 0x9d9c, 0x4a42, { 0xbe, 0x86, 0xa4, 0x48, 0xae, 0x10, 0x91, 0x61 } }
+	{0xf7a6b27c, 0x9d9c, 0x4a42, {0xbe, 0x86, 0xa4, 0x48, 0xae, 0x10, 0x91, 0x61}}
 };
 
-HINSTANCE g_hInst = nullptr;
-
-LIST<CDb3Mmap> g_Dbs(1, HandleKeySortT);
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -68,9 +75,6 @@ static int grokHeader(const wchar_t *profile)
 
 static MDatabaseCommon* LoadDatabase(const wchar_t *profile, BOOL bReadOnly)
 {
-	// set the memory, lists & UTF8 manager
-	mir_getLP(&pluginInfo);
-
 	////////////////////////////////////////////////////////////////////////////////////////
 	// if not read only, convert the old profile to libmdbx
 	if (!bReadOnly) {
@@ -81,26 +85,29 @@ static MDatabaseCommon* LoadDatabase(const wchar_t *profile, BOOL bReadOnly)
 			return nullptr;
 		}
 
-		if (IDYES != MessageBoxW(nullptr, TranslateT(CONVERT_MSG), L"Miranda NG", MB_YESNO))
-			return nullptr;
+		if (!Profile_GetSettingInt(L"Database/SilentUpgrade"))
+			if (IDYES != MessageBoxW(nullptr, TranslateT(CONVERT_MSG), L"Miranda NG", MB_YESNO))
+				return nullptr;
 
 		int errorCode;
 		CMStringW wszBackupName(profile);
 		wszBackupName.Append(L".bak");
 		if (!MoveFileW(profile, wszBackupName)) {
-			Netlib_LogfW(nullptr, L"Cannot move old profile '%s' to '%s': error %d", profile, wszBackupName.c_str(), GetLastError());
+			DWORD dwError = GetLastError();
+			CMStringW wszError(FORMAT, TranslateT("Cannot move old profile '%s' to '%s': error %d"), profile, wszBackupName.c_str(), dwError);
+			MessageBoxW(nullptr, wszError, L"Miranda NG", MB_ICONERROR | MB_OK);
 			return nullptr;
 		}
 
 		if ((errorCode = pLink->makeDatabase(profile)) != 0) {
-			Netlib_LogfW(nullptr, L"Database creation '%s' failed with error code %d", profile, errorCode);
-LBL_Error: 
+			MessageBoxW(nullptr, CMStringW(FORMAT, TranslateT("Attempt to create database '%s' failed with error code %d"), profile, errorCode), L"Miranda NG", MB_ICONERROR | MB_OK);
+LBL_Error:
 			DeleteFileW(profile);
 			MoveFileW(wszBackupName, profile);
 			return nullptr;
 		}
 
-		if (SetServiceModePlugin(L"import") != ERROR_SUCCESS) {
+		if (SetServiceModePlugin(L"import", 1) != ERROR_SUCCESS) {
 			if (IDYES == MessageBoxW(nullptr, TranslateT(MISSING_PLUG_MSG), L"Miranda NG", MB_YESNO))
 				Utils_OpenUrl("https://miranda-ng.org/p/Import");
 			goto LBL_Error;
@@ -129,26 +136,8 @@ static DATABASELINK dblink =
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
-
-extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_DATABASE, MIID_LAST };
-
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
 	RegisterDatabasePlugin(&dblink);
 	return 0;
-}
-
-extern "C" __declspec(dllexport) int Unload(void)
-{
-	return 0;
-}
-
-BOOL WINAPI DllMain(HINSTANCE hInstDLL, DWORD, LPVOID)
-{
-	g_hInst = hInstDLL;
-	return TRUE;
 }

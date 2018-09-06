@@ -19,7 +19,6 @@
 #define IDI_DELETE                      175
 #define IDC_DROP                        183
 #define IDI_SENDEMAIL                   193
-#define IDR_CLISTMENU                   199
 #define IDI_BLANK                       200
 #define IDD_OPT_ICONS                   207
 #define IDI_FILE                        207
@@ -482,7 +481,6 @@
 #define IDC_SELECTMODE                  19126
 #define IDC_CONFIGUREMODES              19127
 #define IDC_USEGROUPS                   19128
-#define ID_ICQ_EXIT                     40001
 #define POPUP_NEWSUBGROUP               40004
 #define POPUP_GROUPSHOWOFFLINE          40019
 #define IDC_FRAME_META                  40054
@@ -502,7 +500,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        510
+#define _APS_NEXT_RESOURCE_VALUE        511
 #define _APS_NEXT_COMMAND_VALUE         40022
 #define _APS_NEXT_CONTROL_VALUE         2025
 #define _APS_NEXT_SYMED_VALUE           101

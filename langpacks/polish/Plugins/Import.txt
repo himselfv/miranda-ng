@@ -82,6 +82,10 @@ Transfery plików
 Inne
 [Choose appropriate accounts for import]
 Wybierz odpowiednie konta, by dokonać importowania
+[Enter file name for import:]
+
+[Check duplicates]
+
 ;file \plugins\Import\src\import.cpp
 [<New account>]
 <Nowe konto>
@@ -168,6 +172,11 @@ Profil Mirandy NG
 [All Files]
 Wszystkie pliki
 [You cannot import your current profile into itself]
+Nie możesz zaimportować obecnego profilu do niego samego
+;file \plugins\Import\src\ui.cpp
+[Import history for %s]
+
+[JSON file]
 
 ;file \plugins\Import\src\utils.cpp
 [Skipping duplicate group %s.]

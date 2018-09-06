@@ -16,17 +16,24 @@
 #include "Resource.h"
 #include "version.h"
 
-#define protocolname		"SimpleAutoReplier" //no spaces here :)
+#define MODULENAME "SimpleAutoReplier"
 
 #define KEY_ENABLED			"Enabled"
 #define KEY_HEADING			"Heading"
 #define KEY_REPEATINTERVAL	"RepeatInterval"
 
-//General
-extern HINSTANCE hinstance;
+// General
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
+
 extern INT interval;
 extern wchar_t *ptszDefaultMsg[6];
 extern HGENMENU hEnableMenu;
-extern IconItemT iconList[];
+extern IconItem iconList[];
 
 extern INT OptInit(WPARAM wParam, LPARAM lParam);

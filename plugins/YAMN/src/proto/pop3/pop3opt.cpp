@@ -153,8 +153,7 @@ INT_PTR CALLBACK DlgProcPluginOpt(HWND hDlg, UINT msg, WPARAM wParam, LPARAM)
 
 int YAMNOptInitSvc(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_plugin.getInst();
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szGroup.a = LPGEN("Network");
 	odp.szTitle.a = LPGEN("YAMN");
 	odp.flags = ODPF_BOLDGROUPS;
@@ -162,24 +161,24 @@ int YAMNOptInitSvc(WPARAM wParam, LPARAM)
 	odp.szTab.a = LPGEN("Accounts");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_POP3ACCOUNTOPT);
 	odp.pfnDlgProc = DlgProcPOP3AccOpt;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("General");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_YAMNOPT);
 	odp.pfnDlgProc = DlgProcYAMNOpt;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Plugins");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_PLUGINOPT);
 	odp.pfnDlgProc = DlgProcPluginOpt;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	if (ServiceExists(MS_POPUP_ADDPOPUPT)) {
 		odp.szGroup.a = LPGEN("Popups");
 		odp.szTab.a = LPGEN("YAMN");
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_POP3ACCOUNTPOPUP);
 		odp.pfnDlgProc = DlgProcPOP3AccPopup;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }

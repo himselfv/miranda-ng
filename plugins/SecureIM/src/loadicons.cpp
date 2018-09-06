@@ -89,7 +89,7 @@ void InitIcons(void)
 		hNewIconInst = LoadIconsPack("plugins\\secureim_icons.dll");
 
 	if (hNewIconInst == nullptr)
-		g_hIconInst = g_hInst;
+		g_hIconInst = g_plugin.getInst();
 	else
 		g_hIconInst = hNewIconInst;
 
@@ -105,7 +105,7 @@ void InitIcons(void)
 		sid.pszName = icons[i].name;
 		sid.description.a = icons[i].text;
 		sid.iDefaultIndex = -icons[i].key;
-		HANDLE hIcolib = IcoLib_AddIcon(&sid);
+		HANDLE hIcolib = g_plugin.addIcon(&sid);
 
 		HICON hIcon = IcoLib_GetIconByHandle(hIcolib);
 		if (icons[i].tbl == TBL_IEC)

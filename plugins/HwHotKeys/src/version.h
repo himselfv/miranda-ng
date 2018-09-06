@@ -30,11 +30,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111 - 1307, USA.
 
 #define __PLUGIN_NAME      "Hardware HotKeys" // dll-fileinfo "FileVersion" и "ProductName", меню в настройках миранды, название плагина в миранде. Нелокализуемое!
 #define __FILENAME         "HwHotKeys.dll" // dll-fileinfo "OriginalFilename"
-#define __DESCRIPTION_MIR  "Allows you to assign expanded multimedia keys (only for PS/2 keyboards)." // описание плагина в миранде (локализуемое)
-#define __DESCRIPTION_DLL  "Hardware HotKeys plugin for Miranda NG." // описание плагина в dll-fileinfo "FileDescription" (там многострочные строки - не работают). Нелокализуемое!
+#define __DESCRIPTION      "Allows you to assign expanded multimedia keys (only for PS/2 keyboards)." // описание плагина в миранде (локализуемое)
 #define __AUTHOR           "Eugene f2065" // описание плагина в миранде
 #define __AUTHORWEB        "http://f2065.narod.ru/" // описание плагина в dll-fileinfo "CompanyName", описание плагина в миранде
 #define __COPYRIGHT        "© 2010-18 Eugene f2065" // описание плагина в dll-fileinfo "LegalCopyright", описание плагина в миранде
 
-#define __DbModName			"HwHotKeys" // имя раздела настроек плагина в БД миранды
+#define MODULENAME			"HwHotKeys" // имя раздела настроек плагина в БД миранды
 

@@ -51,6 +51,7 @@ using namespace std;
 #include <win2k.h>
 #include <msapi/vsstyle.h>
 #include <msapi/vssym32.h>
+
 #include <newpluginapi.h>
 #include <m_button.h>
 #include <m_chat_int.h>
@@ -63,9 +64,11 @@ using namespace std;
 #include <m_netlib.h>
 #include <m_protosvc.h>
 #include <m_skin.h>
+#include <m_json.h>
 #include <m_popup.h>
 #include <m_icolib.h>
 #include <m_string.h>
+#include <m_message.h>
 
 #include <m_folders.h>
 #include <m_HTTPServer.h>
@@ -74,7 +77,6 @@ using namespace std;
 #include <m_userinfoex.h>
 #include <m_cloudfile.h>
 
-#include "mir_string.h"
 #include "ctrl_button.h"
 #include "dlg_msgbox.h"
 #include "resource.h"
@@ -90,7 +92,6 @@ using namespace std;
 #include "CSendHost_imgur.h"
 #include "DevKey.h"
 #include "UMainForm.h"
-#include "UAboutForm.h"
 #include "Utils.h"
 
 #define UM_CLOSING	WM_USER+1
@@ -101,34 +102,42 @@ using namespace std;
 #define MSGINFO	(text) MessageBox(NULL, text, L"SendSS", MB_OK | MB_ICONINFORMATION)
 
 typedef struct _MGLOBAL {
-	DWORD		mirandaVersion;					// mirandaVersion
-	BOOLEAN		PopupExist			: 1;		// Popup or MS_POPUP_ADDPOPUP exist
-	BOOLEAN		PopupActionsExist	: 1;		// Popup++ or MS_POPUP_REGISTERACTIONS exist
-	BOOLEAN		PluginHTTPExist		: 1;		// HTTPServer or MS_HTTP_ACCEPT_CONNECTIONS exist
-	BOOLEAN		PluginFTPExist		: 1;		// FTPFile or MS_FTPFILE_UPLOAD exist
-	BOOLEAN		PluginCloudFileExist: 1;		// CloudFile or MS_CLOUDFILE_UPLOAD exists
+	DWORD   mirandaVersion;          // mirandaVersion
+	BOOLEAN PopupExist          : 1; // Popup or MS_POPUP_ADDPOPUP exist
+	BOOLEAN PopupActionsExist   : 1; // Popup++ or MS_POPUP_REGISTERACTIONS exist
+	BOOLEAN PluginHTTPExist     : 1;	// HTTPServer or MS_HTTP_ACCEPT_CONNECTIONS exist
+	BOOLEAN PluginFTPExist      : 1; // FTPFile or MS_FTPFILE_UPLOAD exist
+	BOOLEAN PluginCloudFileExist: 1;	// CloudFile or MS_CLOUDFILE_UPLOAD exists
 
 } MGLOBAL, *LPMGLOBAL;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-#define ERROR_TITLE		TranslateT("SendScreenshot - Error")
+#define ERROR_TITLE TranslateT("SendScreenshot - Error")
 
 // Miranda Database Key
-#define SZ_SENDSS		"SendSS"
+#define MODULENAME "SendSS"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
 
 extern ATOM g_clsTargetHighlighter;
-extern HINSTANCE g_hSendSS;
 extern MGLOBAL g_myGlobals;
 extern HNETLIBUSER g_hNetlibUser;
 
-enum{
-	ICO_MAIN=0,
+enum
+{
+	ICO_MAIN = 0,
 	ICO_MAINXS,
 	ICO_TARGET,
 	ICO_MONITOR,
 	ICO_END_,
-	ICO_BTN_HELP=0,
+	ICO_BTN_HELP = 0,
 	ICO_BTN_FOLDER,
 	ICO_BTN_DESC,
 	ICO_BTN_DESCON,
@@ -139,7 +148,6 @@ enum{
 	ICO_BTN_UPDATE,
 	ICO_BTN_OK,
 	ICO_BTN_CANCEL,
-//		ICO_BTN_APPLY,
 	ICO_BTN_EDIT,
 	ICO_BTN_EDITON,
 	ICO_BTN_COPY,

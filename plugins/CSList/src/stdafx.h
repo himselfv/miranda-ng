@@ -28,7 +28,7 @@ Offers List of your Custom Statuses.
 
 ============================================================================
 
-// ====[ INCLUDES AND DEFINITIONS ]======================================== */
+//====[ INCLUDES AND DEFINITIONS ]======================================== */
 
 #ifndef __CSLIST_H
 #define __CSLIST_H 1
@@ -52,17 +52,24 @@ Offers List of your Custom Statuses.
 #include "resource.h"
 #include "version.h"
 
-// ====[ BASIC DEFINITIONS ]==================================================
+//====[ BASIC DEFINITIONS ]==================================================
 
 #define MODULENAME  LPGENW("Custom Status List")
 #define MODNAME     "CSList"
 
-// ====[ LIMITS ]=============================================================
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
+
+//====[ LIMITS ]=============================================================
 
 #define EXTRASTATUS_TITLE_LIMIT			64   // limit of chars for extra status title
 #define EXTRASTATUS_MESSAGE_LIMIT		2048 // limit of chars for extra status message
 
-// ====[ DEFAULT DB VALUES ]==================================================
+//====[ DEFAULT DB VALUES ]==================================================
 
 #define DEFAULT_ICQ_XSTATUS_ENABLED                 1
 #define DEFAULT_PLUGIN_SHOW_RELNOTES                0
@@ -76,7 +83,7 @@ Offers List of your Custom Statuses.
 #define DEFAULT_REMEMBER_WINDOW_POSITION            1
 
 
-// ====[ FUNCTION MACROS ]====================================================
+//====[ FUNCTION MACROS ]====================================================
 
 // set which row is selected (cannot be only focused, but fully selected - second param ;))
 #define ListView_GetSelectedItemMacro( hwnd )   ListView_GetNextItem( hwnd, -1, LVNI_FOCUSED | LVNI_SELECTED );
@@ -98,7 +105,7 @@ Offers List of your Custom Statuses.
 typedef void(__cdecl *pForAllProtosFunc)(char*, void *);
 
 
-// ====[ STRUCTURES ]=========================================================
+//====[ STRUCTURES ]=========================================================
 
 struct StatusItem // list item structure
 {
@@ -151,7 +158,7 @@ static struct CSForm { // icons + buttons
 	{ IDOK, LPGENW("Set custom status to selected one and close"), LPGENW("Set"), "apply", IDI_APPLY }
 };
 
-// ====[ MY BITCHY LIST IMPLEMENTATION x)) ]==================================
+//====[ MY BITCHY LIST IMPLEMENTATION x)) ]==================================
 // TODO: Optimize it all x))
 
 template< class T > struct ListItem
@@ -300,7 +307,7 @@ public:
 };
 
 
-// ====[ CLASSING -- FUNNY STUFF :) ]=========================================
+//====[ CLASSING -- FUNNY STUFF :) ]=========================================
 
 struct CSWindow;
 struct CSAMWindow;
@@ -394,15 +401,13 @@ INT_PTR __cdecl  showList(WPARAM, LPARAM, LPARAM);
 void addProtoStatusMenuItem(char *protoName);
 
 // other functions
-void IitIcoLib();
 void RegisterHotkeys(char buf[200], wchar_t* accName, int Number);
 void SetStatus(WORD code, StatusItem* item, char *protoName);
 
-// ====[ PROCEDURES ]=========================================================
+//====[ PROCEDURES ]=========================================================
 
 INT_PTR CALLBACK CSWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
 INT_PTR CALLBACK CSAMWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
-INT_PTR CALLBACK CSRNWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
 INT_PTR CALLBACK CSOptionsProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
 
 #endif /* __CSLIST_H */

@@ -214,7 +214,7 @@ CProxyWindow::CProxyWindow(CTabBaseDlg *dat)
 	m_thumb = nullptr;
 
 	m_hwndProxy = ::CreateWindowEx(/*WS_EX_TOOLWINDOW | */WS_EX_NOACTIVATE, PROXYCLASSNAME, L"",
-		WS_POPUP | WS_BORDER | WS_SYSMENU | WS_CAPTION, -32000, -32000, 10, 10, nullptr, nullptr, g_hInst, (LPVOID)this);
+		WS_POPUP | WS_BORDER | WS_SYSMENU | WS_CAPTION, -32000, -32000, 10, 10, nullptr, nullptr, g_plugin.getInst(), (LPVOID)this);
 
 #if defined(__LOGDEBUG_)
 	_DebugTraceW(L"create proxy object for: %s", m_dat->cache->getNick());
@@ -840,7 +840,7 @@ void CThumbMUC::renderContent()
 	if (si == nullptr)
 		return;
 
-	const MODULEINFO *mi = pci->MM_FindModule(si->pszModule);
+	const MODULEINFO *mi = g_chatApi.MM_FindModule(si->pszModule);
 	if (mi) {
 		wchar_t szTemp[250];
 		if (m_dat->m_dwUnread) {

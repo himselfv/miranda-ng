@@ -432,7 +432,7 @@ static INT_PTR CALLBACK DlgProcFindAdd(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 		return TRUE;
 
 	case WM_SIZE:
-		Utils_ResizeDialog(hwndDlg, g_hInst, MAKEINTRESOURCEA(IDD_FINDADD), FindAddDlgResizer, (LPARAM)dat);
+		Utils_ResizeDialog(hwndDlg, g_plugin.getInst(), MAKEINTRESOURCEA(IDD_FINDADD), FindAddDlgResizer, (LPARAM)dat);
 		ReposTinySearchDlg(hwndDlg, dat);
 		SendDlgItemMessage(hwndDlg, IDC_STATUSBAR, WM_SIZE, 0, 0);
 		if (dat->notSearchedYet) {
@@ -988,7 +988,7 @@ static INT_PTR FindAddCommand(WPARAM, LPARAM)
 				netProtoCount++;
 		}
 		if (netProtoCount > 0)
-			hwndFindAdd = CreateDialog(g_hInst, MAKEINTRESOURCE(IDD_FINDADD), nullptr, DlgProcFindAdd);
+			hwndFindAdd = CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(IDD_FINDADD), nullptr, DlgProcFindAdd);
 	}
 	return 0;
 }
@@ -1009,7 +1009,7 @@ int LoadFindAddModule(void)
 	HookEvent(ME_PROTO_ACCLISTCHANGED, OnSystemModulesLoaded);
 	HookEvent(ME_SYSTEM_PRESHUTDOWN, FindAddPreShutdown);
 
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x860556b9, 0x1577, 0x4f6f, 0x8c, 0xb0, 0x93, 0x24, 0xa8, 0x2e, 0x20, 0x92);
 	mi.position = 500020000;
 	mi.hIcolibItem = Skin_GetIconHandle(SKINICON_OTHER_FINDUSER);

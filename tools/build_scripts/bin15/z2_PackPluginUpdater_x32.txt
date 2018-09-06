@@ -35,6 +35,7 @@ Plugins\contacts.dll
 Plugins\crashdumper.dll
 Plugins\cryptopp.dll
 Plugins\cslist.dll
+Plugins\currencyrates.dll
 Plugins\cyrtranslit.dll
 Plugins\dbeditorpp.dll
 Plugins\dbx_mdbx.dll
@@ -65,7 +66,6 @@ Plugins\iehistory.dll
 Plugins\ieview.dll
 Plugins\ignorestate.dll
 Plugins\import.dll
-Plugins\importtxt.dll
 Plugins\irc.dll
 Plugins\jabber.dll
 Plugins\keyboardnotify.dll
@@ -107,11 +107,11 @@ Plugins\ping.dll
 Plugins\pluginupdater.dll
 Plugins\pmanagerex.dll
 Plugins\popup.dll
+Plugins\proxyswitch.dll
 Plugins\quickcontacts.dll
 Plugins\quickmessages.dll
 Plugins\quickreplies.dll
 Plugins\quicksearch.dll
-Plugins\quotes.dll
 Plugins\rate.dll
 Plugins\recentcontacts.dll
 Plugins\removepersonalsettings.dll
@@ -174,7 +174,6 @@ Core\stdclist.dll
 Core\stdcrypt.dll
 Core\stdemail.dll
 Core\stdfile.dll
-Core\stdidle.dll
 Core\stdmsg.dll
 Core\stdssl.dll
 Core\stduihist.dll
@@ -188,6 +187,7 @@ Libs\libaxolotl.mir
 Libs\libeay32.mir
 Libs\libcurl.mir
 Libs\libjson.mir
+Libs\libmdbx.mir
 Libs\mir_app.mir
 Libs\mir_core.mir
 Libs\pcre16.mir
@@ -206,6 +206,7 @@ Scripts\winapi.dll
 Icons\flags_icons.dll
 Icons\fp_icons.dll
 Icons\historypp_icons.dll
+Icons\proto_currencyrates.dll
 Icons\proto_discord.dll
 Icons\proto_dummy.dll
 Icons\proto_facebook.dll
@@ -220,7 +221,6 @@ Icons\proto_mradio.dll
 Icons\proto_msn.dll
 Icons\proto_newsaggregator.dll
 Icons\proto_omegle.dll
-Icons\proto_quotes.dll
 Icons\proto_sametime.dll
 Icons\proto_skype.dll
 Icons\proto_steam.dll

@@ -39,13 +39,13 @@ HANDLE hHookWeatherError;
 MWindowList hDataWindowList, hWindowList;
 
 HANDLE hUpdateMutex;
-CLIST_INTERFACE *pcli;
 
 unsigned status;
 unsigned old_status;
 
 UINT_PTR timerId;
-int hLangpack;
+
+CMPlugin	g_plugin;
 
 MYOPTIONS opt;
 
@@ -56,12 +56,6 @@ BOOL ThreadRunning;
 BOOL ModuleLoaded;
 
 HANDLE hTBButton = nullptr;
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-CMPlugin	g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // plugin info
@@ -80,9 +74,12 @@ static const PLUGININFOEX pluginInfoEx =
 	{0x6b612a34, 0xdcf2, 0x4e32, {0x85, 0xcf, 0xb6, 0xfd, 0x0, 0x6b, 0x74, 0x5e}}
 };
 
-extern "C" __declspec(dllexport) const PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(WEATHERPROTONAME, pluginInfoEx)
 {
-	return &pluginInfoEx;
+	opt.NoProtoCondition = db_get_b(NULL, WEATHERPROTONAME, "NoStatus", true);
+	RegisterProtocol((opt.NoProtoCondition) ? PROTOTYPE_VIRTUAL : PROTOTYPE_PROTOCOL);
+	SetUniqueId("ID");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -97,8 +94,6 @@ int WeatherShutdown(WPARAM, LPARAM)
 
 	SaveOptions();					// save options once more
 	status = ID_STATUS_OFFLINE;		// set status to offline
-
-	Netlib_Shutdown(hNetlibHttp);
 
 	WindowList_Broadcast(hWindowList, WM_CLOSE, 0, 0);
 	WindowList_Broadcast(hDataWindowList, WM_CLOSE, 0, 0);
@@ -117,7 +112,7 @@ int OnToolbarLoaded(WPARAM, LPARAM)
 	ttb.hIconHandleUp = GetIconHandle("main");
 	ttb.hIconHandleDn = GetIconHandle("disabled");
 	ttb.dwFlags = (db_get_b(NULL, WEATHERPROTONAME, "AutoUpdate", 1) ? 0 : TTBBF_PUSHED) | TTBBF_ASPUSHBUTTON | TTBBF_VISIBLE;
-	hTBButton = TopToolbar_AddButton(&ttb);
+	hTBButton = g_plugin.addTTB(&ttb);
 	return 0;
 }
 
@@ -157,11 +152,8 @@ void InitVar()
 	ModuleLoaded = FALSE;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfoEx);
-	pcli = Clist_GetInterface();
-
 	// initialize global variables
 	InitVar();
 
@@ -202,8 +194,8 @@ extern "C" int __declspec(dllexport) Load(void)
 	InitServices();
 
 	// add sound event
-	Skin_AddSound("weatherupdated", _A2W(WEATHERPROTONAME), LPGENW("Weather Condition Changed"));
-	Skin_AddSound("weatheralert", _A2W(WEATHERPROTONAME), LPGENW("Weather Alert Issued"));
+	g_plugin.addSound("weatherupdated", _A2W(WEATHERPROTONAME), LPGENW("Condition Changed"));
+	g_plugin.addSound("weatheralert", _A2W(WEATHERPROTONAME), LPGENW("Alert Issued"));
 
 	// window needed for popup commands
 	wchar_t SvcFunc[100];
@@ -217,7 +209,7 @@ extern "C" int __declspec(dllexport) Load(void)
 /////////////////////////////////////////////////////////////////////////////////////////
 // unload function
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	DestroyMwin();
 	DestroyWindow(hPopupWindow);
@@ -225,7 +217,6 @@ extern "C" int __declspec(dllexport) Unload(void)
 	DestroyHookableEvent(hHookWeatherUpdated);
 	DestroyHookableEvent(hHookWeatherError);
 
-	NetlibHttpDisconnect();
 	Netlib_CloseHandle(hNetlibUser);
 
 	DestroyUpdateList();

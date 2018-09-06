@@ -5,13 +5,17 @@
 #include <wchar.h>
 
 #include <map>
+#include <regex>
+#include <string>
 
 #include <newpluginapi.h>
 #include <m_core.h>
 #include <m_utils.h>
 #include <m_langpack.h>
+#include <m_database.h>
 #include <m_options.h>
 #include <m_netlib.h>
+#include <m_genmenu.h>
 #include <m_http.h>
 #include <m_clist.h>
 #include <m_hotkeys.h>
@@ -26,6 +30,7 @@
 #include <m_toptoolbar.h>
 #include <m_json.h>
 #include <m_gui.h>
+#include <m_variables.h>
 
 #include <m_lua.h>
 #include <mirlua.h>
@@ -35,22 +40,20 @@
 
 class CMLuaScript;
 
-#include "mlua.h"
-#include "mlua_environment.h"
-#include "mlua_script.h"
-#include "mlua_function_loader.h"
-#include "mlua_module_loader.h"
-#include "mlua_script_loader.h"
-#include "mlua_options.h"
-#include "mlua_metatable.h"
+#include "plugin.h"
+#include "modules.h"
+#include "environment.h"
+#include "script.h"
+#include "function_loader.h"
+#include "module_loader.h"
+#include "script_loader.h"
+#include "variables_loader.h"
+#include "options.h"
+#include "metatable.h"
 
-#define MODULE "MirLua"
+#define MODULENAME "MirLua"
 
-extern HINSTANCE g_hInstance;
-
-extern CMLua *g_mLua;
-
-extern int hMLuaLangpack;
+extern PLUGININFOEX g_pluginInfoEx;
 
 extern HANDLE g_hCLibsFolder;
 extern HANDLE g_hScriptsFolder;
@@ -60,49 +63,20 @@ extern HANDLE g_hScriptsFolder;
 	#define MIRLUA_PATHT MIRANDA_PATH "\\Scripts"
 #endif
 
-/* modules */
+#define LUACLIBSCRIPTEXT L"dll"
+#define LUATEXTSCRIPTEXT L"lua"
+#define LUAPRECSCRIPTEXT L"luac"
 
-#define MLUA_CORE	"m_core"
-LUAMOD_API int (luaopen_m_core)(lua_State *L);
+extern HNETLIBUSER g_hNetlib;
+void LoadNetlib();
+void UnloadNetlib();
 
-#define MLUA_CHAT	"m_chat"
-LUAMOD_API int (luaopen_m_chat)(lua_State *L);
-
-#define MLUA_CLIST	"m_clist"
-LUAMOD_API int (luaopen_m_clist)(lua_State *L);
-
-#include "m_database.h"
-
-#define MLUA_ICOLIB	"m_icolib"
-LUAMOD_API int (luaopen_m_icolib)(lua_State *L);
-
-#include "m_json.h"
-
-#include "m_genmenu.h"
-
-#define MLUA_HTTP	"m_http"
-LUAMOD_API int (luaopen_m_http)(lua_State *L);
-
-#define MLUA_HOTKEYS	"m_hotkeys"
-LUAMOD_API int (luaopen_m_hotkeys)(lua_State *L);
-
-#define MLUA_MESSAGE	"m_message"
-LUAMOD_API int (luaopen_m_message)(lua_State *L);
-
-#define MLUA_OPTIONS	"m_options"
-LUAMOD_API int (luaopen_m_options)(lua_State *L);
-
-#include "m_protocols.h"
-
-#define MLUA_SOUNDS	"m_sounds"
-LUAMOD_API int (luaopen_m_sounds)(lua_State *L);
-
-#define MLUA_SRMM	"m_srmm"
-LUAMOD_API int (luaopen_m_srmm)(lua_State *L);
+void LoadIcons();
+HICON GetIcon(int iconId);
+HANDLE GetIconHandle(int iconId);
 
 /* utils */
 
-extern HNETLIBUSER hNetlib;
 void Log(const char *format, ...);
 void Log(const wchar_t *format, ...);
 
@@ -119,6 +93,4 @@ int luaM_getenv(lua_State *L);
 
 bool luaM_toboolean(lua_State *L, int idx);
 
-void InitIcons();
-HICON GetIcon(int iconId);
-HANDLE GetIconHandle(int iconId);
+bool luaM_isarray(lua_State *L, int idx);

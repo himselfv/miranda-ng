@@ -104,9 +104,7 @@ public:
 
 struct CMPlugin : public ACCPROTOPLUGIN<OmegleProto>
 {
-	CMPlugin() :
-		ACCPROTOPLUGIN<OmegleProto>("Omegle")
-	{
-		SetUniqueId("Nick");
-	}
+	CMPlugin();
+
+	int Load() override;
 };

@@ -213,7 +213,7 @@ static void CreateImageList(HWND hWnd)
 		ImageList_AddIcon(hImList, hIcon);
 	}
 	//ADD default Icon for nudge
-	HICON hIcon = (HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_NUDGE), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
+	HICON hIcon = (HICON)LoadImage(g_plugin.getInst(), MAKEINTRESOURCE(IDI_NUDGE), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
 	ImageList_AddIcon(hImList, hIcon);
 	DestroyIcon(hIcon);
 
@@ -372,21 +372,20 @@ static INT_PTR CALLBACK DlgProcNudgeOpt(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 
 int NudgeOptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -790000000;
-	odp.hInstance = hInst;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_NUDGE);
 	odp.szTitle.a = LPGEN("Nudge");
 	odp.szGroup.a = LPGEN("Events");
 	odp.szTab.a = LPGEN("Nudge");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = DlgProcNudgeOpt;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.position = -790000001;
 	odp.szTab.a = LPGEN("Window Shaking");
 	odp.pfnDlgProc = DlgProcShakeOpt;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_SHAKE);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }

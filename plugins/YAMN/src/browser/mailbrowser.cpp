@@ -645,7 +645,7 @@ void DoMailActions(HWND hDlg, HACCOUNT ActualAccount, struct CMailNumbers *MN, D
 			evt.lParam = ActualAccount->hContact;
 			evt.pszService = MS_YAMN_CLISTDBLCLICK;
 			evt.szTooltip.w = tszMsg;
-			pcli->pfnAddEvent(&evt);
+			g_clistApi.pfnAddEvent(&evt);
 		}
 		db_set_ws(ActualAccount->hContact, "CList", "StatusMsg", tszMsg);
 
@@ -684,7 +684,7 @@ void DoMailActions(HWND hDlg, HACCOUNT ActualAccount, struct CMailNumbers *MN, D
 
 	// and remove the event
 	if ((nflags & YAMN_ACC_CONT) && (!(nflags & YAMN_ACC_CONTNOEVENT)) && (MN->Real.UnSeen + MN->Virtual.UnSeen == 0))
-		pcli->pfnRemoveEvent(ActualAccount->hContact, ActualAccount->hContact);
+		g_clistApi.pfnRemoveEvent(ActualAccount->hContact, ActualAccount->hContact);
 
 	if ((MN->Real.BrowserUC + MN->Virtual.BrowserUC == 0) && (hDlg != nullptr)) {
 		if (!IsWindowVisible(hDlg) && !(nflags & YAMN_ACC_MSG))
@@ -806,7 +806,7 @@ LRESULT CALLBACK NewMailPopupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPa
 
 				hContact = PUGetContact(hWnd);
 
-				if (!db_get(hContact, YAMN_DBMODULE, "Id", &dbv)) {
+				if (!db_get_s(hContact, YAMN_DBMODULE, "Id", &dbv)) {
 					Account = (HACCOUNT)CallService(MS_YAMN_FINDACCOUNTBYNAME, (WPARAM)POP3Plugin, (LPARAM)dbv.pszVal);
 					db_free(&dbv);
 				}
@@ -843,7 +843,7 @@ LRESULT CALLBACK NewMailPopupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPa
 #endif
 			}
 			if ((Account->NewMailN.Flags & YAMN_ACC_CONT) && !(Account->NewMailN.Flags & YAMN_ACC_CONTNOEVENT))
-				pcli->pfnRemoveEvent(hContact, hContact);
+				g_clistApi.pfnRemoveEvent(hContact, hContact);
 		}
 		__fallthrough;
 
@@ -870,7 +870,7 @@ LRESULT CALLBACK NewMailPopupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPa
 
 			MCONTACT hContact = PUGetContact(hWnd);
 
-			if (!db_get(hContact, YAMN_DBMODULE, "Id", &dbv)) {
+			if (!db_get_s(hContact, YAMN_DBMODULE, "Id", &dbv)) {
 				ActualAccount = (HACCOUNT)CallService(MS_YAMN_FINDACCOUNTBYNAME, (WPARAM)POP3Plugin, (LPARAM)dbv.pszVal);
 				db_free(&dbv);
 			}
@@ -899,7 +899,7 @@ LRESULT CALLBACK NoNewMailPopupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM l
 
 			MCONTACT hContact = PUGetContact(hWnd);
 
-			if (!db_get(hContact, YAMN_DBMODULE, "Id", &dbv)) {
+			if (!db_get_s(hContact, YAMN_DBMODULE, "Id", &dbv)) {
 				ActualAccount = (HACCOUNT)CallService(MS_YAMN_FINDACCOUNTBYNAME, (WPARAM)POP3Plugin, (LPARAM)dbv.pszVal);
 				db_free(&dbv);
 			}
@@ -962,7 +962,7 @@ LRESULT CALLBACK NoNewMailPopupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM l
 
 			MCONTACT hContact = PUGetContact(hWnd);
 
-			if (!db_get(hContact, YAMN_DBMODULE, "Id", &dbv)) {
+			if (!db_get_s(hContact, YAMN_DBMODULE, "Id", &dbv)) {
 				ActualAccount = (HACCOUNT)CallService(MS_YAMN_FINDACCOUNTBYNAME, (WPARAM)POP3Plugin, (LPARAM)dbv.pszVal);
 				db_free(&dbv);
 			}
@@ -1683,7 +1683,7 @@ INT_PTR CALLBACK DlgProcYAMNMailBrowser(HWND hDlg, UINT msg, WPARAM wParam, LPAR
 			SetTimer(hDlg, TIMER_FLASHING, 500, nullptr);
 
 			if (ActualAccount->hContact != NULL)
-				pcli->pfnRemoveEvent(ActualAccount->hContact, (LPARAM)"yamn new mail message");
+				g_clistApi.pfnRemoveEvent(ActualAccount->hContact, (LPARAM)"yamn new mail message");
 
 			mir_subclassWindow(GetDlgItem(hDlg, IDC_LISTMAILS), ListViewSubclassProc);
 		}

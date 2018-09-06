@@ -55,23 +55,21 @@ static OptPageControl autoReplaceControls[] = {
 
 int InitOptionsCallback(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = hInst;
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szGroup.a = LPGEN("Message sessions");
 	odp.szTitle.a = LPGEN("Spell Checker");
 	odp.pfnDlgProc = OptionsDlgProc;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
 	odp.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	memset(&odp, 0, sizeof(odp));
-	odp.hInstance = hInst;
 	odp.szGroup.a = LPGEN("Message sessions");
 	odp.szTitle.a = LPGEN("Auto-replacements");
 	odp.pfnDlgProc = AutoreplaceDlgProc;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_REPLACEMENTS);
 	odp.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -84,8 +82,8 @@ void InitOptions()
 
 void LoadOptions()
 {
-	LoadOpts(optionsControls, _countof(optionsControls), MODULE_NAME);
-	LoadOpts(autoReplaceControls, _countof(autoReplaceControls), MODULE_NAME);
+	LoadOpts(optionsControls, _countof(optionsControls), MODULENAME);
+	LoadOpts(autoReplaceControls, _countof(autoReplaceControls), MODULENAME);
 
 	if (languages.getCount() <= 0) {
 		opts.default_language[0] = '\0';
@@ -93,8 +91,8 @@ void LoadOptions()
 	}
 
 	DBVARIANT dbv;
-	if (!db_get_ws(NULL, MODULE_NAME, "DefaultLanguage", &dbv)) {
-		mir_wstrncpy(opts.default_language, dbv.ptszVal, _countof(opts.default_language));
+	if (!db_get_ws(NULL, MODULENAME, "DefaultLanguage", &dbv)) {
+		mir_wstrncpy(opts.default_language, dbv.pwszVal, _countof(opts.default_language));
 		db_free(&dbv);
 	}
 
@@ -210,7 +208,7 @@ static INT_PTR CALLBACK OptionsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			int sel = SendDlgItemMessage(hwndDlg, IDC_DEF_LANG, CB_GETCURSEL, 0, 0);
 			if (sel >= languages.getCount())
 				sel = 0;
-			db_set_ws(NULL, MODULE_NAME, "DefaultLanguage",
+			db_set_ws(NULL, MODULENAME, "DefaultLanguage",
 				(wchar_t *)languages[sel]->language);
 			mir_wstrcpy(opts.default_language, languages[sel]->language);
 		}
@@ -239,7 +237,7 @@ static INT_PTR CALLBACK OptionsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 		return TRUE;
 	}
 
-	return SaveOptsDlgProc(optionsControls, _countof(optionsControls), MODULE_NAME, hwndDlg, msg, wParam, lParam);
+	return SaveOptsDlgProc(optionsControls, _countof(optionsControls), MODULENAME, hwndDlg, msg, wParam, lParam);
 }
 
 struct AutoreplaceData
@@ -368,7 +366,7 @@ static INT_PTR CALLBACK AutoreplaceDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam
 	switch (msg) {
 	case WM_INITDIALOG:
 	{
-		BOOL ret = SaveOptsDlgProc(autoReplaceControls, _countof(autoReplaceControls), MODULE_NAME, hwndDlg, msg, wParam, lParam);
+		BOOL ret = SaveOptsDlgProc(autoReplaceControls, _countof(autoReplaceControls), MODULENAME, hwndDlg, msg, wParam, lParam);
 
 		int sel = -1;
 		for (int i = 0; i < languages.getCount(); i++) {
@@ -497,5 +495,5 @@ static INT_PTR CALLBACK AutoreplaceDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam
 		return TRUE;
 	}
 
-	return SaveOptsDlgProc(autoReplaceControls, _countof(autoReplaceControls), MODULE_NAME, hwndDlg, msg, wParam, lParam);
+	return SaveOptsDlgProc(autoReplaceControls, _countof(autoReplaceControls), MODULENAME, hwndDlg, msg, wParam, lParam);
 }

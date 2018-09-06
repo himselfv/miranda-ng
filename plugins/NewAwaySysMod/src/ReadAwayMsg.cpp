@@ -53,7 +53,7 @@ static INT_PTR CALLBACK ReadAwayMsgDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam
 	case WM_INITDIALOG:
 		TranslateDialogDefault(hwndDlg);
 		Window_SetSkinIcon_IcoLib(hwndDlg, SKINICON_OTHER_MIRANDA);
-		Utils_RestoreWindowPosition(hwndDlg, NULL, MOD_NAME, RAMDLGSIZESETTING);
+		Utils_RestoreWindowPosition(hwndDlg, NULL, MODULENAME, RAMDLGSIZESETTING);
 		{
 			READAWAYMSGDATA *awayData = new READAWAYMSGDATA;
 			SetWindowLongPtr(hwndDlg, GWLP_USERDATA, (LONG_PTR)awayData);
@@ -110,7 +110,7 @@ static INT_PTR CALLBACK ReadAwayMsgDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam
 		break;
 
 	case WM_SIZE:
-		Utils_ResizeDialog(hwndDlg, g_hInstance, MAKEINTRESOURCEA(IDD_READAWAYMSG), ReadAwayMsgDlgResize);
+		Utils_ResizeDialog(hwndDlg, g_plugin.getInst(), MAKEINTRESOURCEA(IDD_READAWAYMSG), ReadAwayMsgDlgResize);
 		break;
 
 	case WM_CLOSE:
@@ -124,7 +124,7 @@ static INT_PTR CALLBACK ReadAwayMsgDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam
 			awayData->hAwayMsgEvent = nullptr;
 		}
 		delete awayData;
-		Utils_SaveWindowPosition(hwndDlg, NULL, MOD_NAME, RAMDLGSIZESETTING);
+		Utils_SaveWindowPosition(hwndDlg, NULL, MODULENAME, RAMDLGSIZESETTING);
 		WindowList_Remove(g_hReadWndList, hwndDlg);
 	}
 	return false;
@@ -135,6 +135,6 @@ INT_PTR GetContactStatMsg(WPARAM wParam, LPARAM)
 	if (HWND hWnd = WindowList_Find(g_hReadWndList, wParam)) // already have it
 		SetForegroundWindow(hWnd);
 	else
-		CreateDialogParam(g_hInstance, MAKEINTRESOURCE(IDD_READAWAYMSG), nullptr, ReadAwayMsgDlgProc, wParam);
+		CreateDialogParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_READAWAYMSG), nullptr, ReadAwayMsgDlgProc, wParam);
 	return 0;
 }

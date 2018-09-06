@@ -38,7 +38,7 @@ CSkypeOptionsMain::CSkypeOptionsMain(CSkypeProto *proto, int idDialog)
 	m_usehostname.OnChange = Callback(this, &CSkypeOptionsMain::OnUsehostnameCheck);
 }
 
-void CSkypeOptionsMain::OnInitDialog()
+bool CSkypeOptionsMain::OnInitDialog()
 {
 	CSkypeDlgBase::OnInitDialog();
 
@@ -48,10 +48,10 @@ void CSkypeOptionsMain::OnInitDialog()
 	m_skypename.SendMsg(EM_LIMITTEXT, 32, 0);
 	m_password.SendMsg(EM_LIMITTEXT, 128, 0);
 	m_group.SendMsg(EM_LIMITTEXT, 64, 0);
+	return true;
 }
 
-
-void CSkypeOptionsMain::OnApply()
+bool CSkypeOptionsMain::OnApply()
 {
 	ptrA szNewSkypename(m_skypename.GetTextA()), 
 		szOldSkypename(m_proto->getStringA(SKYPE_SETTINGS_ID));
@@ -64,6 +64,7 @@ void CSkypeOptionsMain::OnApply()
 	ptrW group(m_group.GetText());
 	if (mir_wstrlen(group) > 0 && !Clist_GroupExists(group))
 		Clist_GroupCreate(0, group);
+	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -71,14 +72,13 @@ void CSkypeOptionsMain::OnApply()
 int CSkypeProto::OnOptionsInit(WPARAM wParam, LPARAM)
 {
 	OPTIONSDIALOGPAGE odp = { sizeof(odp) };
-	odp.hInstance = g_plugin.getInst();
 	odp.szTitle.w = m_tszUserName;
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE | ODPF_DONTTRANSLATE;
 	odp.szGroup.w = LPGENW("Network");
 
 	odp.szTab.w = LPGENW("Account");
 	odp.pDialog = CSkypeOptionsMain::CreateOptionsPage(this);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	return 0;
 }

@@ -35,7 +35,7 @@ if "%comp%"=="bin15" (
 MsBuild.exe "mir_full.sln" /m /t:Rebuild /p:Configuration=Release;Platform="%ptr%" /fileLogger /fileLoggerParameters:LogFile=Logs\full%tp%.log;errorsonly;warningsonly;summary
 MsBuild.exe "mir_icons.sln" /m /t:Rebuild /p:Configuration=Release;Platform="%ptr%" /fileLogger /fileLoggerParameters:LogFile=Logs\icons%tp%.log;errorsonly;warningsonly;summary
 
-call pascal%tp%.bat
+call pascal.bat %tp%
 
 pushd ..\plugins\HistoryPlusPlus
 call make.bat %tp%
@@ -78,25 +78,19 @@ md "Release%tp%\Sounds"
 md "Release%tp%\Scripts"
 md "Release%tp%\Plugins\Listeningto"
 md "Release%tp%\Plugins\BASS"
-md "Release%tp%\Plugins\Quotes"
+md "Release%tp%\Plugins\CurrencyRates"
 md "Release%tp%\Plugins\Weather"
 
 copy /V /Y ..\plugins\FavContacts\gadget\favcontacts.gadget "Release%tp%\Gadgets\"
 copy /V /Y ..\plugins\Nudge\docs\Sounds\*.wav "Release%tp%\Sounds\"
 copy /V /Y ..\plugins\ListeningTo\listeningto\*.dll "Release%tp%\Plugins\Listeningto\"
-copy /V /Y ..\plugins\Quotes\docs\Utility\*.xml "Release%tp%\Plugins\Quotes\"
-copy /V /Y ..\plugins\Quotes\QuotesChart\bin\%tp%\QuotesChart.exe "Release%tp%\Plugins\Quotes\"
+copy /V /Y ..\plugins\CurrencyRates\docs\Utility\*.xml "Release%tp%\Plugins\CurrencyRates\"
+copy /V /Y ..\plugins\CurrencyRates\CurrencyRatesChart\bin\x%tp%\CurrencyRatesChart.exe "Release%tp%\Plugins\CurrencyRates\"
 copy /V /Y ..\plugins\Weather\docs\weather\*.ini "Release%tp%\Plugins\Weather\"
 copy /V /Y ..\plugins\Actman\services.ini "Release%tp%\Plugins\"
 copy /V /Y ..\plugins\Boltun\src\Engine\boltun.mindw "Release%tp%\Plugins\"
 copy /V /Y ..\plugins\Watrack\player.ini "Release%tp%\Plugins\"
 copy /V /Y ..\plugins\RemovePersonalSettings\docs\RemovePersonalSettings.ini "Release%tp%\"
-
-if /i '%tp%' == '32' (
-  md "Release32\Plugins\Importtxt"
-  copy /V /Y ..\plugins\ImportTXT\importtxt\*.ini "Release32\Plugins\Importtxt\"
-  copy /V /Y %SourceDir%\tools\build_scripts\redist\pcre3.dll "Release32\Libs"
-)
 
 rem xcopy /S /V /Y "..\delphi\%tp%" "Release%tp%"
 xcopy /S /V /Y "..\pre-symbols\%comp%\%tp%" "Symbols%tp%"

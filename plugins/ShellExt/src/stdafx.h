@@ -9,7 +9,6 @@
 #include <stddef.h>
 
 #include <newpluginapi.h>
-
 #include <m_system.h>
 #include <m_protocols.h>
 #include <m_protosvc.h>
@@ -44,10 +43,15 @@ void    InvokeThreadServer();
 int     IsCOMRegistered();
 HRESULT RemoveCOMRegistryEntries();
 
-extern  HINSTANCE hInst;
-extern  HANDLE hLogger;
-extern  bool bIsVistaPlus;
-extern  int DllFactoryCount, DllObjectCount;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
+
+extern bool bIsVistaPlus;
+extern int DllFactoryCount, DllObjectCount;
 
 int OnOptionsInit(WPARAM wParam, LPARAM lParam);
 
@@ -56,7 +60,7 @@ int OnOptionsInit(WPARAM wParam, LPARAM lParam);
 #endif
 
 #ifdef LOG_ENABLED
-void logA(const char *format, ...);
+#define logA g_plugin.debugLogA
 #else
 #define logA(A, ...) 
 #endif

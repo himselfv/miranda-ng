@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-CLIST_INTERFACE *pcli;
+CMPlugin	g_plugin;
 
 //PLUGINLINK *pluginLink=NULL;
 HANDLE hOptInit = nullptr;
@@ -15,8 +15,6 @@ HANDLE hConnectionCheckThread = nullptr;
 HANDLE hFilterOptionsThread = nullptr;
 HANDLE killCheckThreadEvent = nullptr;
 HANDLE hExceptionsMutex = nullptr;
-//HANDLE hCurrentEditMutex=NULL;
-int hLangpack = 0;
 
 DWORD FilterOptionsThreadId;
 DWORD ConnectionCheckThreadId;
@@ -40,7 +38,9 @@ int currentStatus = ID_STATUS_OFFLINE, diffstat = 0;
 BOOL bOptionsOpen = FALSE;
 wchar_t *tcpStates[] = { L"CLOSED", L"LISTEN", L"SYN_SENT", L"SYN_RCVD", L"ESTAB", L"FIN_WAIT1", L"FIN_WAIT2", L"CLOSE_WAIT", L"CLOSING", L"LAST_ACK", L"TIME_WAIT", L"DELETE_TCB" };
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	PLUGINNAME,
 	__VERSION_DWORD,
@@ -53,16 +53,11 @@ PLUGININFOEX pluginInfo = {
 	{ 0x4bb5b4aa, 0xc364, 0x4f23, { 0x97, 0x46, 0xd5, 0xb7, 0x8, 0xa2, 0x86, 0xa5 } }
 };
 
-extern "C" __declspec(dllexport) const PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(PLUGINNAME, pluginInfoEx)
 {
-	return &pluginInfo;
+	RegisterProtocol(PROTOTYPE_PROTOCOL);
 }
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-CMPlugin	g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -131,15 +126,15 @@ struct CONNECTION* LoadSettingsConnections()
 		struct CONNECTION *conn = (struct CONNECTION*)mir_alloc(sizeof(struct CONNECTION));
 		mir_snprintf(buff, "%dFilterIntIp", i);
 		if (!db_get_ws(NULL, PLUGINNAME, buff, &dbv))
-			wcsncpy(conn->strIntIp, dbv.ptszVal, _countof(conn->strIntIp));
+			wcsncpy(conn->strIntIp, dbv.pwszVal, _countof(conn->strIntIp));
 		db_free(&dbv);
 		mir_snprintf(buff, "%dFilterExtIp", i);
 		if (!db_get_ws(NULL, PLUGINNAME, buff, &dbv))
-			wcsncpy(conn->strExtIp, dbv.ptszVal, _countof(conn->strExtIp));
+			wcsncpy(conn->strExtIp, dbv.pwszVal, _countof(conn->strExtIp));
 		db_free(&dbv);
 		mir_snprintf(buff, "%dFilterPName", i);
 		if (!db_get_ws(NULL, PLUGINNAME, buff, &dbv))
-			wcsncpy(conn->PName, dbv.ptszVal, _countof(conn->PName));
+			wcsncpy(conn->PName, dbv.pwszVal, _countof(conn->PName));
 		db_free(&dbv);
 
 		mir_snprintf(buff, "%dFilterIntPort", i);
@@ -302,9 +297,9 @@ INT_PTR CALLBACK DlgProcConnectionNotifyOpts(HWND hwndDlg, UINT msg, WPARAM wPar
 			bOptionsOpen = TRUE;
 			TranslateDialogDefault(hwndDlg);//translate miranda function
 			#ifdef _WIN64
-			mir_snwprintf(buff, L"%d.%d.%d.%d/64", HIBYTE(HIWORD(pluginInfo.version)), LOBYTE(HIWORD(pluginInfo.version)), HIBYTE(LOWORD(pluginInfo.version)), LOBYTE(LOWORD(pluginInfo.version)));
+			mir_snwprintf(buff, L"%d.%d.%d.%d/64", HIBYTE(HIWORD(pluginInfoEx.version)), LOBYTE(HIWORD(pluginInfoEx.version)), HIBYTE(LOWORD(pluginInfoEx.version)), LOBYTE(LOWORD(pluginInfoEx.version)));
 			#else
-			mir_snwprintf(buff, L"%d.%d.%d.%d/32", HIBYTE(HIWORD(pluginInfo.version)), LOBYTE(HIWORD(pluginInfo.version)), HIBYTE(LOWORD(pluginInfo.version)), LOBYTE(LOWORD(pluginInfo.version)));
+			mir_snwprintf(buff, L"%d.%d.%d.%d/32", HIBYTE(HIWORD(pluginInfoEx.version)), LOBYTE(HIWORD(pluginInfoEx.version)), HIBYTE(LOWORD(pluginInfoEx.version)), LOBYTE(LOWORD(pluginInfoEx.version)));
 			#endif
 			SetDlgItemText(hwndDlg, IDC_VERSION, buff);
 			LoadSettings();
@@ -590,13 +585,12 @@ INT_PTR CALLBACK DlgProcConnectionNotifyOpts(HWND hwndDlg, UINT msg, WPARAM wPar
 int ConnectionNotifyOptInit(WPARAM wParam, LPARAM)
 {
 	OPTIONSDIALOGPAGE odp = {};
-	odp.hInstance = g_plugin.getInst();
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_DIALOG);
 	odp.szTitle.w = _A2W(PLUGINNAME);
 	odp.szGroup.w = LPGENW("Plugins");
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
 	odp.pfnDlgProc = DlgProcConnectionNotifyOpts;//callback function name
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -844,14 +838,11 @@ static int preshutdown(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
 	#ifdef _DEBUG
 	_OutputDebugString(L"Entering Load dll");
 	#endif
-
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
 
 	hExceptionsMutex = CreateMutex(nullptr, FALSE, L"ExceptionsMutex");
 
@@ -868,18 +859,21 @@ extern "C" int __declspec(dllexport) Load(void)
 	CreateProtoServiceFunction(PLUGINNAME, PS_SETSTATUS, SetStatus);
 	CreateProtoServiceFunction(PLUGINNAME, PS_GETSTATUS, GetStatus);
 
-	Skin_AddSound(PLUGINNAME_NEWSOUND, PLUGINNAMEW, LPGENW("New Connection Notification"));
+	g_plugin.addSound(PLUGINNAME_NEWSOUND, PLUGINNAMEW, LPGENW("New Connection Notification"));
+	
 	hOptInit = HookEvent(ME_OPT_INITIALISE, ConnectionNotifyOptInit);//register service to hook option call
 	assert(hOptInit);
+	
 	hHookModulesLoaded = HookEvent(ME_SYSTEM_MODULESLOADED, modulesloaded);//hook event that all plugins are loaded
 	assert(hHookModulesLoaded);
+	
 	hHookPreShutdown = HookEvent(ME_SYSTEM_PRESHUTDOWN, preshutdown);
 	return 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Unload(void)
+int CMPlugin::Unload()
 {
 	WaitForSingleObjectEx(hConnectionCheckThread, INFINITE, FALSE);
 	if (hConnectionCheckThread)CloseHandle(hConnectionCheckThread);

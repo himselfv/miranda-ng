@@ -74,7 +74,14 @@ void AutoResendNudge(void *wParam) ;
 ///////////////////////////////////////////////////////////////////////////////
 // external variables
 
-extern HINSTANCE hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 extern int nProtocol;
 extern CShake shake;
 extern CNudge GlobalNudge;

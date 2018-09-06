@@ -42,8 +42,8 @@ void FreeDisplayNameCache(void);
 
 MIR_APP_DLL(void) Clist_InitAutoRebuild(HWND hWnd)
 {
-	if (!cli.bAutoRebuild && hWnd) {
-		cli.bAutoRebuild = true;
+	if (!g_clistApi.bAutoRebuild && hWnd) {
+		g_clistApi.bAutoRebuild = true;
 		PostMessage(hWnd, CLM_AUTOREBUILD, 0, 0);
 	}
 }
@@ -83,7 +83,7 @@ static int ClcSettingChanged(WPARAM hContact, LPARAM lParam)
 
 	if (!strcmp(cws->szModule, "CList")) {
 		if (!strcmp(cws->szSetting, "MyHandle")) {
-			cli.pfnInvalidateDisplayNameCacheEntry(hContact);
+			g_clistApi.pfnInvalidateDisplayNameCacheEntry(hContact);
 			Clist_Broadcast(INTM_NAMECHANGED, hContact, lParam);
 		}
 		else if (!strcmp(cws->szSetting, "Group"))
@@ -136,13 +136,14 @@ static int ClcProtoAck(WPARAM, LPARAM lParam)
 	if (ack->type == ACKTYPE_STATUS) {
 		if (ack->result == ACKRESULT_SUCCESS) {
 			PROTOACCOUNT *pa = Proto_GetAccount(ack->szModule);
-			if (pa) {
+			if (pa)
 				pa->iRealStatus = ack->lParam;
-				Clist_TrayIconUpdateBase(ack->szModule);
-			}
 		}
+		
+		g_clistApi.pfnCluiProtocolStatusChanged(lParam, ack->szModule);
 
-		cli.pfnCluiProtocolStatusChanged(lParam, ack->szModule);
+		if (ack->result == ACKRESULT_SUCCESS)
+			Clist_TrayIconUpdateBase(ack->szModule);
 
 		if ((INT_PTR)ack->hProcess < ID_STATUS_ONLINE && ack->lParam >= ID_STATUS_ONLINE) {
 			// if we're going offline, kill all contacts scheduled for deletion
@@ -239,7 +240,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 
 	ClcData *dat = (ClcData *)GetWindowLongPtr(hwnd, 0);
 	if (uMsg >= CLM_FIRST && uMsg < CLM_LAST)
-		return cli.pfnProcessExternalMessages(hwnd, dat, uMsg, wParam, lParam);
+		return g_clistApi.pfnProcessExternalMessages(hwnd, dat, uMsg, wParam, lParam);
 
 	switch (uMsg) {
 	case WM_CREATE:
@@ -264,11 +265,11 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 		dat->infoTipTimeout = db_get_w(0, "CLC", "InfoTipHoverTime", 750);
 		dat->extraColumnSpacing = 20;
 		dat->bNeedsResort = true;
-		cli.pfnLoadClcOptions(hwnd, dat, TRUE);
+		g_clistApi.pfnLoadClcOptions(hwnd, dat, TRUE);
 		if (!IsWindowVisible(hwnd))
 			SetTimer(hwnd, TIMERID_REBUILDAFTER, 10, nullptr);
 		else {
-			cli.pfnRebuildEntireList(hwnd, dat);
+			g_clistApi.pfnRebuildEntireList(hwnd, dat);
 			NMCLISTCONTROL nm;
 			nm.hdr.code = CLN_LISTREBUILT;
 			nm.hdr.hwndFrom = hwnd;
@@ -282,24 +283,24 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			if (dat->bNoVScrollbar)
 				ShowScrollBar(hwnd, SB_VERT, FALSE);
 			else
-				cli.pfnRecalcScrollBar(hwnd, dat);
+				g_clistApi.pfnRecalcScrollBar(hwnd, dat);
 		}
 		break;
 
 	case INTM_RELOADOPTIONS:
-		cli.pfnLoadClcOptions(hwnd, dat, FALSE);
+		g_clistApi.pfnLoadClcOptions(hwnd, dat, FALSE);
 		Clist_SaveStateAndRebuildList(hwnd, dat);
 		break;
 
 	case WM_THEMECHANGED:
-		cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+		g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		break;
 
 	case WM_SIZE:
 		Clist_EndRename(dat, 1);
 		KillTimer(hwnd, TIMERID_INFOTIP);
 		KillTimer(hwnd, TIMERID_RENAME);
-		cli.pfnRecalcScrollBar(hwnd, dat);
+		g_clistApi.pfnRecalcScrollBar(hwnd, dat);
 		{
 			// creating imagelist containing blue line for highlight
 			RECT rc;
@@ -362,7 +363,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 		KillTimer(hwnd, TIMERID_RENAME);
 	case WM_SETFOCUS:
 	case WM_ENABLE:
-		cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+		g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		break;
 
 	case WM_GETFONT:
@@ -412,7 +413,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 		break;
 
 	case INTM_CONTACTADDED:
-		cli.pfnAddContactToTree(hwnd, dat, wParam, 1, 1);
+		g_clistApi.pfnAddContactToTree(hwnd, dat, wParam, 1, 1);
 		Clist_NotifyNewContact(hwnd, wParam);
 		SortClcByTimer(hwnd);
 		break;
@@ -430,7 +431,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			if (dbcws->value.type == DBVT_DELETED || dbcws->value.bVal == 0) {
 				if (Clist_FindItem(hwnd, dat, wParam, nullptr, nullptr, nullptr))
 					break;
-				cli.pfnAddContactToTree(hwnd, dat, wParam, 1, 1);
+				g_clistApi.pfnAddContactToTree(hwnd, dat, wParam, 1, 1);
 				Clist_NotifyNewContact(hwnd, wParam);
 			}
 			else Clist_DeleteItemFromTree(hwnd, wParam);
@@ -453,7 +454,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			Clist_DeleteItemFromTree(hwnd, wParam);
 			if (GetWindowLongPtr(hwnd, GWL_STYLE) & CLS_SHOWHIDDEN || !db_get_b(wParam, "CList", "Hidden", 0)) {
 				NMCLISTCONTROL nm;
-				cli.pfnAddContactToTree(hwnd, dat, wParam, 1, 1);
+				g_clistApi.pfnAddContactToTree(hwnd, dat, wParam, 1, 1);
 				if (Clist_FindItem(hwnd, dat, wParam, &contact, nullptr, nullptr)) {
 					memcpy(contact->iExtraImage, iExtraImage, sizeof(iExtraImage));
 					if (flags & CONTACTF_CHECKED)
@@ -492,9 +493,9 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			group = nullptr;
 			if (!Clist_FindItem(hwnd, dat, wParam, &contact, &group, nullptr)) {
 				if (shouldShow && db_is_contact(wParam)) {
-					if (dat->selection >= 0 && cli.pfnGetRowByIndex(dat, dat->selection, &selcontact, nullptr) != -1)
+					if (dat->selection >= 0 && g_clistApi.pfnGetRowByIndex(dat, dat->selection, &selcontact, nullptr) != -1)
 						hSelItem = Clist_ContactToHItem(selcontact);
-					cli.pfnAddContactToTree(hwnd, dat, wParam, (style & CLS_CONTACTLIST) == 0, 0);
+					g_clistApi.pfnAddContactToTree(hwnd, dat, wParam, (style & CLS_CONTACTLIST) == 0, 0);
 					Clist_FindItem(hwnd, dat, wParam, &contact, nullptr, nullptr);
 					if (contact) {
 						contact->iImage = (WORD)lParam;
@@ -507,7 +508,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				if (contact->iImage == (WORD)lParam)
 					break;
 				if (!shouldShow && !(style & CLS_NOHIDEOFFLINE) && (style & CLS_HIDEOFFLINE || group->hideOffline)) {
-					if (dat->selection >= 0 && cli.pfnGetRowByIndex(dat, dat->selection, &selcontact, nullptr) != -1)
+					if (dat->selection >= 0 && g_clistApi.pfnGetRowByIndex(dat, dat->selection, &selcontact, nullptr) != -1)
 						hSelItem = Clist_ContactToHItem(selcontact);
 					Clist_RemoveItemFromGroup(hwnd, group, contact, (style & CLS_CONTACTLIST) == 0);
 				}
@@ -523,7 +524,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			if (hSelItem) {
 				ClcGroup *selgroup;
 				if (Clist_FindItem(hwnd, dat, hSelItem, &selcontact, &selgroup, nullptr))
-					dat->selection = cli.pfnGetRowsPriorTo(&dat->list, selgroup, selgroup->cl.indexOf(selcontact));
+					dat->selection = g_clistApi.pfnGetRowsPriorTo(&dat->list, selgroup, selgroup->cl.indexOf(selcontact));
 				else
 					dat->selection = -1;
 			}
@@ -545,7 +546,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			break;
 
 		contact->pce->szProto = GetContactProto(wParam);
-		cli.pfnInvalidateDisplayNameCacheEntry(wParam);
+		g_clistApi.pfnInvalidateDisplayNameCacheEntry(wParam);
 		mir_wstrncpy(contact->szText, Clist_GetContactDisplayName(wParam), _countof(contact->szText));
 		SortClcByTimer(hwnd);
 		break;
@@ -560,12 +561,12 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				contact->flags &= ~CONTACTF_NOTONLIST;
 			else
 				contact->flags |= CONTACTF_NOTONLIST;
-			cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		}
 		break;
 
 	case INTM_INVALIDATE:
-		cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+		g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		break;
 
 	case INTM_APPARENTMODECHANGED:
@@ -582,7 +583,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				contact->flags |= CONTACTF_VISTO;
 			else if (apparentMode)
 				contact->flags |= CONTACTF_VISTO | CONTACTF_INVISTO;
-			cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		}
 		break;
 
@@ -599,12 +600,12 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			if (db_get_dw(wParam, szProto, "IdleTS", 0))
 				contact->flags |= CONTACTF_IDLE;
 
-			cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		}
 		break;
 
 	case WM_PRINTCLIENT:
-		cli.pfnPaintClc(hwnd, dat, (HDC)wParam, nullptr);
+		g_clistApi.pfnPaintClc(hwnd, dat, (HDC)wParam, nullptr);
 		break;
 
 	case WM_NCPAINT:
@@ -625,11 +626,11 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 		{
 			PAINTSTRUCT ps;
 			HDC hdc = BeginPaint(hwnd, &ps);
-			/* we get so many cli.pfnInvalidateRect()'s that there is no point painting,
+			/* we get so many g_clistApi.pfnInvalidateRect()'s that there is no point painting,
 			Windows in theory shouldn't queue up WM_PAINTs in this case but it does so
 			we'll just ignore them */
 			if (IsWindowVisible(hwnd))
-				cli.pfnPaintClc(hwnd, dat, hdc, &ps.rcPaint);
+				g_clistApi.pfnPaintClc(hwnd, dat, hdc, &ps.rcPaint);
 			EndPaint(hwnd, &ps);
 		}
 		break;
@@ -654,7 +655,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				case SB_THUMBTRACK: desty = HIWORD(wParam); noSmooth = 1; break; //noone has more than 4000 contacts, right?
 				default:            return 0;
 			}
-			cli.pfnScrollTo(hwnd, dat, desty, noSmooth);
+			g_clistApi.pfnScrollTo(hwnd, dat, desty, noSmooth);
 		}
 		break;
 
@@ -667,7 +668,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 		UINT scrollLines;
 		if (!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &scrollLines, FALSE))
 			scrollLines = 3;
-		cli.pfnScrollTo(hwnd, dat, dat->yScroll - (short)HIWORD(wParam) * dat->rowHeight * (signed)scrollLines / WHEEL_DELTA, 0);
+		g_clistApi.pfnScrollTo(hwnd, dat, dat->yScroll - (short)HIWORD(wParam) * dat->rowHeight * (signed)scrollLines / WHEEL_DELTA, 0);
 		return 0;
 
 	case WM_KEYDOWN:
@@ -686,7 +687,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			case VK_PRIOR:  dat->selection -= pageSize; selMoved = 1; break;
 			case VK_NEXT:   dat->selection += pageSize; selMoved = 1; break;
 			case VK_HOME:   dat->selection = 0; selMoved = 1; break;
-			case VK_END:    dat->selection = cli.pfnGetGroupContentsCount(&dat->list, 1) - 1; selMoved = 1; break;
+			case VK_END:    dat->selection = g_clistApi.pfnGetGroupContentsCount(&dat->list, 1) - 1; selMoved = 1; break;
 			case VK_LEFT:   changeGroupExpand = 1; break;
 			case VK_RIGHT:  changeGroupExpand = 2; break;
 
@@ -694,7 +695,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				Clist_DoSelectionDefaultAction(hwnd, dat);
 				return 0;
 
-			case VK_F2:     cli.pfnBeginRenameSelection(hwnd, dat); return 0;
+			case VK_F2:     g_clistApi.pfnBeginRenameSelection(hwnd, dat); return 0;
 			case VK_DELETE: Clist_DeleteFromContactList(hwnd, dat); return 0;
 
 			default:
@@ -710,30 +711,30 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			if (changeGroupExpand) {
 				if (!dat->bFilterSearch)
 					dat->szQuickSearch[0] = 0;
-				hit = cli.pfnGetRowByIndex(dat, dat->selection, &contact, &group);
+				hit = g_clistApi.pfnGetRowByIndex(dat, dat->selection, &contact, &group);
 				if (hit == -1)
 					return 0;
 
 				if (changeGroupExpand == 1 && contact->type == CLCIT_CONTACT) {
 					if (group == &dat->list)
 						return 0;
-					dat->selection = cli.pfnGetRowsPriorTo(&dat->list, group, -1);
+					dat->selection = g_clistApi.pfnGetRowsPriorTo(&dat->list, group, -1);
 					selMoved = 1;
 				}
 				else {
 					if (contact->type == CLCIT_GROUP)
-						cli.pfnSetGroupExpand(hwnd, dat, contact->group, changeGroupExpand == 2);
+						g_clistApi.pfnSetGroupExpand(hwnd, dat, contact->group, changeGroupExpand == 2);
 					return 0;
 				}
 			}
 			if (selMoved) {
 				if (!dat->bFilterSearch)
 					dat->szQuickSearch[0] = 0;
-				if (dat->selection >= cli.pfnGetGroupContentsCount(&dat->list, 1))
-					dat->selection = cli.pfnGetGroupContentsCount(&dat->list, 1) - 1;
+				if (dat->selection >= g_clistApi.pfnGetGroupContentsCount(&dat->list, 1))
+					dat->selection = g_clistApi.pfnGetGroupContentsCount(&dat->list, 1) - 1;
 				if (dat->selection < 0)
 					dat->selection = 0;
-				cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+				g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 				Clist_EnsureVisible(hwnd, dat, dat->selection, 0);
 				UpdateWindow(hwnd);
 				return 0;
@@ -753,13 +754,13 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			break;
 		else if (wParam == ' ' && dat->szQuickSearch[0] == '\0' && GetWindowLongPtr(hwnd, GWL_STYLE) & CLS_CHECKBOXES) {
 			NMCLISTCONTROL nm;
-			if (cli.pfnGetRowByIndex(dat, dat->selection, &contact, nullptr) == -1)
+			if (g_clistApi.pfnGetRowByIndex(dat, dat->selection, &contact, nullptr) == -1)
 				break;
 			if (contact->type != CLCIT_CONTACT)
 				break;
 			contact->flags ^= CONTACTF_CHECKED;
 			Clist_RecalculateGroupCheckboxes(dat);
-			cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 			nm.hdr.code = CLN_CHECKCHANGED;
 			nm.hdr.hwndFrom = hwnd;
 			nm.hdr.idFrom = GetDlgCtrlID(hwnd);
@@ -783,7 +784,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 
 		if (dat->szQuickSearch[0]) {
 			int index;
-			index = cli.pfnFindRowByText(hwnd, dat, dat->szQuickSearch, 1);
+			index = g_clistApi.pfnFindRowByText(hwnd, dat, dat->szQuickSearch, 1);
 			if (index != -1)
 				dat->selection = index;
 			else {
@@ -791,11 +792,11 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				dat->szQuickSearch[mir_wstrlen(dat->szQuickSearch) - 1] = '\0';
 				Clist_SaveStateAndRebuildList(hwnd, dat);
 			}
-			cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 			Clist_EnsureVisible(hwnd, dat, dat->selection, 0);
 		}
 		else
-			cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		break;
 
 	case WM_SYSKEYDOWN:
@@ -804,7 +805,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 		KillTimer(hwnd, TIMERID_INFOTIP);
 		KillTimer(hwnd, TIMERID_RENAME);
 		dat->iHotTrack = -1;
-		cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+		g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		ReleaseCapture();
 		if (wParam == VK_F10 && GetKeyState(VK_SHIFT) & 0x8000)
 			break;
@@ -814,11 +815,11 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 	case WM_TIMER:
 		switch (wParam) {
 		case TIMERID_RENAME:
-			cli.pfnBeginRenameSelection(hwnd, dat);
+			g_clistApi.pfnBeginRenameSelection(hwnd, dat);
 			break;
 
 		case TIMERID_DRAGAUTOSCROLL:
-			cli.pfnScrollTo(hwnd, dat, dat->yScroll + dat->dragAutoScrolling * dat->rowHeight * 2, 0);
+			g_clistApi.pfnScrollTo(hwnd, dat, dat->yScroll + dat->dragAutoScrolling * dat->rowHeight * 2, 0);
 			break;
 
 		case TIMERID_INFOTIP:
@@ -836,7 +837,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				it.rcItem.left = 0;
 				it.rcItem.right = clRect.right;
 
-				hit = cli.pfnHitTest(hwnd, dat, it.ptCursor.x, it.ptCursor.y, &contact, nullptr, nullptr);
+				hit = g_clistApi.pfnHitTest(hwnd, dat, it.ptCursor.x, it.ptCursor.y, &contact, nullptr, nullptr);
 				if (hit == -1)
 					break;
 				if (contact->type != CLCIT_GROUP && contact->type != CLCIT_CONTACT)
@@ -847,8 +848,8 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				POINT ptClientOffset = { 0 };
 				ClientToScreen(hwnd, &ptClientOffset);
 				it.isTreeFocused = GetFocus() == hwnd;
-				it.rcItem.top = cli.pfnGetRowTopY(dat, hit) - dat->yScroll;
-				it.rcItem.bottom = it.rcItem.top + cli.pfnGetRowHeight(dat, hit);
+				it.rcItem.top = g_clistApi.pfnGetRowTopY(dat, hit) - dat->yScroll;
+				it.rcItem.bottom = it.rcItem.top + g_clistApi.pfnGetRowHeight(dat, hit);
 				OffsetRect(&it.rcItem, ptClientOffset.x, ptClientOffset.y);
 				it.isGroup = contact->type == CLCIT_GROUP;
 				it.hItem = (contact->type == CLCIT_GROUP) ? (HANDLE)contact->groupId : (HANDLE)contact->hContact;
@@ -860,16 +861,16 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 
 		case TIMERID_REBUILDAFTER:
 			KillTimer(hwnd, TIMERID_REBUILDAFTER);
-			cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 			Clist_SaveStateAndRebuildList(hwnd, dat);
-			cli.bAutoRebuild = false;
+			g_clistApi.bAutoRebuild = false;
 			break;
 
 		case TIMERID_DELAYEDRESORTCLC:
 			KillTimer(hwnd, TIMERID_DELAYEDRESORTCLC);
-			cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
-			cli.pfnSortCLC(hwnd, dat, 1);
-			cli.pfnRecalcScrollBar(hwnd, dat);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnSortCLC(hwnd, dat, 1);
+			g_clistApi.pfnRecalcScrollBar(hwnd, dat);
 			break;
 		}
 		break;
@@ -888,7 +889,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 		if (!dat->bFilterSearch)
 			dat->szQuickSearch[0] = 0;
 
-		hit = cli.pfnHitTest(hwnd, dat, (short)LOWORD(lParam), (short)HIWORD(lParam), &contact, &group, &hitFlags);
+		hit = g_clistApi.pfnHitTest(hwnd, dat, (short)LOWORD(lParam), (short)HIWORD(lParam), &contact, &group, &hitFlags);
 		if (hit != -1) {
 			if (hit == dat->selection && hitFlags & CLCHT_ONITEMLABEL && dat->exStyle & CLS_EX_EDITLABELS) {
 				SetCapture(hwnd);
@@ -903,15 +904,15 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			if (hitFlags & CLCHT_ONITEMICON) {
 				ClcGroup *selgroup;
 				ClcContact *selcontact;
-				dat->selection = cli.pfnGetRowByIndex(dat, dat->selection, &selcontact, &selgroup);
-				cli.pfnSetGroupExpand(hwnd, dat, contact->group, -1);
+				dat->selection = g_clistApi.pfnGetRowByIndex(dat, dat->selection, &selcontact, &selgroup);
+				g_clistApi.pfnSetGroupExpand(hwnd, dat, contact->group, -1);
 				if (dat->selection != -1) {
 					dat->selection =
-						cli.pfnGetRowsPriorTo(&dat->list, selgroup, selgroup->cl.indexOf(selcontact));
+						g_clistApi.pfnGetRowsPriorTo(&dat->list, selgroup, selgroup->cl.indexOf(selcontact));
 					if (dat->selection == -1)
-						dat->selection = cli.pfnGetRowsPriorTo(&dat->list, contact->group, -1);
+						dat->selection = g_clistApi.pfnGetRowsPriorTo(&dat->list, contact->group, -1);
 				}
-				cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+				g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 				UpdateWindow(hwnd);
 				break;
 			}
@@ -922,7 +923,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			if (contact->type == CLCIT_GROUP)
 				Clist_SetGroupChildCheckboxes(contact->group, contact->flags & CONTACTF_CHECKED);
 			Clist_RecalculateGroupCheckboxes(dat);
-			cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 			nm.hdr.code = CLN_CHECKCHANGED;
 			nm.hdr.hwndFrom = hwnd;
 			nm.hdr.idFrom = GetDlgCtrlID(hwnd);
@@ -947,7 +948,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 		if (hitFlags & (CLCHT_ONITEMCHECK | CLCHT_ONITEMEXTRA))
 			break;
 		dat->selection = hit;
-		cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+		g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		if (dat->selection != -1)
 			Clist_EnsureVisible(hwnd, dat, hit, 0);
 		UpdateWindow(hwnd);
@@ -966,7 +967,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				break;
 			if (GetKeyState(VK_MENU) & 0x8000 || GetKeyState(VK_F10) & 0x8000)
 				break;
-			dat->iHotTrack = cli.pfnHitTest(hwnd, dat, (short)LOWORD(lParam), (short)HIWORD(lParam), nullptr, nullptr, nullptr);
+			dat->iHotTrack = g_clistApi.pfnHitTest(hwnd, dat, (short)LOWORD(lParam), (short)HIWORD(lParam), nullptr, nullptr, nullptr);
 			if (iOldHotTrack != dat->iHotTrack) {
 				if (iOldHotTrack == -1)
 					SetCapture(hwnd);
@@ -1000,14 +1001,14 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			pt.y = (short)HIWORD(lParam);
 
 			HCURSOR hNewCursor = LoadCursor(nullptr, IDC_NO);
-			cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 			if (dat->dragAutoScrolling) {
 				KillTimer(hwnd, TIMERID_DRAGAUTOSCROLL);
 				dat->dragAutoScrolling = 0;
 			}
 			int target = GetDropTargetInformation(hwnd, dat, pt);
 			if (dat->dragStage & DRAGSTAGEF_OUTSIDE && target != DROPTARGET_OUTSIDE) {
-				cli.pfnGetRowByIndex(dat, dat->iDragItem, &contact, nullptr);
+				g_clistApi.pfnGetRowByIndex(dat, dat->iDragItem, &contact, nullptr);
 
 				NMCLISTCONTROL nm;
 				nm.hdr.code = CLN_DRAGSTOP;
@@ -1024,10 +1025,10 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			case DROPTARGET_ONCONTACT:
 				break;
 			case DROPTARGET_ONGROUP:
-				hNewCursor = LoadCursor(cli.hInst, MAKEINTRESOURCE(IDC_DROPUSER));
+				hNewCursor = LoadCursor(g_clistApi.hInst, MAKEINTRESOURCE(IDC_DROPUSER));
 				break;
 			case DROPTARGET_INSERTION:
-				hNewCursor = LoadCursor(cli.hInst, MAKEINTRESOURCE(IDC_DROPUSER));
+				hNewCursor = LoadCursor(g_clistApi.hInst, MAKEINTRESOURCE(IDC_DROPUSER));
 				break;
 			case DROPTARGET_OUTSIDE:
 				if (pt.x >= 0 && pt.x < clRect.right
@@ -1044,7 +1045,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				}
 
 				dat->dragStage |= DRAGSTAGEF_OUTSIDE;
-				cli.pfnGetRowByIndex(dat, dat->iDragItem, &contact, nullptr);
+				g_clistApi.pfnGetRowByIndex(dat, dat->iDragItem, &contact, nullptr);
 
 				NMCLISTCONTROL nm;
 				nm.hdr.code = CLN_DRAGGING;
@@ -1058,9 +1059,9 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				break;
 
 			default:
-				cli.pfnGetRowByIndex(dat, dat->iDragItem, nullptr, &group);
+				g_clistApi.pfnGetRowByIndex(dat, dat->iDragItem, nullptr, &group);
 				if (group->parent)
-					hNewCursor = LoadCursor(cli.hInst, MAKEINTRESOURCE(IDC_DROPUSER));
+					hNewCursor = LoadCursor(g_clistApi.hInst, MAKEINTRESOURCE(IDC_DROPUSER));
 				break;
 			}
 			SetCursor(hNewCursor);
@@ -1073,7 +1074,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 
 		SetCursor((HCURSOR)GetClassLongPtr(hwnd, GCLP_HCURSOR));
 		if (dat->exStyle & CLS_EX_TRACKSELECT) {
-			dat->iHotTrack = cli.pfnHitTest(hwnd, dat, (short)LOWORD(lParam), (short)HIWORD(lParam), nullptr, nullptr, nullptr);
+			dat->iHotTrack = g_clistApi.pfnHitTest(hwnd, dat, (short)LOWORD(lParam), (short)HIWORD(lParam), nullptr, nullptr, nullptr);
 			if (dat->iHotTrack == -1)
 				ReleaseCapture();
 		}
@@ -1092,8 +1093,8 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			case DROPTARGET_ONGROUP:
 				{
 					ClcContact *contactn, *contacto;
-					cli.pfnGetRowByIndex(dat, dat->selection, &contactn, nullptr);
-					cli.pfnGetRowByIndex(dat, dat->iDragItem, &contacto, nullptr);
+					g_clistApi.pfnGetRowByIndex(dat, dat->selection, &contactn, nullptr);
+					g_clistApi.pfnGetRowByIndex(dat, dat->iDragItem, &contacto, nullptr);
 					if (contacto->type == CLCIT_CONTACT) //dropee is a contact
 						Clist_ContactChangeGroup(contacto->hContact, contactn->groupId);
 					else if (contacto->type == CLCIT_GROUP) { //dropee is a group
@@ -1105,11 +1106,11 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				break;
 
 			case DROPTARGET_INSERTION:
-				cli.pfnGetRowByIndex(dat, dat->iDragItem, &contact, nullptr);
+				g_clistApi.pfnGetRowByIndex(dat, dat->iDragItem, &contact, nullptr);
 				{
 					ClcContact *destcontact;
 					ClcGroup *destgroup;
-					if (cli.pfnGetRowByIndex(dat, dat->iInsertionMark, &destcontact, &destgroup) == -1 || destgroup != contact->group->parent)
+					if (g_clistApi.pfnGetRowByIndex(dat, dat->iInsertionMark, &destcontact, &destgroup) == -1 || destgroup != contact->group->parent)
 						Clist_GroupMoveBefore(contact->groupId, 0);
 					else {
 						if (destcontact->type == CLCIT_GROUP)
@@ -1119,7 +1120,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				}
 				break;
 			case DROPTARGET_OUTSIDE:
-				cli.pfnGetRowByIndex(dat, dat->iDragItem, &contact, nullptr);
+				g_clistApi.pfnGetRowByIndex(dat, dat->iDragItem, &contact, nullptr);
 				{
 					NMCLISTCONTROL nm;
 					nm.hdr.code = CLN_DROPPED;
@@ -1132,7 +1133,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				}
 				break;
 			default:
-				cli.pfnGetRowByIndex(dat, dat->iDragItem, &contact, &group);
+				g_clistApi.pfnGetRowByIndex(dat, dat->iDragItem, &contact, &group);
 				if (!group->parent)
 					break;
 				if (contact->type == CLCIT_GROUP) { //dropee is a group
@@ -1145,7 +1146,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 			}
 		}
 
-		cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+		g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		dat->iDragItem = -1;
 		dat->iInsertionMark = -1;
 		break;
@@ -1157,8 +1158,8 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 		KillTimer(hwnd, TIMERID_RENAME);
 		KillTimer(hwnd, TIMERID_INFOTIP);
 
-		dat->selection = cli.pfnHitTest(hwnd, dat, (short)LOWORD(lParam), (short)HIWORD(lParam), &contact, nullptr, &hitFlags);
-		cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+		dat->selection = g_clistApi.pfnHitTest(hwnd, dat, (short)LOWORD(lParam), (short)HIWORD(lParam), &contact, nullptr, &hitFlags);
+		g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 		if (dat->selection != -1)
 			Clist_EnsureVisible(hwnd, dat, dat->selection, 0);
 
@@ -1181,18 +1182,18 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 		{
 			POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 			if (pt.x == -1 && pt.y == -1) {
-				dat->selection = cli.pfnGetRowByIndex(dat, dat->selection, &contact, nullptr);
+				dat->selection = g_clistApi.pfnGetRowByIndex(dat, dat->selection, &contact, nullptr);
 				if (dat->selection != -1)
 					Clist_EnsureVisible(hwnd, dat, dat->selection, 0);
 				pt.x = dat->iconXSpace + 15;
-				pt.y = cli.pfnGetRowTopY(dat, dat->selection) - dat->yScroll + (int)(cli.pfnGetRowHeight(dat, dat->selection) * .7);
+				pt.y = g_clistApi.pfnGetRowTopY(dat, dat->selection) - dat->yScroll + (int)(g_clistApi.pfnGetRowHeight(dat, dat->selection) * .7);
 				hitFlags = (dat->selection == -1) ? CLCHT_NOWHERE : CLCHT_ONITEMLABEL;
 			}
 			else {
 				ScreenToClient(hwnd, &pt);
-				dat->selection = cli.pfnHitTest(hwnd, dat, pt.x, pt.y, &contact, nullptr, &hitFlags);
+				dat->selection = g_clistApi.pfnHitTest(hwnd, dat, pt.x, pt.y, &contact, nullptr, &hitFlags);
 			}
-			cli.pfnInvalidateRect(hwnd, nullptr, FALSE);
+			g_clistApi.pfnInvalidateRect(hwnd, nullptr, FALSE);
 			if (dat->selection != -1)
 				Clist_EnsureVisible(hwnd, dat, dat->selection, 0);
 			UpdateWindow(hwnd);
@@ -1222,7 +1223,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 		return Menu_DrawItem(lParam);
 
 	case WM_COMMAND:
-		hit = cli.pfnGetRowByIndex(dat, dat->selection, &contact, nullptr);
+		hit = g_clistApi.pfnGetRowByIndex(dat, dat->selection, &contact, nullptr);
 		if (hit == -1)
 			break;
 
@@ -1238,7 +1239,7 @@ LRESULT CALLBACK fnContactListControlWndProc(HWND hwnd, UINT uMsg, WPARAM wParam
 				Clist_GroupCreate(contact->groupId, nullptr);
 				break;
 			case POPUP_RENAMEGROUP:
-				cli.pfnBeginRenameSelection(hwnd, dat);
+				g_clistApi.pfnBeginRenameSelection(hwnd, dat);
 				break;
 			case POPUP_DELETEGROUP:
 				Clist_GroupDelete(contact->groupId);

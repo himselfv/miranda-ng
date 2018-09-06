@@ -276,7 +276,7 @@ int CMimAPI::TypingMessage(WPARAM hContact, LPARAM mode)
 			Clist_TrayNotifyW(nullptr, TranslateT("Typing notification"), szTip, NIIF_INFO, 1000 * 4);
 
 		if (fShowOnClist) {
-			pcli->pfnRemoveEvent(hContact, 1);
+			g_clistApi.pfnRemoveEvent(hContact, 1);
 
 			CLISTEVENT cle = {};
 			cle.hContact = hContact;
@@ -285,7 +285,7 @@ int CMimAPI::TypingMessage(WPARAM hContact, LPARAM mode)
 			cle.hIcon = PluginConfig.g_buttonBarIcons[ICON_DEFAULT_TYPING];
 			cle.pszService = MS_MSG_TYPINGMESSAGE;
 			cle.szTooltip.w = szTip;
-			pcli->pfnAddEvent(&cle);
+			g_clistApi.pfnAddEvent(&cle);
 		}
 	}
 	return 0;
@@ -390,7 +390,7 @@ int CMimAPI::MessageEventAdded(WPARAM hContact, LPARAM hDbEvent)
 	if (dbei.markedRead() || (isCustomEvent && !isShownCustomEvent))
 		return 0;
 
-	pcli->pfnRemoveEvent(hContact, 1);
+	g_clistApi.pfnRemoveEvent(hContact, 1);
 
 	bool bAllowAutoCreate = false;
 	bool bAutoPopup = M.GetBool(SRMSGSET_AUTOPOPUP, SRMSGDEFSET_AUTOPOPUP);
@@ -501,13 +501,15 @@ int CMimAPI::MessageEventAdded(WPARAM hContact, LPARAM hDbEvent)
 		}
 	}
 
+nowindowcreate:
 	// for tray support, we add the event to the tray menu. otherwise we send it back to
 	// the contact list for flashing
-nowindowcreate:
 	if (!(dbei.flags & DBEF_READ)) {
 		UpdateTrayMenu(nullptr, 0, dbei.szModule, nullptr, hContact, 1);
+
 		if (!nen_options.bTraySupport) {
-			wchar_t toolTip[256], *contactName;
+			wchar_t toolTip[256];
+			mir_snwprintf(toolTip, TranslateT("Message from %s"), Clist_GetContactDisplayName(hContact));
 
 			CLISTEVENT cle = {};
 			cle.hContact = hContact;
@@ -515,10 +517,8 @@ nowindowcreate:
 			cle.flags = CLEF_UNICODE;
 			cle.hIcon = Skin_LoadIcon(SKINICON_EVENT_MESSAGE);
 			cle.pszService = MS_MSG_READMESSAGE;
-			contactName = Clist_GetContactDisplayName(hContact);
-			mir_snwprintf(toolTip, TranslateT("Message from %s"), contactName);
 			cle.szTooltip.w = toolTip;
-			pcli->pfnAddEvent(&cle);
+			g_clistApi.pfnAddEvent(&cle);
 		}
 		tabSRMM_ShowPopup(hContact, hDbEvent, dbei.eventType, 0, nullptr, nullptr, dbei.szModule);
 	}

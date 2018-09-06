@@ -58,12 +58,19 @@ Boston, MA 02111-1307, USA.
 #include "options.h"
 #include "frame.h"
 
-#define MODULE_NAME "MyDetails"
+#define MODULENAME "MyDetails"
 
 #define SETTING_FRAME_VISIBLE "FrameVisible"
 #define SETTING_DEFAULT_NICK "DefaultNick"
 
-extern HINSTANCE hInst;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
+};
+
 extern bool g_bFramesExist, g_bAvsExist;
 
 #define PS_GETMYNICKNAMEMAXLENGTH "/GetMyNicknameMaxLength"

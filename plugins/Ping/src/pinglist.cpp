@@ -59,7 +59,7 @@ void write_ping_address(PINGADDRESS &i)
 
 	if (i.item_id == 0) {
 		i.item_id = NextID++;
-		db_set_dw(0, PLUG, "NextID", NextID);
+		db_set_dw(0, MODULENAME, "NextID", NextID);
 	}
 
 	db_set_dw(0, buff, "Id", i.item_id);
@@ -116,13 +116,13 @@ bool read_ping_address(PINGADDRESS &pa) {
 
 	DBVARIANT dbv;
 	if (!db_get_ws(0, buff, "Address", &dbv)) {
-		mir_wstrncpy(pa.pszName, dbv.ptszVal, _countof(pa.pszName));
+		mir_wstrncpy(pa.pszName, dbv.pwszVal, _countof(pa.pszName));
 		db_free(&dbv);
 	}
 	else return false;
 
 	if (!db_get_ws(0, buff, "Label", &dbv)) {
-		mir_wstrncpy(pa.pszLabel, dbv.ptszVal, _countof(pa.pszLabel));
+		mir_wstrncpy(pa.pszLabel, dbv.pwszVal, _countof(pa.pszLabel));
 		db_free(&dbv);
 	}
 	else return false;
@@ -139,13 +139,13 @@ bool read_ping_address(PINGADDRESS &pa) {
 	else pa.pszProto[0] = '\0';
 
 	if (!db_get_ws(0, buff, "Command", &dbv)) {
-		mir_wstrncpy(pa.pszCommand, dbv.ptszVal, _countof(pa.pszCommand));
+		mir_wstrncpy(pa.pszCommand, dbv.pwszVal, _countof(pa.pszCommand));
 		db_free(&dbv);
 	}
 	else
 		pa.pszCommand[0] = '\0';
 	if (!db_get_ws(0, buff, "CommandParams", &dbv)) {
-		mir_wstrncpy(pa.pszParams, dbv.ptszVal, _countof(pa.pszParams));
+		mir_wstrncpy(pa.pszParams, dbv.pwszVal, _countof(pa.pszParams));
 		db_free(&dbv);
 	}
 	else
@@ -162,7 +162,7 @@ bool read_ping_address(PINGADDRESS &pa) {
 	pa.index = index;
 	if (pa.item_id >= NextID) {
 		NextID = pa.item_id + 1;
-		db_set_dw(0, PLUG, "NextID", NextID);
+		db_set_dw(0, MODULENAME, "NextID", NextID);
 	}
 
 	return true;

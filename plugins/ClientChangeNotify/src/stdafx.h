@@ -2,19 +2,19 @@
 	ClientChangeNotify - Plugin for Miranda IM
 	Copyright (c) 2006-2008 Chervov Dmitry
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #pragma once
@@ -52,6 +52,13 @@
 
 #include "m_fingerprint.h"
 
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};
+
 #include "TMyArray.h"
 #include "Options.h"
 #include "CString.h"
@@ -82,9 +89,10 @@
 
 #define NOTIFYTIMER_INTERVAL 3500
 
-#define MOD_NAME "ClientChangeNotify"
-#define LOG_ID MOD_NAME
-#define LOG_PREFIX MOD_NAME ": " // for netlib.log
+#define MODULENAME "ClientChangeNotify"
+
+#define LOG_ID MODULENAME
+#define LOG_PREFIX MODULENAME ": " // for netlib.log
 
 #define MS_NETLIB_LOG "Netlib/Log"
 
@@ -102,7 +110,6 @@
 
 #define CLIENTCHANGED_SOUND "ClientChanged"
 
-extern HINSTANCE g_hInstance;
 extern BOOL bPopupExists, bFingerprintExists;
 
 extern COptPage g_PopupOptPage;
@@ -118,7 +125,7 @@ static __inline CString LogMessage(const char *Format, ...)
 	char szText[8096];
 	mir_strcpy(szText, LOG_PREFIX);
 	va_start(va, Format);
-	mir_vsnprintf(szText + _countof(LOG_PREFIX)-1, _countof(szText) - (_countof(LOG_PREFIX)-1), Format, va);
+	mir_vsnprintf(szText + _countof(LOG_PREFIX) - 1, _countof(szText) - (_countof(LOG_PREFIX) - 1), Format, va);
 	va_end(va);
 	Netlib_Log(NULL, szText);
 	return CString(szText);

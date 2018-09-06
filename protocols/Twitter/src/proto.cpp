@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "utility.h"
 #include "theme.h"
 #include "ui.h"
-#include "oauth.dev.h"
+#include "..\..\..\..\miranda-private-keys\Twitter\oauth.dev.h"
 
 static volatile LONG g_msgid = 1;
 
@@ -46,15 +46,16 @@ TwitterProto::TwitterProto(const char *proto_name, const wchar_t *username) :
 	mir_snprintf(text, "%s/Tweet", m_szModuleName);
 
 	HOTKEYDESC hkd = {};
+	hkd.dwFlags = HKD_UNICODE;
 	hkd.pszName = text;
 	hkd.pszService = text;
-	hkd.szSection.a = m_szModuleName; // Section title; TODO: use username?
-	hkd.szDescription.a = "Send Tweet";
-	Hotkey_Register(&hkd);
+	hkd.szSection.w = m_tszUserName;
+	hkd.szDescription.w = LPGENW("Send Tweet");
+	g_plugin.addHotkey(&hkd);
 
 	// set Tokens and stuff
 
-	//mirandas keys
+	// mirandas keys
 	ConsumerKey = OAUTH_CONSUMER_KEY;
 	ConsumerSecret = OAUTH_CONSUMER_SECRET;
 
@@ -71,7 +72,7 @@ TwitterProto::~TwitterProto()
 		Netlib_CloseHandle(hAvatarNetlib_);
 }
 
-// *************************
+/////////////////////////////////////////////////////////////////////////////////////////
 
 INT_PTR TwitterProto::GetCaps(int type, MCONTACT)
 {
@@ -93,7 +94,7 @@ INT_PTR TwitterProto::GetCaps(int type, MCONTACT)
 	return 0;
 }
 
-// *************************
+/////////////////////////////////////////////////////////////////////////////////////////
 
 struct send_direct
 {
@@ -134,7 +135,7 @@ int TwitterProto::SendMsg(MCONTACT hContact, int, const char *msg)
 	return seq;
 }
 
-// *************************
+/////////////////////////////////////////////////////////////////////////////////////////
 
 int TwitterProto::SetStatus(int new_status)
 {
@@ -175,7 +176,7 @@ int TwitterProto::SetStatus(int new_status)
 	return 0;
 }
 
-// *************************
+/////////////////////////////////////////////////////////////////////////////////////////
 
 INT_PTR TwitterProto::SvcCreateAccMgrUI(WPARAM, LPARAM lParam)
 {
@@ -215,11 +216,11 @@ INT_PTR TwitterProto::VisitHomepage(WPARAM wParam, LPARAM)
 	return 0;
 }
 
-// *************************
+/////////////////////////////////////////////////////////////////////////////////////////
 
 int TwitterProto::OnBuildStatusMenu(WPARAM, LPARAM)
 {
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.root = Menu_GetProtocolRoot(this);
 	mi.flags = CMIF_UNICODE;
 	mi.position = 1001;
@@ -238,9 +239,8 @@ int TwitterProto::OnBuildStatusMenu(WPARAM, LPARAM)
 
 int TwitterProto::OnOptionsInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = 271828;
-	odp.hInstance = g_plugin.getInst();
 	odp.szGroup.w = LPGENW("Network");
 	odp.szTitle.w = m_tszUserName;
 	odp.dwInitParam = LPARAM(this);
@@ -249,13 +249,13 @@ int TwitterProto::OnOptionsInit(WPARAM wParam, LPARAM)
 	odp.szTab.w = LPGENW("Basic");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
 	odp.pfnDlgProc = options_proc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	if (ServiceExists(MS_POPUP_ADDPOPUPT)) {
 		odp.szTab.w = LPGENW("Popups");
 		odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS_POPUPS);
 		odp.pfnDlgProc = popup_options_proc;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }
@@ -370,8 +370,10 @@ void TwitterProto::ShowPopup(const char *text, int Error)
 		MessageBox(nullptr, popup.lptzText, popup.lptzContactName, 0);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////
 // TODO: the more I think about it, the more I think all twit.* methods should
 // be in MessageLoop
+
 void TwitterProto::SendTweetWorker(void *p)
 {
 	if (p == nullptr)

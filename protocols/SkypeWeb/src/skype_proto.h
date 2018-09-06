@@ -200,7 +200,6 @@ private:
 	}
 
 	// icons
-	static IconItemT Icons[];
 	static HICON GetIcon(int iconId);
 	static HANDLE GetIconHandle(int iconId);
 
@@ -422,11 +421,10 @@ private:
 
 struct CMPlugin : public ACCPROTOPLUGIN<CSkypeProto>
 {
-	CMPlugin() :
-		ACCPROTOPLUGIN<CSkypeProto>("SKYPE")
-	{
-		SetUniqueId(SKYPE_SETTINGS_ID);
-	}
+	CMPlugin();
+
+	int Load() override;
+	int Unload() override;
 };
 
 #endif //_SKYPE_PROTO_H_

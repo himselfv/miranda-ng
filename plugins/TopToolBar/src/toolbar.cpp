@@ -41,8 +41,8 @@ TopButtonInt *idtopos(int id, int *pPos)
 void InsertSBut(int i)
 {
 	TTBButton ttb = {};
-	ttb.hIconDn = (HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_RUN), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
-	ttb.hIconUp = (HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_RUN), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	ttb.hIconDn = (HICON)LoadImage(g_plugin.getInst(), MAKEINTRESOURCE(IDI_RUN), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	ttb.hIconUp = (HICON)LoadImage(g_plugin.getInst(), MAKEINTRESOURCE(IDI_RUN), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 	ttb.dwFlags = TTBBF_VISIBLE | TTBBF_ISSBUTTON | TTBBF_INTERNAL;
 	ttb.wParamDown = i;
 	TTBAddButton((WPARAM)&ttb, 0);
@@ -163,7 +163,7 @@ static void Icon2button(TTBButton *but, HANDLE &hIcoLib, HICON &hIcon, bool bIsU
 		mir_snprintf(buf, "%s%s", but->name, bIsUp ? "" : " (pressed)");
 		sid.description.a = buf;
 		sid.hDefaultIcon = bIsUp ? but->hIconUp : but->hIconDn;
-		hIcoLib = IcoLib_AddIcon(&sid);
+		hIcoLib = g_plugin.addIcon(&sid);
 	}
 
 	hIcon = IcoLib_GetIconByHandle(hIcoLib);
@@ -309,7 +309,7 @@ INT_PTR TTBAddButton(WPARAM wParam, LPARAM lParam)
 		return -1;
 
 	TopButtonInt *b = CreateButton(but);
-	b->hLangpack = (int)lParam;
+	b->pPlugin = (HPLUGIN)lParam;
 	b->LoadSettings();
 	b->CreateWnd();
 	if (b->hwnd == nullptr) {
@@ -553,13 +553,13 @@ int OnPluginLoad(WPARAM, LPARAM lParam)
 
 int OnPluginUnload(WPARAM, LPARAM lParam)
 {
-	int lang = GetPluginLangByInstance((HINSTANCE)lParam);
-	if (lang) {
+	HPLUGIN pPlugin = &GetPluginByInstance((HINSTANCE)lParam);
+	if (pPlugin) {
 		bool bNeedUpdate = false;
 		mir_cslock lck(csButtonsHook);
 
 		for (auto &it : Buttons.rev_iter())
-			if (it->hLangpack == lang) {
+			if (it->pPlugin == pPlugin) {
 				TTBRemoveButton(it->id, 0);
 				bNeedUpdate = true;
 			}
@@ -593,8 +593,8 @@ static int OnShutdown(WPARAM, LPARAM)
 {
 	if (g_ctrl) {
 		if (g_ctrl->hFrame) {
-			CallService(MS_CLIST_FRAMES_REMOVEFRAME, (WPARAM)g_ctrl->hFrame, 0);
-			g_ctrl->hFrame = nullptr;
+			CallService(MS_CLIST_FRAMES_REMOVEFRAME, g_ctrl->hFrame, 0);
+			g_ctrl->hFrame = 0;
 		}
 		if (g_ctrl->hWnd) {
 			DestroyWindow(g_ctrl->hWnd);
@@ -650,7 +650,7 @@ int LoadToolbarModule()
 
 	hTTBModuleLoaded = CreateHookableEvent(ME_TTB_MODULELOADED);
 
-	CreateServiceFunction("TopToolBar/AddButton", TTBAddButton);
+	CreateServiceFunction(MS_TTB_ADDBUTTON, TTBAddButton);
 	CreateServiceFunction(MS_TTB_REMOVEBUTTON, TTBRemoveButton);
 
 	CreateServiceFunction(MS_TTB_SETBUTTONSTATE, TTBSetState);

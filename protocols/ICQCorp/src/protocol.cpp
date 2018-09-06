@@ -160,11 +160,11 @@ bool ICQ::load()
 	awayMessage = new char[1];
 	awayMessage[0] = 0;
 
-	WNDCLASSA wc = { 0, messageWndProc, 0, 0, hInstance, nullptr, nullptr, nullptr, nullptr, protoName };
+	WNDCLASSA wc = { 0, messageWndProc, 0, 0, g_plugin.getInst(), nullptr, nullptr, nullptr, nullptr, protoName };
 	if (!RegisterClassA(&wc))
 		return false;
 
-	hWnd = CreateWindowExA(0, protoName, nullptr, 0, 0, 0, 0, 0, (unsigned short)GetVersion() >= 5 ? HWND_MESSAGE : nullptr, nullptr, hInstance, nullptr);
+	hWnd = CreateWindowExA(0, protoName, nullptr, 0, 0, 0, 0, 0, (unsigned short)GetVersion() >= 5 ? HWND_MESSAGE : nullptr, nullptr, g_plugin.getInst(), nullptr);
 	if (hWnd == nullptr)
 		return false;
 
@@ -185,7 +185,7 @@ void ICQ::unload()
 	WSACleanup();
 
 	DestroyWindow(hWnd);
-	UnregisterClassA(protoName, hInstance);
+	UnregisterClassA(protoName, g_plugin.getInst());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -195,7 +195,7 @@ bool ICQ::logon(unsigned short logonStatus)
 	DBVARIANT dbv;
 	char str[128];
 
-	if (!db_get(NULL, protoName, "Server", &dbv)) {
+	if (!db_get_s(NULL, protoName, "Server", &dbv)) {
 		lstrcpyA(str, dbv.pszVal);
 		db_free(&dbv);
 	}
@@ -219,11 +219,10 @@ bool ICQ::logon(unsigned short logonStatus)
 	updateContactList();
 
 	dwUIN = db_get_dw(NULL, protoName, "UIN", 0);
-	if (!db_get(NULL, protoName, "Password", &dbv)) {
+	if (!db_get_s(NULL, protoName, "Password", &dbv)) {
 		lstrcpyA(str, dbv.pszVal);
 		db_free(&dbv);
 	}
-
 
 	timeStampLastMessage = 0;
 	sequenceVal = 1;

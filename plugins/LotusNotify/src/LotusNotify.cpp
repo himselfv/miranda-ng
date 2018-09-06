@@ -21,9 +21,8 @@ INT_PTR SetStatus(WPARAM wParam, LPARAM lParam);
 #define MAX_SETTING_STR 512
 #define STATUS_COUNT 9
 
-char PLUGINNAME[64] = {0}; //init at init_pluginname();
-int hLangpack = 0;
-CLIST_INTERFACE *pcli;
+char MODULENAME[64] = {0}; //init at init_pluginname();
+CMPlugin g_plugin;
 
 HINSTANCE hLotusDll;
 HEMREGISTRATION hLotusRegister = 0;
@@ -66,7 +65,7 @@ wchar_t *startuperrors[] = {
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-PLUGININFOEX pluginInfo = {
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -78,19 +77,11 @@ PLUGININFOEX pluginInfo = {
 	{ 0x23eacc0d, 0xbab0, 0x49c0, { 0x8f, 0x37, 0x5e, 0x25, 0x9e, 0xce, 0x52, 0x7f } } // {23EACC0D-BAB0-49c0-8F37-5E259ECE527F}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX *MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
 {
-#ifdef _WIN64
-#error LotusNotify.dll cannot work with 64bit Miranda. (Lotus client is 32bit only)
-#endif
-	return &pluginInfo;
+	RegisterProtocol(PROTOTYPE_PROTOCOL);
 }
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-CMPlugin g_plugin;
-
-extern "C" _pfnCrtInit _pRawDllMain = &CMPlugin::RawDllMain;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -248,8 +239,8 @@ void init_pluginname()
 	}
 
 	// copy to static variable
-	strncpy_s(PLUGINNAME, _countof(PLUGINNAME), p, mir_strlen(p));
-	assert(mir_strlen(PLUGINNAME)>0);
+	strncpy_s(MODULENAME, _countof(MODULENAME), p, mir_strlen(p));
+	assert(mir_strlen(MODULENAME)>0);
 
 }
 
@@ -323,7 +314,7 @@ void Click(HWND hWnd,BOOL execute)
 	deletePopupsHandles((&(getEl(pid->id))->pq),TRUE);
 
 	if(settingNewest && (pid->id > settingNewestID) ){
-		db_set_dw(NULL, PLUGINNAME, "LNNewestID", settingNewestID=pid->id);
+		db_set_dw(NULL, MODULENAME, "LNNewestID", settingNewestID=pid->id);
 	}
 	if(execute && settingCommand[0] ) {
 		char tmpcommand[2*MAX_SETTING_STR];
@@ -397,7 +388,7 @@ BOOL checkNotesIniFile(BOOL bInfo)
 	strncpy_s(tmp1,_countof(tmp1),tmp,sizeof(tmp1));//copy temporary
 	assert(mir_strlen(tmp1)>0);
 
-	char* PLUGINNAME_lower = _strlwr(mir_strdup(PLUGINNAME));
+	char* PLUGINNAME_lower = _strlwr(mir_strdup(MODULENAME));
 
 	//is there our plugin as safe?
 	if(strstr(tmp1,PLUGINNAME_lower) == nullptr)
@@ -703,7 +694,7 @@ void checkthread(void*)
 
 		// remember newest id depending on options set
 		if (settingNewest&&settingEvenNonClicked && (noteID > settingNewestID))
-			db_set_dw(NULL, PLUGINNAME, "LNNewestID", settingNewestID = noteID);
+			db_set_dw(NULL, MODULENAME, "LNNewestID", settingNewestID = noteID);
 
 		//if(((!settingOnceOnly||(settingOnceOnly&&settingNonClickedOnly))&&existElem(noteID))||(settingNewest&&settingNewestID>=noteID))
 		//continue;
@@ -972,66 +963,66 @@ static void lookupLotusDefaultSettings(HWND hwndDlg)
 // get variables values stored in db.
 static void LoadSettings()
 {
-	settingInterval = (INT)db_get_dw(NULL, PLUGINNAME, "LNInterval", 15);
-	settingInterval1 = (INT)db_get_dw(NULL, PLUGINNAME, "LNInterval1", 0);
-	settingKeepConnection = db_get_b(NULL, PLUGINNAME, "LNKeepConnection", 1);
+	settingInterval = (INT)db_get_dw(NULL, MODULENAME, "LNInterval", 15);
+	settingInterval1 = (INT)db_get_dw(NULL, MODULENAME, "LNInterval1", 0);
+	settingKeepConnection = db_get_b(NULL, MODULENAME, "LNKeepConnection", 1);
 
 	DBVARIANT dbv;
-	if (!db_get_s(NULL, PLUGINNAME, "LNDatabase", &dbv)) {
+	if (!db_get_s(NULL, MODULENAME, "LNDatabase", &dbv)) {
 		strncpy_s(settingDatabase, _countof(settingDatabase), dbv.pszVal, _countof(settingDatabase));
 		db_free(&dbv);
 	}
-	if (!db_get_s(NULL, PLUGINNAME, "LNServer", &dbv)) {
+	if (!db_get_s(NULL, MODULENAME, "LNServer", &dbv)) {
 		strncpy_s(settingServer, _countof(settingServer), dbv.pszVal, _countof(settingServer));
 		db_free(&dbv);
 	}
-	if (!db_get_s(NULL, PLUGINNAME, "LNServerSec", &dbv)) {
+	if (!db_get_s(NULL, MODULENAME, "LNServerSec", &dbv)) {
 		strncpy_s(settingServerSec, _countof(settingServerSec), dbv.pszVal, _countof(settingServerSec));
 		db_free(&dbv);
 	}
-	if (!db_get(NULL, PLUGINNAME, "LNPassword", &dbv)) {
+	if (!db_get_s(NULL, MODULENAME, "LNPassword", &dbv)) {
 		strncpy_s(settingPassword, _countof(settingPassword), dbv.pszVal, _countof(settingPassword));
 		db_free(&dbv);
 	}
-	if (!db_get_s(NULL, PLUGINNAME, "LNCommand", &dbv, DBVT_ASCIIZ)) {
+	if (!db_get_s(NULL, MODULENAME, "LNCommand", &dbv, DBVT_ASCIIZ)) {
 		strncpy_s(settingCommand, _countof(settingCommand), dbv.pszVal, _countof(settingCommand));
 		db_free(&dbv);
 	}
-	if (!db_get_s(NULL, PLUGINNAME, "LNParameters", &dbv, DBVT_ASCIIZ)) {
+	if (!db_get_s(NULL, MODULENAME, "LNParameters", &dbv, DBVT_ASCIIZ)) {
 		strncpy_s(settingParameters, _countof(settingParameters), dbv.pszVal, _countof(settingParameters));
 		db_free(&dbv);
 	}
 
-	if (!db_get_ws(NULL, PLUGINNAME, "LNFilterSender", &dbv)) {
-		wcsncpy_s(settingFilterSender, dbv.ptszVal, _TRUNCATE);
+	if (!db_get_ws(NULL, MODULENAME, "LNFilterSender", &dbv)) {
+		wcsncpy_s(settingFilterSender, dbv.pwszVal, _TRUNCATE);
 		db_free(&dbv);
 	}
-	if (!db_get_ws(NULL, PLUGINNAME, "LNFilterSubject", &dbv)) {
-		wcsncpy_s(settingFilterSubject, dbv.ptszVal, _TRUNCATE);
+	if (!db_get_ws(NULL, MODULENAME, "LNFilterSubject", &dbv)) {
+		wcsncpy_s(settingFilterSubject, dbv.pwszVal, _TRUNCATE);
 		db_free(&dbv);
 	}
-	if (!db_get_ws(NULL, PLUGINNAME, "LNFilterTo", &dbv)) {
-		wcsncpy_s(settingFilterTo, dbv.ptszVal, _TRUNCATE);
+	if (!db_get_ws(NULL, MODULENAME, "LNFilterTo", &dbv)) {
+		wcsncpy_s(settingFilterTo, dbv.pwszVal, _TRUNCATE);
 		db_free(&dbv);
 	}
 
-	settingOnceOnly = db_get_b(NULL, PLUGINNAME, "LNOnceOnly", 0);
+	settingOnceOnly = db_get_b(NULL, MODULENAME, "LNOnceOnly", 0);
 
-	settingNonClickedOnly = db_get_b(NULL, PLUGINNAME, "LNNonClickedOnly", 1);
-	settingShowError = db_get_b(NULL, PLUGINNAME, "LNShowError", 1);
-	settingSetColours = db_get_b(NULL, PLUGINNAME, "LNSetColours", 0);
-	settingBgColor = (COLORREF)db_get_dw(NULL, PLUGINNAME, "LNBgColor", (DWORD)0xFFFFFF);
-	settingFgColor = (COLORREF)db_get_dw(NULL, PLUGINNAME, "LNFgColor", (DWORD)0x000000);
-	settingNewest = db_get_b(NULL, PLUGINNAME, "LNNewest", 0);
-	settingEvenNonClicked = db_get_b(NULL, PLUGINNAME, "LNEvenNonClicked", 0);
-	settingNewestID = (DWORD)db_get_dw(NULL, PLUGINNAME, "LNNewestID", 0);
-	settingIniAnswer = db_get_b(NULL, PLUGINNAME, "LNIniAnswer", 0);
-	settingIniCheck = db_get_b(NULL, PLUGINNAME, "LNIniCheck", 0);
+	settingNonClickedOnly = db_get_b(NULL, MODULENAME, "LNNonClickedOnly", 1);
+	settingShowError = db_get_b(NULL, MODULENAME, "LNShowError", 1);
+	settingSetColours = db_get_b(NULL, MODULENAME, "LNSetColours", 0);
+	settingBgColor = (COLORREF)db_get_dw(NULL, MODULENAME, "LNBgColor", (DWORD)0xFFFFFF);
+	settingFgColor = (COLORREF)db_get_dw(NULL, MODULENAME, "LNFgColor", (DWORD)0x000000);
+	settingNewest = db_get_b(NULL, MODULENAME, "LNNewest", 0);
+	settingEvenNonClicked = db_get_b(NULL, MODULENAME, "LNEvenNonClicked", 0);
+	settingNewestID = (DWORD)db_get_dw(NULL, MODULENAME, "LNNewestID", 0);
+	settingIniAnswer = db_get_b(NULL, MODULENAME, "LNIniAnswer", 0);
+	settingIniCheck = db_get_b(NULL, MODULENAME, "LNIniCheck", 0);
 
 	for (int i = 0; i < STATUS_COUNT; i++) {
 		char buff[128];
 		mir_snprintf(buff, "LNStatus%d", i);
-		settingStatus[i] = (db_get_b(0, PLUGINNAME, buff, 0) == 1);
+		settingStatus[i] = (db_get_b(0, MODULENAME, buff, 0) == 1);
 	}
 	//lookupLotusDefaultSettings();
 }
@@ -1040,30 +1031,30 @@ static void SaveSettings(HWND hwndDlg)
 {
 	char buff[128];
 	GetDlgItemTextA(hwndDlg, IDC_SERVER, settingServer, _countof(settingServer));
-	db_set_s(NULL, PLUGINNAME, "LNServer", settingServer);
-	db_set_s(NULL, PLUGINNAME, "LNServerSec", settingServerSec);
-	db_set_s(NULL, PLUGINNAME, "LNPassword", settingPassword);
-	db_set_s(NULL, PLUGINNAME, "LNDatabase", settingDatabase);
-	db_set_dw(NULL, PLUGINNAME, "LNInterval", settingInterval);
-	db_set_dw(NULL, PLUGINNAME, "LNInterval1", settingInterval1);
-	db_set_b(NULL, PLUGINNAME, "LNKeepConnection", settingKeepConnection);
-	db_set_s(NULL, PLUGINNAME, "LNCommand", settingCommand);
-	db_set_s(NULL, PLUGINNAME, "LNParameters", settingParameters);
-	db_set_b(NULL, PLUGINNAME, "LNOnceOnly", settingOnceOnly);
-	db_set_b(NULL, PLUGINNAME, "LNNonClickedOnly", settingNonClickedOnly);
-	db_set_b(NULL, PLUGINNAME, "LNShowError", settingShowError);
-	db_set_b(NULL, PLUGINNAME, "LNSetColours", settingSetColours);
-	db_set_dw(NULL, PLUGINNAME, "LNBgColor", (DWORD)settingBgColor);
-	db_set_dw(NULL, PLUGINNAME, "LNFgColor", (DWORD)settingFgColor);
-	db_set_b(NULL, PLUGINNAME, "LNNewest", settingNewest);
-	db_set_b(NULL, PLUGINNAME, "LNEvenNonClicked", settingEvenNonClicked);
-	db_set_b(NULL, PLUGINNAME, "LNIniCheck", settingIniCheck);
-	db_set_b(NULL, PLUGINNAME, "LNIniAnswer", settingIniAnswer);
+	db_set_s(NULL, MODULENAME, "LNServer", settingServer);
+	db_set_s(NULL, MODULENAME, "LNServerSec", settingServerSec);
+	db_set_s(NULL, MODULENAME, "LNPassword", settingPassword);
+	db_set_s(NULL, MODULENAME, "LNDatabase", settingDatabase);
+	db_set_dw(NULL, MODULENAME, "LNInterval", settingInterval);
+	db_set_dw(NULL, MODULENAME, "LNInterval1", settingInterval1);
+	db_set_b(NULL, MODULENAME, "LNKeepConnection", settingKeepConnection);
+	db_set_s(NULL, MODULENAME, "LNCommand", settingCommand);
+	db_set_s(NULL, MODULENAME, "LNParameters", settingParameters);
+	db_set_b(NULL, MODULENAME, "LNOnceOnly", settingOnceOnly);
+	db_set_b(NULL, MODULENAME, "LNNonClickedOnly", settingNonClickedOnly);
+	db_set_b(NULL, MODULENAME, "LNShowError", settingShowError);
+	db_set_b(NULL, MODULENAME, "LNSetColours", settingSetColours);
+	db_set_dw(NULL, MODULENAME, "LNBgColor", (DWORD)settingBgColor);
+	db_set_dw(NULL, MODULENAME, "LNFgColor", (DWORD)settingFgColor);
+	db_set_b(NULL, MODULENAME, "LNNewest", settingNewest);
+	db_set_b(NULL, MODULENAME, "LNEvenNonClicked", settingEvenNonClicked);
+	db_set_b(NULL, MODULENAME, "LNIniCheck", settingIniCheck);
+	db_set_b(NULL, MODULENAME, "LNIniAnswer", settingIniAnswer);
 
 	for (int i = 0; i < STATUS_COUNT; i++) {
 		mir_snprintf(buff, "LNStatus%d", i);
 		settingStatus[i] = (ListView_GetCheckState(GetDlgItem(hwndDlg, IDC_STATUS), i) ? TRUE : FALSE);
-		db_set_b(0, PLUGINNAME, buff, settingStatus[i] ? 1 : 0);
+		db_set_b(0, MODULENAME, buff, settingStatus[i] ? 1 : 0);
 	}
 
 	settingFilterSender[0] = 0;
@@ -1073,7 +1064,7 @@ static void SaveSettings(HWND hwndDlg)
 		wcscat_s(settingFilterSender, _countof(settingFilterSender), text);
 		wcscat_s(settingFilterSender, _countof(settingFilterSender), TEXT(";"));
 	}
-	db_set_ws(NULL, PLUGINNAME, "LNFilterSender", settingFilterSender);
+	db_set_ws(NULL, MODULENAME, "LNFilterSender", settingFilterSender);
 
 	settingFilterSubject[0] = 0;
 	for (int i = 0; i < SendDlgItemMessage(hwndDlg, IDC_FILTER_SUBJECT, CB_GETCOUNT, 0, 0); i++) {
@@ -1082,7 +1073,7 @@ static void SaveSettings(HWND hwndDlg)
 		wcscat_s(settingFilterSubject, _countof(settingFilterSubject), text);
 		wcscat_s(settingFilterSubject, _countof(settingFilterSubject), TEXT(";"));
 	}
-	db_set_ws(NULL, PLUGINNAME, "LNFilterSubject", settingFilterSubject);
+	db_set_ws(NULL, MODULENAME, "LNFilterSubject", settingFilterSubject);
 
 	settingFilterTo[0] = 0;
 	for (int i = 0; i < SendDlgItemMessage(hwndDlg, IDC_FILTER_TO, CB_GETCOUNT, 0, 0); i++) {
@@ -1091,7 +1082,7 @@ static void SaveSettings(HWND hwndDlg)
 		wcscat_s(settingFilterTo, _countof(settingFilterTo), text);
 		wcscat_s(settingFilterTo, _countof(settingFilterTo), TEXT(";"));
 	}
-	db_set_ws(NULL, PLUGINNAME, "LNFilterTo", settingFilterTo);
+	db_set_ws(NULL, MODULENAME, "LNFilterTo", settingFilterTo);
 }
 
 //callback function to speak with user interactions in options page
@@ -1470,8 +1461,7 @@ static INT_PTR CALLBACK DlgProcLotusNotifyMiscOpts(HWND hwndDlg, UINT msg, WPARA
 //options page on miranda called
 int LotusNotifyOptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_plugin.getInst();
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szGroup.w = LPGENW("Plugins");
 	odp.szTitle.w = _A2W(__PLUGIN_NAME);
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
@@ -1479,17 +1469,17 @@ int LotusNotifyOptInit(WPARAM wParam, LPARAM)
 	odp.szTab.w = LPGENW("Connection");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_LOTUS_CONECTION);
 	odp.pfnDlgProc = DlgProcLotusNotifyConnectionOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.w = LPGENW("Popup");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_LOTUS_POPUP);
 	odp.pfnDlgProc = DlgProcLotusNotifyPopupOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.w = LPGENW("Miscellaneous");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_LOTUS_MISC);
 	odp.pfnDlgProc = DlgProcLotusNotifyMiscOpts;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -1510,7 +1500,7 @@ INT_PTR GetCaps(WPARAM wParam, LPARAM)
 //gives  name to protocol module
 INT_PTR GetName(WPARAM wParam, LPARAM lParam)
 {
-	strncpy((char*)lParam, PLUGINNAME, wParam);
+	strncpy((char*)lParam, MODULENAME, wParam);
 	return 0;
 }
 
@@ -1559,7 +1549,7 @@ INT_PTR SetStatus(WPARAM wParam, LPARAM lParam)
 				Menu_EnableItem(hMenuHandle, TRUE);
 			}
 			else {
-				ProtoBroadcastAck(PLUGINNAME, NULL, ACKTYPE_STATUS, ACKRESULT_FAILED, (HANDLE)currentStatus, wParam);
+				ProtoBroadcastAck(MODULENAME, NULL, ACKTYPE_STATUS, ACKRESULT_FAILED, (HANDLE)currentStatus, wParam);
 				return -1;
 			}
 		}
@@ -1577,7 +1567,7 @@ INT_PTR SetStatus(WPARAM wParam, LPARAM lParam)
 	}
 	//broadcast the message
 	if (currentStatus != (int)wParam)
-		ProtoBroadcastAck(PLUGINNAME, NULL, ACKTYPE_STATUS, ACKRESULT_SUCCESS, (HANDLE)currentStatus, wParam);
+		ProtoBroadcastAck(MODULENAME, NULL, ACKTYPE_STATUS, ACKRESULT_SUCCESS, (HANDLE)currentStatus, wParam);
 	currentStatus = wParam;
 
 	return 0;
@@ -1680,11 +1670,8 @@ static int preshutdown(WPARAM, LPARAM)
 }
 
 
-extern "C" int __declspec(dllexport) Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-
 	Plugin_Terminated = false;
 
 	//if(pluginLink)//strange, but this function is called by Lotus API Extension Manager (instead of MainEntryPoint) probably always with parameter poiter =1
@@ -1702,7 +1689,7 @@ extern "C" int __declspec(dllexport) Load(void)
 
 	init_pluginname();
 	logRegister();
-	log_p(L"Load: Entering LotusNotify.dll Load() bMirandaCall=%d PLUGINNAME=[%S]", bMirandaCall, PLUGINNAME);
+	log_p(L"Load: Entering LotusNotify.dll Load() bMirandaCall=%d MODULENAME=[%S]", bMirandaCall, MODULENAME);
 
 	if (!(hCheckEvent = CreateHookableEvent("LotusNotify/Check"))) //check if there is another copy of plugin running
 		second = TRUE;
@@ -1714,7 +1701,7 @@ extern "C" int __declspec(dllexport) Load(void)
 		//function that will be called on menu click
 		CreateServiceFunction("LotusNotify/MenuCommand", PluginMenuCommand);
 
-		CMenuItem mi;
+		CMenuItem mi(&g_plugin);
 		SET_UID(mi, 0x4519458, 0xb55a, 0x4e22, 0xac, 0x95, 0x5e, 0xa4, 0x4d, 0x92, 0x65, 0x65);
 		mi.position = -0x7FFFFFFF; //on top menu position
 		mi.flags = CMIF_UNICODE;
@@ -1727,18 +1714,18 @@ extern "C" int __declspec(dllexport) Load(void)
 	}
 
 	// set all contacts to offline
-	for (auto &hContact : Contacts(PLUGINNAME))
-		db_set_w(hContact, PLUGINNAME, "status", ID_STATUS_OFFLINE);
+	for (auto &hContact : Contacts(MODULENAME))
+		db_set_w(hContact, MODULENAME, "status", ID_STATUS_OFFLINE);
 
-	CreateProtoServiceFunction(PLUGINNAME, PS_GETCAPS, GetCaps);
-	CreateProtoServiceFunction(PLUGINNAME, PS_GETNAME, GetName);
-	CreateProtoServiceFunction(PLUGINNAME, PS_LOADICON, TMLoadIcon);
-	CreateProtoServiceFunction(PLUGINNAME, PS_SETSTATUS, SetStatus);
-	CreateProtoServiceFunction(PLUGINNAME, PS_GETSTATUS, GetStatus);
+	CreateProtoServiceFunction(MODULENAME, PS_GETCAPS, GetCaps);
+	CreateProtoServiceFunction(MODULENAME, PS_GETNAME, GetName);
+	CreateProtoServiceFunction(MODULENAME, PS_LOADICON, TMLoadIcon);
+	CreateProtoServiceFunction(MODULENAME, PS_SETSTATUS, SetStatus);
+	CreateProtoServiceFunction(MODULENAME, PS_GETSTATUS, GetStatus);
 
 	LoadSettings(); //read from db to variables
 
-	Skin_AddSound("LotusNotify", LPGENW("Lotus Notify"), LPGENW("New Lotus document detected"));
+	g_plugin.addSound("LotusNotify", LPGENW("Lotus Notify"), LPGENW("New Lotus document detected"));
 
 	HookEvent(ME_OPT_INITIALISE, LotusNotifyOptInit); //register service to hook option call
 	HookEvent(ME_SYSTEM_MODULESLOADED, modulesloaded); //hook event that all plugins are loaded
@@ -1750,7 +1737,7 @@ extern "C" int __declspec(dllexport) Load(void)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Unload()
+int CMPlugin::Unload()
 {
 	log(L"Unload: start");
 	Plugin_Terminated = true;

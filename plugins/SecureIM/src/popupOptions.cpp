@@ -20,19 +20,19 @@ INT_PTR CALLBACK PopOptionsDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM l
 		char *timeout;
 
 		//set timeout value for Key
-		if (db_get(0, MODULENAME, "timeoutKey", &dbv) == 0) timeout = dbv.pszVal;
+		if (db_get_s(0, MODULENAME, "timeoutKey", &dbv) == 0) timeout = dbv.pszVal;
 		else timeout = "0";
 		SetDlgItemText(hDlg, IDC_TIMEKEY, timeout);
 		db_free(&dbv);
 
 		//set timeout value for SEC
-		if (db_get(0, MODULENAME, "timeoutSec", &dbv) == 0) timeout = dbv.pszVal;
+		if (db_get_s(0, MODULENAME, "timeoutSec", &dbv) == 0) timeout = dbv.pszVal;
 		else timeout = "0";
 		SetDlgItemText(hDlg, IDC_TIMESEC, timeout);
 		db_free(&dbv);
 
 		//set timeout value for SR
-		if (db_get(0, MODULENAME, "timeoutSR", &dbv) == 0) timeout = dbv.pszVal;
+		if (db_get_s(0, MODULENAME, "timeoutSR", &dbv) == 0) timeout = dbv.pszVal;
 		else timeout = "0";
 		SetDlgItemText(hDlg, IDC_TIMESR, timeout);
 		db_free(&dbv);
@@ -162,13 +162,12 @@ void RefreshPopupOptionsDlg(HWND hec, HWND hdc, HWND hss, HWND hsr, HWND hks, HW
 int onRegisterPopOptions(WPARAM wParam, LPARAM)
 {
 	if (bPopupExists) {
-		OPTIONSDIALOGPAGE odp = { 0 };
-		odp.hInstance = g_hInst;
+		OPTIONSDIALOGPAGE odp = {};
 		odp.pszTemplate = MAKEINTRESOURCE(IDD_POPUP);
 		odp.szTitle.a = (char*)MODULENAME;
 		odp.szGroup.a = LPGEN("Popups");
 		odp.pfnDlgProc = PopOptionsDlgProc;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }

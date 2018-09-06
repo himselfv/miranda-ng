@@ -10,3 +10,10 @@
 #include <m_skin.h>
 
 #include "version.h"
+
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
+
+	int Load() override;
+};

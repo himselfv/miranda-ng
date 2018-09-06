@@ -26,17 +26,15 @@ int OnDbEventAdded(WPARAM, LPARAM lParam)
 
 		// if request is from unknown or not marked Answered contact
 		//and if I don't sent message to this contact
-		if (db_get_b(hcntct, "CList", "NotOnList", 0) && !db_get_b(hcntct, pluginName, answeredSetting, 0) && !IsExistMyMessage(hcntct)) {
+		if (db_get_b(hcntct, "CList", "NotOnList", 0) && !db_get_b(hcntct, MODULENAME, answeredSetting, 0) && !IsExistMyMessage(hcntct)) {
 			if (!g_sets.HandleAuthReq) {
-				char *buf = mir_utf8encodeW(variables_parse(g_sets.AuthRepl, hcntct).c_str());
+				char *buf = mir_utf8encodeW(variables_parse(g_sets.getReply(), hcntct).c_str());
 				ProtoChainSend(hcntct, PSS_MESSAGE, 0, (LPARAM)buf);
 				mir_free(buf);
 			}
 
 			// ...send message
-			char *AuthRepl = mir_u2a(variables_parse(g_sets.AuthRepl, hcntct).c_str());
-			CallProtoService(dbei.szModule, PS_AUTHDENY, hDbEvent, (LPARAM)AuthRepl);
-			mir_free(AuthRepl);
+			CallProtoService(dbei.szModule, PS_AUTHDENY, hDbEvent, (LPARAM)_T2A(variables_parse(g_sets.getReply(), hcntct).c_str()));
 
 			db_set_b(hcntct, "CList", "NotOnList", 1);
 			db_set_b(hcntct, "CList", "Hidden", 1);
@@ -66,7 +64,7 @@ int OnDbEventFilterAdd(WPARAM w, LPARAM l)
 		return 0;
 
 	// if message is from known or marked Answered contact
-	if (db_get_b(hContact, pluginName, answeredSetting, 0))
+	if (db_get_b(hContact, MODULENAME, answeredSetting, 0))
 		// ...let the event go its way
 		return 0;
 
@@ -113,7 +111,7 @@ int OnDbEventFilterAdd(WPARAM w, LPARAM l)
 				db_unset(hContact, "CList", "Hidden");
 
 				// mark contact as Answered
-				db_set_b(hContact, pluginName, answeredSetting, 1);
+				db_set_b(hContact, MODULENAME, answeredSetting, 1);
 
 				//add contact permanently
 				if (g_sets.AddPermanent)
@@ -121,7 +119,7 @@ int OnDbEventFilterAdd(WPARAM w, LPARAM l)
 
 				// send congratulation
 
-				char * buf = mir_utf8encodeW(variables_parse(g_sets.Congratulation, hContact).c_str());
+				char * buf = mir_utf8encodeW(variables_parse(g_sets.getCongrats(), hContact).c_str());
 				ProtoChainSend(hContact, PSS_MESSAGE, 0, (LPARAM)buf);
 				mir_free(buf);
 
@@ -135,9 +133,9 @@ int OnDbEventFilterAdd(WPARAM w, LPARAM l)
 	// if message message does not contain infintite talk protection prefix
 	// and question count for this contact is less then maximum
 	const wchar_t *pwszPrefix = TranslateT("StopSpam automatic message:\r\n");
-	if ((!g_sets.InfTalkProtection || tstring::npos == message.find(pwszPrefix)) && (!g_sets.MaxQuestCount || db_get_dw(hContact, pluginName, questCountSetting, 0) < g_sets.MaxQuestCount)) {
+	if ((!g_sets.InfTalkProtection || tstring::npos == message.find(pwszPrefix)) && (!g_sets.MaxQuestCount || db_get_dw(hContact, MODULENAME, questCountSetting, 0) < g_sets.MaxQuestCount)) {
 		// send question
-		tstring q = pwszPrefix + variables_parse(g_sets.Question, hContact);
+		tstring q = pwszPrefix + variables_parse(g_sets.getQuestion(), hContact);
 
 
 		char * buf = mir_utf8encodeW(q.c_str());
@@ -146,8 +144,8 @@ int OnDbEventFilterAdd(WPARAM w, LPARAM l)
 
 
 		// increment question count
-		DWORD questCount = db_get_dw(hContact, pluginName, questCountSetting, 0);
-		db_set_dw(hContact, pluginName, questCountSetting, questCount + 1);
+		DWORD questCount = db_get_dw(hContact, MODULENAME, questCountSetting, 0);
+		db_set_dw(hContact, MODULENAME, questCountSetting, questCount + 1);
 	}
 
 	// hide contact from contact list
@@ -173,8 +171,8 @@ int OnDbContactSettingchanged(WPARAM hContact, LPARAM l)
 		return 0;
 
 	if (!cws->value.type) {
-		db_unset(hContact, pluginName, answeredSetting);
-		db_unset(hContact, pluginName, questCountSetting);
+		db_unset(hContact, MODULENAME, answeredSetting);
+		db_unset(hContact, MODULENAME, questCountSetting);
 	}
 
 	return 0;

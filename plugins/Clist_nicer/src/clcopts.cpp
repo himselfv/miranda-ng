@@ -455,9 +455,9 @@ static INT_PTR CALLBACK DlgProcDspAdvanced(HWND hwndDlg, UINT msg, WPARAM wParam
 			cfg::dat.bShowLocalTimeSelective = IsDlgButtonChecked(hwndDlg, IDC_SHOWLOCALTIMEONLYWHENDIFFERENT) ? 1 : 0;
 			db_set_b(NULL, "CLC", "SelectiveLocalTime", (BYTE)cfg::dat.bShowLocalTimeSelective);
 
-			KillTimer(pcli->hwndContactTree, TIMERID_REFRESH);
+			KillTimer(g_clistApi.hwndContactTree, TIMERID_REFRESH);
 			if (cfg::dat.bShowLocalTime)
-				SetTimer(pcli->hwndContactTree, TIMERID_REFRESH, 65000, nullptr);
+				SetTimer(g_clistApi.hwndContactTree, TIMERID_REFRESH, 65000, nullptr);
 
 			cfg::dat.dualRowMode = (BYTE)SendDlgItemMessage(hwndDlg, IDC_DUALROWMODE, CB_GETCURSEL, 0, 0);
 			if (cfg::dat.dualRowMode == CB_ERR)
@@ -513,39 +513,37 @@ static INT_PTR CALLBACK DlgProcIcons(HWND hwndDlg, UINT msg, WPARAM, LPARAM lPar
 
 int ClcOptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_hInst;
-
 	////////////////////////////////////////////////////////////////////////////
 	// Main options tabs
 
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -1000000000;
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.szTitle.a = LPGEN("Contact list");
 	odp.szTab.a = LPGEN("General");
 	odp.pfnDlgProc = DlgProcGenOpts;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_CLIST);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("List layout");
 	odp.pfnDlgProc = DlgProcClcMainOpts;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_CLC);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Window");
 	odp.pfnDlgProc = DlgProcCluiOpts;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_CLUI);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Background");
 	odp.pfnDlgProc = DlgProcClcBkgOpts;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_CLCBKG);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Status bar");
 	odp.pfnDlgProc = DlgProcSBarOpts;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_SBAR);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	////////////////////////////////////////////////////////////////////////////
 	// Contact rows tabs
@@ -557,22 +555,22 @@ int ClcOptInit(WPARAM wParam, LPARAM)
 	odp.pfnDlgProc = DlgProcDspItems;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_DSPITEMS);
 	odp.flags = ODPF_BOLDGROUPS;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Groups and layout");
 	odp.pfnDlgProc = DlgProcDspGroups;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_DSPGROUPS);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Advanced");
 	odp.pfnDlgProc = DlgProcDspAdvanced;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_DSPADVANCED);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.szTab.a = LPGEN("Icons");
 	odp.pfnDlgProc = DlgProcIcons;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_ICONS);
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	////////////////////////////////////////////////////////////////////////////
 	// Other options
@@ -582,7 +580,7 @@ int ClcOptInit(WPARAM wParam, LPARAM)
 	odp.szTitle.a = LPGEN("Contact list");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = OptionsDlgProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -685,7 +683,7 @@ static INT_PTR CALLBACK DlgProcClcMainOpts(HWND hwndDlg, UINT msg, WPARAM wParam
 
 				Clist_ClcOptionsChanged();
 				CoolSB_SetupScrollBar();
-				PostMessage(pcli->hwndContactList, CLUIINTM_REDRAW, 0, 0);
+				PostMessage(g_clistApi.hwndContactList, CLUIINTM_REDRAW, 0, 0);
 				opt_clc_main_changed = 0;
 				return TRUE;
 			}
@@ -711,7 +709,7 @@ static INT_PTR CALLBACK DlgProcClcBkgOpts(HWND hwndDlg, UINT msg, WPARAM wParam,
 			DBVARIANT dbv;
 			if (!db_get_ws(NULL, "CLC", "BkBitmap", &dbv)) {
 				wchar_t szPath[MAX_PATH];
-				if (PathToAbsoluteW(dbv.ptszVal, szPath))
+				if (PathToAbsoluteW(dbv.pwszVal, szPath))
 					SetDlgItemText(hwndDlg, IDC_FILENAME, szPath);
 
 				db_free(&dbv);
@@ -810,7 +808,7 @@ static INT_PTR CALLBACK DlgProcClcBkgOpts(HWND hwndDlg, UINT msg, WPARAM wParam,
 				db_set_b(NULL, "CLUI", "UseBkSkin", (BYTE)cfg::dat.bWallpaperMode);
 
 				Clist_ClcOptionsChanged();
-				PostMessage(pcli->hwndContactList, CLUIINTM_REDRAW, 0, 0);
+				PostMessage(g_clistApi.hwndContactList, CLUIINTM_REDRAW, 0, 0);
 				opt_clc_bkg_changed = 0;
 				return TRUE;
 			}

@@ -4,36 +4,20 @@
 
 #include "stdafx.h"
 
-static int InitializeOptions(WPARAM wParam,LPARAM lParam);
-static int ModulesLoaded(WPARAM wParam,LPARAM lParam);
-static int ContactSettingChanged(WPARAM wParam,LPARAM lParam);
-static int ProtoAck(WPARAM,LPARAM);
-static int ProtoContactIsTyping(WPARAM wParam,LPARAM lParam);
-
 static HANDLE g_hContactSettingChanged = nullptr;
 static HANDLE g_hOptionsInitialize = nullptr;
 static HANDLE g_hModulesLoaded = nullptr;
 static HANDLE g_hProtoAck = nullptr;
 static HANDLE g_hProtoContactIsTyping = nullptr;
 
-HINSTANCE g_hInstDLL = nullptr;
-
 // Main global object
 static CTooltipNotify *g_pTooltipNotify = nullptr;
-int hLangpack;
-CLIST_INTERFACE *pcli;
 
-//================================================================================
-// plugin init/deinit routines
-//================================================================================
+CMPlugin g_plugin;
 
-BOOL WINAPI DllMain(HINSTANCE hInstDLL, DWORD, LPVOID)
-{
-	g_hInstDLL = hInstDLL;
-	return TRUE;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
-static PLUGININFOEX sPluginInfo =
+static PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -47,16 +31,44 @@ static PLUGININFOEX sPluginInfo =
 	{0x5906a545, 0xf31a, 0x4726, {0xb4, 0x8f, 0x3, 0xa0, 0x9f, 0x6, 0x3, 0x18}}
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static int ProtoContactIsTyping(WPARAM wParam, LPARAM lParam)
 {
-	return &sPluginInfo;
+	return CTooltipNotify::GetObjInstance()->ProtoContactIsTyping(wParam, lParam);
 }
 
-extern "C" int __declspec(dllexport) Load(void)
+static int ProtoAck(WPARAM wParam, LPARAM lParam)
 {
-	mir_getLP(&sPluginInfo);
-	pcli = Clist_GetInterface();
+	return CTooltipNotify::GetObjInstance()->ProtoAck(wParam, lParam);
+}
 
+static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
+{
+	return CTooltipNotify::GetObjInstance()->ContactSettingChanged(wParam, lParam);
+}
+
+static int InitializeOptions(WPARAM wParam, LPARAM lParam)
+{
+	return CTooltipNotify::GetObjInstance()->InitializeOptions(wParam, lParam);
+}
+
+static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
+{
+	g_hContactSettingChanged = HookEvent(ME_DB_CONTACT_SETTINGCHANGED, ContactSettingChanged);
+	g_hProtoAck = HookEvent(ME_PROTO_ACK, ProtoAck);
+	g_hProtoContactIsTyping = HookEvent(ME_PROTO_CONTACTISTYPING, ProtoContactIsTyping);
+	g_hOptionsInitialize = HookEvent(ME_OPT_INITIALISE, InitializeOptions);
+
+	return CTooltipNotify::GetObjInstance()->ModulesLoaded(wParam, lParam);
+}
+
+int CMPlugin::Load()
+{
 	g_pTooltipNotify = new CTooltipNotify();
 	assert(g_pTooltipNotify!=nullptr);
 	
@@ -64,7 +76,9 @@ extern "C" int __declspec(dllexport) Load(void)
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	if (g_hContactSettingChanged) UnhookEvent(g_hContactSettingChanged);
 	if (g_hProtoContactIsTyping) UnhookEvent(g_hProtoContactIsTyping);
@@ -75,49 +89,3 @@ extern "C" int __declspec(dllexport) Unload(void)
 
 	return 0;
 }
-
-
-
-//================================================================================
-//================================================================================
-//================================================================================
-
-
-int ModulesLoaded(WPARAM wParam, LPARAM lParam)
-{
-	g_hContactSettingChanged = HookEvent(ME_DB_CONTACT_SETTINGCHANGED, ContactSettingChanged);
-	g_hProtoAck = HookEvent(ME_PROTO_ACK, ProtoAck);
-	g_hProtoContactIsTyping = HookEvent(ME_PROTO_CONTACTISTYPING, ProtoContactIsTyping);
-	g_hOptionsInitialize = HookEvent(ME_OPT_INITIALISE, InitializeOptions);	
-
-	return CTooltipNotify::GetObjInstance()->ModulesLoaded(wParam, lParam);
-}
-
-
-int ProtoContactIsTyping(WPARAM wParam, LPARAM lParam)
-{
-	return CTooltipNotify::GetObjInstance()->ProtoContactIsTyping(wParam, lParam);
-}
-
-
-int ProtoAck(WPARAM wParam, LPARAM lParam)
-{
-	return CTooltipNotify::GetObjInstance()->ProtoAck(wParam, lParam);
-}
-
-
-int ContactSettingChanged(WPARAM wParam, LPARAM lParam) 
-{ 
-	return CTooltipNotify::GetObjInstance()->ContactSettingChanged(wParam, lParam);
-}
-
-
-int InitializeOptions(WPARAM wParam, LPARAM lParam)
-{
-	return CTooltipNotify::GetObjInstance()->InitializeOptions(wParam, lParam);
-}
-
-
-
-
-

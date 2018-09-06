@@ -12,12 +12,13 @@
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
+CMPlugin g_plugin;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Variables
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-PLUGININFOEX pluginInfo = {
+PLUGININFOEX pluginInfoEx = {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -27,12 +28,12 @@ PLUGININFOEX pluginInfo = {
 	__AUTHORWEB,
 	UNICODE_AWARE,
 	// {08C01613-24C8-486F-BDAE-2C3DDCAF9347}
-	{0x8c01613, 0x24c8, 0x486f, { 0xbd, 0xae, 0x2c, 0x3d, 0xdc, 0xaf, 0x93, 0x47 }} 
+	{0x8c01613, 0x24c8, 0x486f, { 0xbd, 0xae, 0x2c, 0x3d, 0xdc, 0xaf, 0x93, 0x47 }}
 };
 
-HINSTANCE hInst;
-int hLangpack;
-CLIST_INTERFACE *pcli;
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Plugin Functions
@@ -55,21 +56,21 @@ INT_PTR SnapPluginWindowStop(WPARAM wParam, LPARAM)
 
 int PluginMessageWindowEvent(WPARAM, LPARAM lParam)
 {
-	MessageWindowEventData *Data = (MessageWindowEventData*) lParam;
-	
-	switch (Data->uType) {
-	case MSG_WINDOW_EVT_OPEN: 
-		{
-			HWND hWnd = Data->hwndWindow;
-			HWND hWndParent = GetParent(hWnd);
-			while ((hWndParent != 0) && (hWndParent != GetDesktopWindow()) && (IsWindowVisible(hWndParent))) {			
-				hWnd = hWndParent;
-				hWndParent = GetParent(hWnd);			
-			}
+	MessageWindowEventData *Data = (MessageWindowEventData*)lParam;
 
-			WindowOpen(hWnd);
+	switch (Data->uType) {
+	case MSG_WINDOW_EVT_OPEN:
+	{
+		HWND hWnd = Data->hwndWindow;
+		HWND hWndParent = GetParent(hWnd);
+		while ((hWndParent != 0) && (hWndParent != GetDesktopWindow()) && (IsWindowVisible(hWndParent))) {
+			hWnd = hWndParent;
+			hWndParent = GetParent(hWnd);
 		}
-		break;
+
+		WindowOpen(hWnd);
+	}
+	break;
 
 	case MSG_WINDOW_EVT_CLOSING:
 		WindowClose(Data->hwndWindow);
@@ -90,7 +91,7 @@ int SnapPluginStart(WPARAM, LPARAM)
 
 	HookEvent(ME_MSG_WINDOWEVENT, PluginMessageWindowEvent);
 
-	WindowOpen(pcli->hwndContactList);
+	WindowOpen(g_clistApi.hwndContactList);
 	return 0;
 }
 
@@ -105,16 +106,8 @@ int SnapPluginShutDown(WPARAM, LPARAM)
 // Exportet Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
+int CMPlugin::Load()
 {
-	return &pluginInfo;
-}
-
-extern "C" int __declspec(dllexport) Load()
-{
-	mir_getLP(&pluginInfo);
-	pcli = Clist_GetInterface();
-	
 	HookEvent(ME_SYSTEM_MODULESLOADED, SnapPluginStart);
 	HookEvent(ME_SYSTEM_PRESHUTDOWN, SnapPluginShutDown);
 	HookEvent(ME_OPT_INITIALISE, InitOptions);
@@ -125,20 +118,4 @@ extern "C" int __declspec(dllexport) Load()
 
 	WindowStart();
 	return 0;
-}
-
-extern "C" int __declspec(dllexport) Unload()
-{
-	return 0;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// DLL MAIN
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
 }

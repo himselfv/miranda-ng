@@ -414,8 +414,7 @@ void FacebookProto::OnShutdown()
 
 int FacebookProto::OnOptionsInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
-	odp.hInstance = g_plugin.getInst();
+	OPTIONSDIALOGPAGE odp = {};
 	odp.szTitle.w = m_tszUserName;
 	odp.dwInitParam = LPARAM(this);
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE | ODPF_DONTTRANSLATE;
@@ -425,25 +424,25 @@ int FacebookProto::OnOptionsInit(WPARAM wParam, LPARAM)
 	odp.szTab.w = LPGENW("Account");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
 	odp.pfnDlgProc = FBOptionsProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.position = 271829;
 	odp.szTab.w = LPGENW("Events");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS_EVENTS);
 	odp.pfnDlgProc = FBOptionsEventsProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.position = 271830;
 	odp.szTab.w = LPGENW("Statuses");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS_STATUSES);
 	odp.pfnDlgProc = FBOptionsStatusesProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 
 	odp.position = 271831;
 	odp.szTab.w = LPGENW("Messaging");
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS_MESSAGING);
 	odp.pfnDlgProc = FBOptionsMessagingProc;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -458,7 +457,7 @@ int FacebookProto::OnToolbarInit(WPARAM, LPARAM)
 	ttb.pszService = service;
 	ttb.pszTooltipUp = ttb.name = LPGEN("Share status...");
 	ttb.hIconHandleUp = IcoLib_GetIconByHandle(GetIconHandle("mind"));
-	TopToolbar_AddButton(&ttb);
+	g_plugin.addTTB(&ttb);
 
 	return 0;
 }
@@ -915,89 +914,71 @@ LRESULT CALLBACK PopupDlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPa
  */
 void FacebookProto::InitPopups()
 {
-	POPUPCLASS ppc = { sizeof(ppc) };
-	ppc.flags = PCF_TCHAR;
+	char name[256];
+	wchar_t desc[256];
+
+	POPUPCLASS ppc = {};
+	ppc.cbSize = sizeof(ppc);
+	ppc.flags = PCF_UNICODE;
 	ppc.PluginWindowProc = PopupDlgProc;
 	ppc.lParam = APF_RETURN_HWND;
-
-	wchar_t desc[256];
-	char name[256];
+	ppc.pszName = name;
+	ppc.pszDescription.w = desc;
 
 	// Client
 	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Client errors"));
 	mir_snprintf(name, "%s_%s", m_szModuleName, "Client");
-	ppc.pwszDescription = desc;
-	ppc.pszName = name;
 	ppc.hIcon = IcoLib_GetIconByHandle(GetIconHandle("facebook"));
 	ppc.colorBack = RGB(191, 0, 0); // red
 	ppc.colorText = RGB(255, 255, 255); // white
-	ppc.iSeconds = 0;
 	popupClasses.push_back(Popup_RegisterClass(&ppc));
 
 	// Newsfeeds
 	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Wall posts"));
 	mir_snprintf(name, "%s_%s", m_szModuleName, "Newsfeed");
-	ppc.pwszDescription = desc;
-	ppc.pszName = name;
 	ppc.hIcon = IcoLib_GetIconByHandle(GetIconHandle("newsfeed"));
 	ppc.colorBack = RGB(255, 255, 255); // white
 	ppc.colorText = RGB(0, 0, 0); // black
-	ppc.iSeconds = 0;
 	popupClasses.push_back(Popup_RegisterClass(&ppc));
 
 	// Notifications
 	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Notifications"));
 	mir_snprintf(name, "%s_%s", m_szModuleName, "Notification");
-	ppc.pwszDescription = desc;
-	ppc.pszName = name;
 	ppc.hIcon = IcoLib_GetIconByHandle(GetIconHandle("notification"));
 	ppc.colorBack = RGB(59, 89, 152); // Facebook's blue
 	ppc.colorText = RGB(255, 255, 255); // white
-	ppc.iSeconds = 0;
 	popupClasses.push_back(Popup_RegisterClass(&ppc));
 
 	// Others
 	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Other events"));
 	mir_snprintf(name, "%s_%s", m_szModuleName, "Other");
-	ppc.pwszDescription = desc;
-	ppc.pszName = name;
 	ppc.hIcon = IcoLib_GetIconByHandle(GetIconHandle("facebook"));
 	ppc.colorBack = RGB(255, 255, 255); // white
 	ppc.colorText = RGB(0, 0, 0); // black
-	ppc.iSeconds = 0;
 	popupClasses.push_back(Popup_RegisterClass(&ppc));
 
 	// Friendship changes
 	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Friendship events"));
 	mir_snprintf(name, "%s_%s", m_szModuleName, "Friendship");
-	ppc.pwszDescription = desc;
-	ppc.pszName = name;
 	ppc.hIcon = IcoLib_GetIconByHandle(GetIconHandle("friendship"));
 	ppc.colorBack = RGB(47, 71, 122); // Facebook's darker blue
 	ppc.colorText = RGB(255, 255, 255); // white
-	ppc.iSeconds = 0;
 	popupClasses.push_back(Popup_RegisterClass(&ppc));
 
 	// Ticker
 	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Real-time friends activity"));
 	mir_snprintf(name, "%s_%s", m_szModuleName, "Ticker");
-	ppc.pwszDescription = desc;
-	ppc.pszName = name;
 	ppc.hIcon = IcoLib_GetIconByHandle(GetIconHandle("newsfeed"));
 	ppc.colorBack = RGB(255, 255, 255); // white
 	ppc.colorText = RGB(0, 0, 0); // black
-	ppc.iSeconds = 0;
 	popupClasses.push_back(Popup_RegisterClass(&ppc));
 
 	// On this day (memories)
 	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Memories"));
 	mir_snprintf(name, "%s_%s", m_szModuleName, "Memories");
-	ppc.pwszDescription = desc;
-	ppc.pszName = name;
 	ppc.hIcon = IcoLib_GetIconByHandle(GetIconHandle("memories"));
 	ppc.colorBack = RGB(255, 255, 255); // white
 	ppc.colorText = RGB(0, 0, 0); // black
-	ppc.iSeconds = 0;
 	popupClasses.push_back(Popup_RegisterClass(&ppc));
 }
 
@@ -1018,16 +999,16 @@ void FacebookProto::InitHotkeys()
 
 	mir_strcpy(tDest, "/VisitProfile");
 	hkd.szDescription.w = LPGENW("Visit profile");
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	mir_strcpy(tDest, "/VisitNotifications");
 	hkd.szDescription.w = LPGENW("Visit notifications");
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 
 	mir_strcpy(tDest, "/Mind");
 	hkd.szDescription.w = LPGENW("Show 'Share status' window");
 	hkd.DefHotKey = HOTKEYCODE(HOTKEYF_ALT | HOTKEYF_EXT, 'F');
-	Hotkey_Register(&hkd);
+	g_plugin.addHotkey(&hkd);
 }
 
 /**
@@ -1035,12 +1016,12 @@ void FacebookProto::InitHotkeys()
  */
 void FacebookProto::InitSounds()
 {
-	Skin_AddSound("Notification", m_tszUserName, LPGENW("Notification"));
-	Skin_AddSound("NewsFeed", m_tszUserName, LPGENW("Newsfeed event"));
-	Skin_AddSound("OtherEvent", m_tszUserName, LPGENW("Other event"));
-	Skin_AddSound("Friendship", m_tszUserName, LPGENW("Friendship event"));
-	Skin_AddSound("Ticker", m_tszUserName, LPGENW("Ticker event"));
-	Skin_AddSound("Memories", m_tszUserName, LPGENW("Memories"));
+	g_plugin.addSound("Notification", m_tszUserName, LPGENW("Notification"));
+	g_plugin.addSound("NewsFeed", m_tszUserName, LPGENW("Newsfeed event"));
+	g_plugin.addSound("OtherEvent", m_tszUserName, LPGENW("Other event"));
+	g_plugin.addSound("Friendship", m_tszUserName, LPGENW("Friendship event"));
+	g_plugin.addSound("Ticker", m_tszUserName, LPGENW("Ticker event"));
+	g_plugin.addSound("Memories", m_tszUserName, LPGENW("Memories"));
 }
 
 /**

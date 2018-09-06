@@ -751,7 +751,7 @@ static INT_PTR CALLBACK DlgProcItemThirdLineOpts(HWND hwndDlg, UINT msg, WPARAM 
 		{
 			DBVARIANT dbv;
 			if (!db_get_ws(0, "CList", "ThirdLineText", &dbv)) {
-				SetDlgItemText(hwndDlg, IDC_VARIABLE_TEXT, dbv.ptszVal);
+				SetDlgItemText(hwndDlg, IDC_VARIABLE_TEXT, dbv.pwszVal);
 				db_free(&dbv);
 			}
 		}
@@ -929,9 +929,8 @@ static row_opt_items[] =
 
 int CListOptInit(WPARAM wParam, LPARAM)
 {
-	OPTIONSDIALOGPAGE odp = { 0 };
+	OPTIONSDIALOGPAGE odp = {};
 	odp.position = -200000000;
-	odp.hInstance = g_hInst;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_ITEMS);
 	odp.szGroup.a = LPGEN("Contact list");
 	odp.szTitle.a = LPGEN("Row items");
@@ -941,7 +940,7 @@ int CListOptInit(WPARAM wParam, LPARAM)
 		odp.pszTemplate = MAKEINTRESOURCEA(it.id);
 		odp.szTab.a = it.name;
 		odp.pfnDlgProc = it.wnd_proc;
-		Options_AddPage(wParam, &odp);
+		g_plugin.addOptions(wParam, &odp);
 	}
 	return 0;
 }

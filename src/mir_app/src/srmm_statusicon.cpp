@@ -24,6 +24,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdafx.h"
 
 HCURSOR g_hCurHyperlinkHand;
+HANDLE hHookSrmmEvent;
+
+static HANDLE hHookIconsChanged, hHookIconPressedEvt;
 
 void LoadSrmmToolbarModule();
 void UnloadSrmmToolbarModule();
@@ -64,7 +67,7 @@ struct StatusIconMain : public MZeroedObject
 
 	StatusIconData sid;
 
-	int hLangpack;
+	HPLUGIN pPlugin;
 	OBJLIST<StatusIconChild> arChildren;
 };
 
@@ -79,11 +82,9 @@ static int CompareIcons(const StatusIconMain *p1, const StatusIconMain *p2)
 
 static OBJLIST<StatusIconMain> arIcons(3, CompareIcons);
 
-HANDLE hHookIconsChanged, hHookSrmmEvent;
-
 /////////////////////////////////////////////////////////////////////////////////////////
 
-MIR_APP_DLL(int) Srmm_AddIcon(StatusIconData *sid, int _hLangpack)
+MIR_APP_DLL(int) Srmm_AddIcon(StatusIconData *sid, HPLUGIN pPlugin)
 {
 	if (sid == nullptr)
 		return 1;
@@ -94,7 +95,7 @@ MIR_APP_DLL(int) Srmm_AddIcon(StatusIconData *sid, int _hLangpack)
 
 	p = new StatusIconMain;
 	memcpy(&p->sid, sid, sizeof(p->sid));
-	p->hLangpack = _hLangpack;
+	p->pPlugin = pPlugin;
 	p->sid.szModule = mir_strdup(sid->szModule);
 	if (sid->flags & MBF_UNICODE)
 		p->sid.tszTooltip = mir_wstrdup(sid->wszTooltip);
@@ -184,7 +185,7 @@ MIR_APP_DLL(StatusIconData*) Srmm_GetNthIcon(MCONTACT hContact, int index)
 				if (pc->tszTooltip) res.tszTooltip = pc->tszTooltip;
 				res.flags = pc->flags;
 			}
-			res.tszTooltip = TranslateW_LP(res.tszTooltip, it->hLangpack);
+			res.tszTooltip = TranslateW_LP(res.tszTooltip, it->pPlugin);
 			return &res;
 		}
 		nVis++;
@@ -195,11 +196,18 @@ MIR_APP_DLL(StatusIconData*) Srmm_GetNthIcon(MCONTACT hContact, int index)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-void KillModuleSrmmIcons(int _hLang)
+MIR_APP_DLL(void) Srmm_ClickStatusIcon(MCONTACT hContact, const StatusIconClickData *sid)
+{
+	NotifyEventHooks(hHookIconPressedEvt, hContact, (LPARAM)sid);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+void KillModuleSrmmIcons(HPLUGIN pPlugin)
 {
 	auto T = arIcons.rev_iter();
 	for (auto &it : T)
-		if (it->hLangpack == _hLang)
+		if (it->pPlugin == pPlugin)
 			arIcons.remove(T.indexOf(&it));
 }
 
@@ -211,6 +219,7 @@ int LoadSrmmModule()
 	
 	hHookSrmmEvent = CreateHookableEvent(ME_MSG_WINDOWEVENT);
 	hHookIconsChanged = CreateHookableEvent(ME_MSG_ICONSCHANGED);
+	hHookIconPressedEvt = CreateHookableEvent(ME_MSG_ICONPRESSED);
 	return 0;
 }
 
@@ -220,6 +229,7 @@ void UnloadSrmmModule()
 
 	DestroyHookableEvent(hHookIconsChanged);
 	DestroyHookableEvent(hHookSrmmEvent);
+	DestroyHookableEvent(hHookIconPressedEvt);
 
 	DestroyCursor(g_hCurHyperlinkHand);
 

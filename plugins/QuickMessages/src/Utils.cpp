@@ -153,22 +153,22 @@ void SaveModuleSettings(int buttonnum, ButtonData* bd)
 	char szMEntry[256] = { '\0' };
 
 	mir_snprintf(szMEntry, "EntryName_%u_%u", buttonnum, bd->dwPos);
-	db_set_ws(NULL, PLGNAME, szMEntry, bd->pszName);
+	db_set_ws(NULL, MODULENAME, szMEntry, bd->pszName);
 
 	mir_snprintf(szMEntry, "EntryValue_%u_%u", buttonnum, bd->dwPos);
 	if (bd->pszValue)
-		db_set_ws(NULL, PLGNAME, szMEntry, bd->pszValue);
+		db_set_ws(NULL, MODULENAME, szMEntry, bd->pszValue);
 	else
-		db_unset(NULL, PLGNAME, szMEntry);
+		db_unset(NULL, MODULENAME, szMEntry);
 
 	mir_snprintf(szMEntry, "EntryRel_%u_%u", buttonnum, bd->dwPos);
-	db_set_b(NULL, PLGNAME, szMEntry, bd->fEntryType);
+	db_set_b(NULL, MODULENAME, szMEntry, bd->fEntryType);
 
 	mir_snprintf(szMEntry, "EntryToQMenu_%u_%u", buttonnum, bd->dwPos);
-	db_set_b(NULL, PLGNAME, szMEntry, bd->bInQMenu);
+	db_set_b(NULL, MODULENAME, szMEntry, bd->bInQMenu);
 
 	mir_snprintf(szMEntry, "EntryIsServiceName_%u_%u", buttonnum, bd->dwPos);
-	db_set_b(NULL, PLGNAME, szMEntry, bd->bIsServName);
+	db_set_b(NULL, MODULENAME, szMEntry, bd->bIsServName);
 }
 
 void CleanSettings(int buttonnum, int from)
@@ -177,24 +177,24 @@ void CleanSettings(int buttonnum, int from)
 	DBVARIANT dbv = { 0 };
 	if (from == -1) {
 		mir_snprintf(szMEntry, "ButtonName_%u", buttonnum);
-		db_unset(NULL, PLGNAME, szMEntry);
+		db_unset(NULL, MODULENAME, szMEntry);
 		mir_snprintf(szMEntry, "ButtonValue_%u", buttonnum);
-		db_unset(NULL, PLGNAME, szMEntry);
+		db_unset(NULL, MODULENAME, szMEntry);
 		mir_snprintf(szMEntry, "RCEntryIsServiceName_%u", buttonnum);
-		db_unset(NULL, PLGNAME, szMEntry);
+		db_unset(NULL, MODULENAME, szMEntry);
 	}
 
 	mir_snprintf(szMEntry, "EntryName_%u_%u", buttonnum, from);
-	while (!db_get_ws(NULL, PLGNAME, szMEntry, &dbv)) {
-		db_unset(NULL, PLGNAME, szMEntry);
+	while (!db_get_ws(NULL, MODULENAME, szMEntry, &dbv)) {
+		db_unset(NULL, MODULENAME, szMEntry);
 		mir_snprintf(szMEntry, "EntryValue_%u_%u", buttonnum, from);
-		db_unset(NULL, PLGNAME, szMEntry);
+		db_unset(NULL, MODULENAME, szMEntry);
 		mir_snprintf(szMEntry, "EntryRel_%u_%u", buttonnum, from);
-		db_unset(NULL, PLGNAME, szMEntry);
+		db_unset(NULL, MODULENAME, szMEntry);
 		mir_snprintf(szMEntry, "EntryToQMenu_%u_%u", buttonnum, from);
-		db_unset(NULL, PLGNAME, szMEntry);
+		db_unset(NULL, MODULENAME, szMEntry);
 		mir_snprintf(szMEntry, "EntryIsServiceName_%u_%u", buttonnum, from);
-		db_unset(NULL, PLGNAME, szMEntry);
+		db_unset(NULL, MODULENAME, szMEntry);
 
 		mir_snprintf(szMEntry, "EntryName_%u_%u", buttonnum, ++from);
 	}
@@ -219,13 +219,13 @@ BYTE getEntryByte(int buttonnum, int entrynum, BOOL mode)
 		mir_snprintf(szMEntry, "RCEntryIsServiceName_%u", buttonnum);
 		break;
 	}
-	return db_get_b(NULL, PLGNAME, szMEntry, 0);
+	return db_get_b(NULL, MODULENAME, szMEntry, 0);
 }
 
 static HANDLE AddIcon(char* szIcoName)
 {
 	wchar_t tszPath[MAX_PATH];
-	GetModuleFileName(hinstance, tszPath, _countof(tszPath));
+	GetModuleFileName(g_plugin.getInst(), tszPath, _countof(tszPath));
 
 	SKINICONDESC sid = {};
 	sid.flags = SIDF_PATH_UNICODE;
@@ -234,13 +234,13 @@ static HANDLE AddIcon(char* szIcoName)
 	sid.pszName = szIcoName;
 	sid.defaultFile.w = tszPath;
 	sid.iDefaultIndex = -IDI_QICON;
-	return IcoLib_AddIcon(&sid);
+	return g_plugin.addIcon(&sid);
 }
 
 DWORD BalanceButtons(int buttonsWas, int buttonsNow)
 {
 	BBButton bb = {};
-	bb.pszModuleName = PLGNAME;
+	bb.pszModuleName = MODULENAME;
 
 	while (buttonsWas > buttonsNow) {
 		bb.dwButtonID = --buttonsWas;
@@ -254,7 +254,7 @@ DWORD BalanceButtons(int buttonsWas, int buttonsNow)
 		bb.dwButtonID = buttonsWas++;
 		bb.dwDefPos = 300 + buttonsWas;
 		bb.hIcon = AddIcon(iconname);
-		Srmm_AddButton(&bb);
+		Srmm_AddButton(&bb, &g_plugin);
 	}
 
 	return buttonsNow;
@@ -270,7 +270,7 @@ void InitButtonsList()
 		ListData* ld = nullptr;
 		if (!(pszBName = getMenuEntry(i, 0, 3))) {
 			g_iButtonsCount = i;
-			db_set_b(NULL, PLGNAME, "ButtonsCount", (BYTE)g_iButtonsCount);
+			db_set_b(NULL, MODULENAME, "ButtonsCount", (BYTE)g_iButtonsCount);
 			break;
 		}
 
@@ -352,9 +352,9 @@ wchar_t* getMenuEntry(int buttonnum, int entrynum, BYTE mode)
 		break;
 	}
 
-	if (!db_get_ws(NULL, PLGNAME, szMEntry, &dbv)) {
-		if (mir_wstrlen(dbv.ptszVal))
-			buffer = mir_wstrdup(dbv.ptszVal);
+	if (!db_get_ws(NULL, MODULENAME, szMEntry, &dbv)) {
+		if (mir_wstrlen(dbv.pwszVal))
+			buffer = mir_wstrdup(dbv.pwszVal);
 		db_free(&dbv);
 	}
 
@@ -374,9 +374,9 @@ int RegisterCustomButton(WPARAM, LPARAM)
 		bbd.dwButtonID = i;
 		bbd.dwDefPos = 320 + i;
 		bbd.hIcon = AddIcon(iconname);
-		bbd.pszModuleName = PLGNAME;
+		bbd.pszModuleName = MODULENAME;
 		bbd.pwszTooltip = ld->ptszButtonName;
-		Srmm_AddButton(&bbd);
+		Srmm_AddButton(&bbd, &g_plugin);
 	}
 	return 0;
 }

@@ -2,17 +2,34 @@
 ;============================================================
 ;  File: Msg_Export.dll
 ;  Plugin: Message export
-;  Version: 3.1.2.1
+;  Version: 3.1.2.3
 ;  Authors: Kennet Nielsen, mod by ring0
 ;============================================================
 [Exports every message, URL or file you receive to a text file.]
 Експорт повідомлень, посилань чи отриманих файлів у текстовий файл.
+;file \plugins\Msg_Export\res\resource.rc
+[Export directory]
+Каталог експорту
 [Browse]
 Огляд
+[Default file]
+Ім'я файлу
+[File viewer]
+Перегляд файлів
 [Use internal viewer]
 Внутр. перегляд
 [Replace Miranda history]
 Замінити історію
+[Export format]
+Формат експорту
+[Max column width]
+Макс. ширина рядка
+[Note: 0 = no limit]
+Примітка: 0=без обмежень
+[Time format]
+Формат часу
+[Use JSON format for export]
+
 [Use UTF8 in new files]
 UTF8 у нових файлах
 [Append extra new line]
@@ -27,24 +44,10 @@ UTF8 у нових файлах
 Довідка
 [Export all history]
 Експорт історії
-[Export directory]
-Каталог експорту
-[Max column width]
-Макс. ширина рядка
-[Note: 0 = no limit]
-Примітка: 0=без обмежень
-[Time format]
-Формат часу
-[Export format]
-Формат експорту
-[Default file]
-Ім'я файлу
-[File viewer]
-Перегляд файлів
 [Exporting old messages]
 Експорт старих повідомлень
-[History file for %s (%s format %s)]
-Файл історії для %s (%s формат %s)
+[History file for %s (%s, format %s)]
+Файл історії для %s (%s, формат %s)
 [&Find...]
 &Знайти...
 [&External]
@@ -73,8 +76,9 @@ UTF8 у нових файлах
 Ім'я файлу за замовчанням
 [Copy]
 Копіювати
-[Failed to load Rich Edit (Msftedit.dll)]
-Не вдалося завантажити Rich Edit (Msftedit.dll)
+;file \plugins\Msg_Export\src\FileViewer.cpp
+[Miranda database contains %d events]
+
 [Search string was not found!]
 Рядок не знайдено!
 [Save as RTF]
@@ -85,24 +89,28 @@ UTF8 у нових файлах
 Шрифт...
 [Syntax highlight]
 Підсвічування синтаксису
-[Failed to create file]
-Помилка створення файлу
-[Failed to save file]
-Помилка збереження файлу
+[History was saved successfully in file\r\n]
+
+;file \plugins\Msg_Export\src\main.cpp
 [Open E&xported History]
 &Експортована історія
+;file \plugins\Msg_Export\src\options.cpp
 [Reading database information (Phase 1 of 2)]
 Крок 1: Читання бази даних
 [Sorting and writing database information (Phase 2 of 2)]
 Крок 2: Сортування і запис інформації в базу даних
-[Failed to open or create file :\n]
+[Failed to open or create file:\n]
 Не вдалося відкрити або створити файл:\n
-[No contacts found to export]
-Немає контактів для експорту
-[Failed to export at least one contact]
-Не вдалося експортувати як мінімум 1 контакт
+[Max line width must be at least %d. Or use 0 for no limit.]
+
 [You need to restart Miranda to change the history function]
 Зміни функції історії набудуть чинності після перезапуску Miranda
+[Executable files]
+Виконувані файли
+[All files]
+Усі файли
+[Select Destination Directory]
+Вибрати папку для запису
 [File]
 Файл
 [Nick]
@@ -111,14 +119,8 @@ UTF8 у нових файлах
 Протокол
 [UIN]
 Номер
-[You have not applied the changes, do you wish to apply them first?]
-Є незбережені зміни, застосувати?
-[Executable files]
-Виконувані файли
-[All files]
-Усі файли
-[Select Destination Directory]
-Вибрати папку для запису
+[No contacts found to export]
+Немає контактів для експорту
 [Export Protocols]
 Експорт протоколів
 [Message export]
@@ -127,8 +129,16 @@ UTF8 у нових файлах
 Історія
 [General]
 Загальне
+[Contacts]
+Контакти
 [Additional]
 Додатково
+;file \plugins\Msg_Export\src\stdafx.h
+[Miranda NG (Message Export Plugin)]
+
+;file \plugins\Msg_Export\src\utils.cpp
+[No_Group]
+
 [(Unknown Contact)]
 (Невідомий контакт)
 [File name for the user "%s" has changed!\n\nfrom:\t%s\nto:\t%s\n\nDo you wish to rename file?]
@@ -143,18 +153,38 @@ UTF8 у нових файлах
 Зберегти інформацію налагодження?
 [All\0*.*\0Text\0*.TXT\0\0]
 Усі файли\0*.*\0Текстові файли\0*.txt\0\0
-[Failed to move to the end of the file :\n]
-Не вдалося перейти до кінця файлу:\n
-[Failed to write message to the file :\n]
-Не вдалося записати повідомлення у файл:\n
+[FirstName]
+Ім'я
+[LastName]
+Прізвище
+[e-mail]
+Пошта
+[Age]
+Вік
+[Gender]
+Стать
+[City]
+Місто
+[State]
+Область
+[Phone]
+Телефон
+[Homepage]
+Сайт
+[About]
+Про себе
+[      History for]
+
+[User]
+Користувач
+[Protocol]
+Протокол
 [URL: ]
 Посилання:\s
 [File: ]
 Файл:\s
 [Description: ]
 Опис:\s
-[Failed to write URL/File to the file :\n]
-Не вдалося записати передачу файлу або URL у файл:\n
 [Nick      :]
 Нік       :
 [FirstName :]
@@ -165,25 +195,25 @@ UTF8 у нових файлах
 Пошта     :
 [Reason    :]
 Причина   :
+[Invalid Database event received. Type %d, size %d]
+
 [The following user made an authorization request:]
 Користувач запросив авторизацію:
 [The following user added you to their contact list:]
 Користувач додав вас у свій список контактів:
+[UIN       :]
+
 [EmailExpress from:]
 EmailExpress від:
 [WebPager from:]
 WebPager від:
 [No from address]
 без адреси
-[Failed to write EmailExpress to the file :\n]
-Не вдалося записати EmailExpress у файл:\n
-[Failed to write SMS to the file :\n]
-Не вдалося записати SMS у файл:\n
 [Unknown event type %d, size %d]
 Невідомий тип події %d, розмір %d
-[Failed to write Unknown event to the file :\n]
-Не вдалося записати невідому подію у файл :\n
 [User has been deleted. Do you want to delete the file?]
 Контакт видалений. Видалити файл?
 [Failed to delete the file]
 Не вдалося видалити файл
+[No_Nick]
+

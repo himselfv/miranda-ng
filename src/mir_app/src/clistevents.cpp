@@ -98,7 +98,7 @@ static void ShowOneEventInTray(int idx)
 
 static void ShowEventsInTray()
 {
-	int nTrayCnt = cli.trayIconCount;
+	int nTrayCnt = g_clistApi.trayIconCount;
 	if (!g_cliEvents.getCount() || !nTrayCnt)
 		return;
 
@@ -110,11 +110,11 @@ static void ShowEventsInTray()
 	// in case if we have several icons in tray and several events with different protocols
 	// lets use several icon to show events from protocols in different icons
 	mir_cslock lck(trayLockCS);
-	char **pTrayProtos = (char**)_alloca(sizeof(char*)*cli.trayIconCount);
+	char **pTrayProtos = (char**)_alloca(sizeof(char*)*g_clistApi.trayIconCount);
 	int nTrayProtoCnt = 0;
-	for (int i = 0; i < cli.trayIconCount; i++)
-		if (cli.trayIcon[i].id != 0 && cli.trayIcon[i].szProto)
-			pTrayProtos[nTrayProtoCnt++] = cli.trayIcon[i].szProto;
+	for (int i = 0; i < g_clistApi.trayIconCount; i++)
+		if (g_clistApi.trayIcon[i].id != 0 && g_clistApi.trayIcon[i].szProto)
+			pTrayProtos[nTrayProtoCnt++] = g_clistApi.trayIcon[i].szProto;
 
 	for (int i = 0; i < g_cliEvents.getCount(); i++) {
 		char *iEventProto = GetEventProtocol(i);
@@ -147,7 +147,7 @@ static VOID CALLBACK IconFlashTimer(HWND, UINT, UINT_PTR idEvent, DWORD)
 		// decrease eflashes in any case - no need to collect all events
 		if (e.flags & CLEF_ONLYAFEW)
 			if (0 >= --e.flashesDone)
-				cli.pfnRemoveEvent(e.hContact, e.hDbEvent);
+				g_clistApi.pfnRemoveEvent(e.hContact, e.hDbEvent);
 	}
 
 	if (g_cliEvents.getCount() == 0) {
@@ -269,7 +269,7 @@ int EventsProcessContactDoubleClick(MCONTACT hContact)
 		if (it->hContact == hContact) {
 			MEVENT hDbEvent = it->hDbEvent;
 			CallService(it->pszService, 0, (LPARAM)it);
-			cli.pfnRemoveEvent(hContact, hDbEvent);
+			g_clistApi.pfnRemoveEvent(hContact, hDbEvent);
 			return 0;
 		}
 	}
@@ -286,11 +286,11 @@ MIR_APP_DLL(int) Clist_EventsProcessTrayDoubleClick(int index)
 	CListEvent *pEvent = nullptr;
 	{
 		mir_cslock lck(trayLockCS);
-		if (cli.trayIconCount > 1 && index > 0) {
+		if (g_clistApi.trayIconCount > 1 && index > 0) {
 			char *szProto = nullptr;
-			for (int i = 0; i < cli.trayIconCount; i++) {
-				if (cli.trayIcon[i].id == index) {
-					szProto = cli.trayIcon[i].szProto;
+			for (int i = 0; i < g_clistApi.trayIconCount; i++) {
+				if (g_clistApi.trayIcon[i].id == index) {
+					szProto = g_clistApi.trayIcon[i].szProto;
 					if (i == 0)
 						click_in_first_icon = TRUE;
 					break;
@@ -323,11 +323,11 @@ MIR_APP_DLL(int) Clist_EventsProcessTrayDoubleClick(int index)
 								continue;
 
 							int j;
-							for (j = 0; j < cli.trayIconCount; j++)
-								if (cli.trayIcon[j].szProto && !_strcmpi(eventProto, cli.trayIcon[j].szProto))
+							for (j = 0; j < g_clistApi.trayIconCount; j++)
+								if (g_clistApi.trayIcon[j].szProto && !_strcmpi(eventProto, g_clistApi.trayIcon[j].szProto))
 									break;
 
-							if (j == cli.trayIconCount) {
+							if (j == g_clistApi.trayIconCount) {
 								pEvent = it;
 								break;
 							}
@@ -348,7 +348,7 @@ MIR_APP_DLL(int) Clist_EventsProcessTrayDoubleClick(int index)
 	MCONTACT hContact = pEvent->hContact;
 	MEVENT hDbEvent = pEvent->hDbEvent;
 	CallService(pEvent->pszService, 0, (LPARAM)pEvent);
-	cli.pfnRemoveEvent(hContact, hDbEvent);
+	g_clistApi.pfnRemoveEvent(hContact, hDbEvent);
 	return 0;
 }
 
@@ -368,7 +368,7 @@ static int CListEventSettingsChanged(WPARAM hContact, LPARAM lParam)
 
 int InitCListEvents(void)
 {
-	cli.events = &g_cliEvents;
+	g_clistApi.events = &g_cliEvents;
 
 	disableTrayFlash = db_get_b(0, "CList", "DisableTrayFlash", 0);
 	disableIconFlash = db_get_b(0, "CList", "NoIconBlink", 0);

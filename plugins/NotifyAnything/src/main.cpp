@@ -24,10 +24,12 @@ volatile bool g_exit_threads, g_firstrun;
 std::wstring g_mirandaDir;
 mir_cs g_wsocklock;
 
-HINSTANCE hInst;
-int hLangpack;
+CMPlugin g_plugin;
 
-PLUGININFOEX pluginInfo = {
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx =
+{
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -40,12 +42,11 @@ PLUGININFOEX pluginInfo = {
 	{ 0xe92874ec, 0x594a, 0x4a2f, { 0xbd, 0xed, 0xc0, 0xbe, 0x8b, 0x5a, 0x45, 0xd1 } }
 };
 
-BOOL WINAPI DllMain(HINSTANCE hi, DWORD, LPVOID)
-{
-	hInst = hi;
-	DisableThreadLibraryCalls(hInst);
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 enum replace_mode_t {
 	xno,
@@ -141,7 +142,7 @@ void registerSound(const std::wstring &name)
 	std::wstring id = L"NotifyAnything_" + name;
 	std::wstring desc = L"NotifyAnything: " + name;
 	std::wstring file = name + L".wav";
-	Skin_AddSound(_T2A(id.c_str()), LPGENW("Notify Anything"), desc.c_str(), file.c_str());
+	g_plugin.addSound(_T2A(id.c_str()), LPGENW("Notify Anything"), desc.c_str(), file.c_str());
 }
 
 HICON getIcon(const std::wstring &name)
@@ -962,15 +963,11 @@ void stop_threads()
 	WaitForSingleObject(g_tcp_thread, INFINITE);
 }
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" int __declspec(dllexport) Load()
+int CMPlugin::Load()
 {
 	g_firstrun = true;
-	mir_getLP(&pluginInfo);
 
 	wchar_t buf[MAX_PATH + 1];
 	mir_wstrcpy(buf, L".");
@@ -988,7 +985,9 @@ extern "C" int __declspec(dllexport) Load()
 	return 0;
 }
 
-extern "C" int __declspec(dllexport) Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload()
 {
 	stop_threads();
 	WSACleanup();

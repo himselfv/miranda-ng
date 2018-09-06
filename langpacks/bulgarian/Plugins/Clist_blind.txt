@@ -7,6 +7,7 @@
 ;============================================================
 [A contact list for blind folks.]
 Списък за контакти предназначен за хора с увредено зрение.
+;file \plugins\Clist_blind\res\resource.rc
 [Delete contact]
 Изтриване на контакта
 [Are you sure you want to delete %s?]
@@ -81,6 +82,8 @@ URL:
 Прозорец
 [Always on top]
 Винаги отгоре
+[Tool style main window]
+
 [Minimize to tray]
 Минимизиране в трея
 [Hide contact list after it has been idle for]
@@ -163,32 +166,7 @@ URL:
 Разделител между панелите
 [Show resize grip indicator]
 Индикатор за ръчна промяна на размера
-[&Main menu]
-Главно меню
-[E&xit]
-Изход
-[&Status]
-Състояние
-[&Offline\tCtrl+0]
-&Извън линия\tCtrl+0
-[On&line\tCtrl+1]
-На &линия\tCtrl+1
-[&Away\tCtrl+2]
-&Отсъстващ\tCtrl+2
-[&Not available\tCtrl+3]
-&Недостъпен\tCtrl+3
-[Occ&upied\tCtrl+4]
-&Зает\tCtrl+4
-[&Do not disturb\tCtrl+5]
-Не &безпокойте\tCtrl+5
-[&Free for chat\tCtrl+6]
-Готов за &чат\tCtrl+6
-[&Invisible\tCtrl+7]
-Не&видим\tCtrl+7
-[On the &phone\tCtrl+8]
-На &телефона\tCtrl+8
-[Out to &lunch\tCtrl+9]
-На обя&д\tCtrl+9
+;file \plugins\Clist_blind\src\clcopts.cpp
 [Not focused]
 Дефокусирано
 [Offline]
@@ -211,14 +189,19 @@ URL:
 На обяд
 [On the phone]
 На телефона
+[Group: %name% %count% [%mode%]]
+
 [Divider: %s]
 Разделител: %s
 [Info: %s]
 Информация: %s
 [List]
 Списък
+;file \plugins\Clist_blind\src\clistopts.cpp
 [Global]
 Общо
+;file \plugins\Clist_blind\src\cluiopts.cpp
+;file \plugins\Clist_blind\src\init.cpp
 [Unknown protocol]
 Непознат протокол
 [Expanded]

@@ -50,11 +50,29 @@ ITaskbarList3 *pTaskbarInterface;
 
 HANDLE hOkToExitEvent, hModulesLoadedEvent;
 HANDLE hShutdownEvent, hPreShutdownEvent;
-HINSTANCE g_hInst;
 DWORD hMainThreadId;
-int hLangpack = 0;
-bool bModulesLoadedFired = false, bMirandaTerminated = false;
+bool g_bModulesLoadedFired = false, g_bMirandaTerminated = false;
 int g_iIconX, g_iIconY, g_iIconSX, g_iIconSY;
+
+CMPlugin g_plugin;
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static PLUGININFOEX pluginInfoEx = {
+	sizeof(PLUGININFOEX),
+	"Miranda NG",
+	MIRANDA_VERSION_DWORD,
+	"",
+	"Miranda NG team",
+	LEGAL_COPYRIGHT,
+	"https://miranda-ng.org",
+	UNICODE_AWARE,
+	MIID_LAST
+};
+
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -63,7 +81,8 @@ struct MWaitableObject
 	MWaitableObject(MWaitableStub pFunc, HANDLE hEvent) :
 		m_bOwnsEvent(false),
 		m_hEvent(hEvent),
-		m_pFunc(pFunc)
+		m_pFunc(pFunc),
+		m_pInfo(INVALID_HANDLE_VALUE)
 	{
 		if (hEvent == nullptr) {
 			m_hEvent = CreateEvent(nullptr, TRUE, TRUE, nullptr);
@@ -71,15 +90,27 @@ struct MWaitableObject
 		}
 	}
 
+	MWaitableObject(MWaitableStubEx pFunc, void *pInfo) :
+		m_bOwnsEvent(true),
+		m_hEvent(CreateEvent(nullptr, TRUE, TRUE, nullptr)),
+		m_pFuncEx(pFunc),
+		m_pInfo(pInfo)
+	{}
+
 	~MWaitableObject()
 	{	
 		if (m_bOwnsEvent)
 			::CloseHandle(m_hEvent);
 	}
 
-	bool m_bOwnsEvent;
 	HANDLE m_hEvent;
-	MWaitableStub m_pFunc;
+	union {
+		MWaitableStub m_pFunc;
+		MWaitableStubEx m_pFuncEx;
+	};
+	void *m_pInfo;
+
+	bool m_bOwnsEvent;
 };
 
 static OBJLIST<MWaitableObject> arWaitableObjects(1, HandleKeySortT);
@@ -89,13 +120,20 @@ MIR_APP_DLL(void) Miranda_WaitOnHandle(MWaitableStub pFunc, HANDLE hEvent)
 	arWaitableObjects.insert(new MWaitableObject(pFunc, hEvent));
 }
 
+MIR_APP_DLL(void) Miranda_WaitOnHandleEx(MWaitableStubEx pFunc, void *pInfo)
+{
+	arWaitableObjects.insert(new MWaitableObject(pFunc, pInfo));
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // dll entry point
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD dwReason, LPVOID)
 {
 	if (dwReason == DLL_PROCESS_ATTACH) {
-		g_hInst = hinstDLL;
+		g_plugin.setInst(hinstDLL);
+		RegisterModule(&g_plugin);
+
 		g_iIconX = GetSystemMetrics(SM_CXICON);
 		g_iIconY = GetSystemMetrics(SM_CYICON);
 		g_iIconSX = GetSystemMetrics(SM_CXSMICON);
@@ -180,48 +218,41 @@ class CWaitRestartDlg : public CDlgBase
 	CCtrlButton m_cancel;
 
 protected:
-	void OnInitDialog();
-	
-	void Timer_OnEvent(CTimer*);
+	bool OnInitDialog() override
+	{
+		m_progress.SetRange(MIRANDA_PROCESS_WAIT_STEPS);
+		m_progress.SetStep(1);
+		m_timer.Start(MIRANDA_PROCESS_WAIT_RESOLUTION);
+		return true;
+	}
 
-	void Cancel_OnClick(CCtrlBase*);
+	void Timer_OnEvent(CTimer*)
+	{
+		if (m_progress.Move() == MIRANDA_PROCESS_WAIT_STEPS)
+			EndModal(0);
+		if (WaitForSingleObject(m_hProcess, 1) != WAIT_TIMEOUT) {
+			m_progress.SetPosition(MIRANDA_PROCESS_WAIT_STEPS);
+			EndModal(0);
+		}
+	}
+
+	void Cancel_OnClick(CCtrlBase*)
+	{
+		m_progress.SetPosition(MIRANDA_PROCESS_WAIT_STEPS);
+		EndModal(1);
+	}
 
 public:
-	CWaitRestartDlg(HANDLE hProcess);
-};
-
-CWaitRestartDlg::CWaitRestartDlg(HANDLE hProcess)
-	: CDlgBase(g_hInst, IDD_WAITRESTART), m_timer(this, 1),
-	m_progress(this, IDC_PROGRESSBAR), m_cancel(this, IDCANCEL)
-{
-	m_autoClose = 0;
-	m_hProcess = hProcess;
-	m_timer.OnEvent = Callback(this, &CWaitRestartDlg::Timer_OnEvent);
-	m_cancel.OnClick = Callback(this, &CWaitRestartDlg::Cancel_OnClick);
-}
-
-void CWaitRestartDlg::OnInitDialog()
-{
-	m_progress.SetRange(MIRANDA_PROCESS_WAIT_STEPS);
-	m_progress.SetStep(1);
-	m_timer.Start(MIRANDA_PROCESS_WAIT_RESOLUTION);
-}
-
-void CWaitRestartDlg::Timer_OnEvent(CTimer*)
-{
-	if (m_progress.Move() == MIRANDA_PROCESS_WAIT_STEPS)
-		EndModal(0);
-	if (WaitForSingleObject(m_hProcess, 1) != WAIT_TIMEOUT) {
-		m_progress.SetPosition(MIRANDA_PROCESS_WAIT_STEPS);
-		EndModal(0);
+	CWaitRestartDlg(HANDLE hProcess)
+		: CDlgBase(g_plugin, IDD_WAITRESTART), m_timer(this, 1),
+		m_progress(this, IDC_PROGRESSBAR), m_cancel(this, IDCANCEL)
+	{
+		m_autoClose = 0;
+		m_hProcess = hProcess;
+		m_timer.OnEvent = Callback(this, &CWaitRestartDlg::Timer_OnEvent);
+		m_cancel.OnClick = Callback(this, &CWaitRestartDlg::Cancel_OnClick);
 	}
-}
-
-void CWaitRestartDlg::Cancel_OnClick(CCtrlBase*)
-{
-	m_progress.SetPosition(MIRANDA_PROCESS_WAIT_STEPS);
-	EndModal(1);
-}
+};
 
 INT_PTR CheckRestart()
 {
@@ -296,7 +327,7 @@ int WINAPI mir_main(LPTSTR cmdLine)
 
 	int result = 0;
 	if (LoadDefaultModules()) {
-		bMirandaTerminated = true;
+		g_bMirandaTerminated = true;
 		NotifyEventHooks(hPreShutdownEvent, 0, 0);
 		NotifyEventHooks(hShutdownEvent, 0, 0);
 		UnloadDefaultModules();
@@ -306,7 +337,7 @@ int WINAPI mir_main(LPTSTR cmdLine)
 	else {
 		InitPathVar();
 		NotifyEventHooks(hModulesLoadedEvent, 0, 0);
-		bModulesLoadedFired = true;
+		g_bModulesLoadedFired = true;
 
 		// ensure that the kernel hooks the SystemShutdownProc() after all plugins
 		HookEvent(ME_SYSTEM_SHUTDOWN, SystemShutdownProc);
@@ -323,9 +354,14 @@ int WINAPI mir_main(LPTSTR cmdLine)
 			BOOL dying = FALSE;
 			DWORD rc = myWait();
 			if (rc < WAIT_OBJECT_0 + arWaitableObjects.getCount()) {
-				rc -= WAIT_OBJECT_0;
-				(*arWaitableObjects[rc].m_pFunc)();
-				arWaitableObjects.remove(rc);
+				auto &pWait = arWaitableObjects[rc - WAIT_OBJECT_0];
+				if (pWait.m_pInfo == INVALID_HANDLE_VALUE)
+					(*pWait.m_pFunc)();
+				else
+					(*pWait.m_pFuncEx)(pWait.m_pInfo);
+
+				if (pWait.m_bOwnsEvent)
+					arWaitableObjects.remove(&pWait);
 			}
 
 			while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
@@ -344,7 +380,7 @@ int WINAPI mir_main(LPTSTR cmdLine)
 				}
 				else if (!dying) {
 					dying++;
-					bMirandaTerminated = true;
+					g_bMirandaTerminated = true;
 					NotifyEventHooks(hPreShutdownEvent, 0, 0);
 
 					// this spins and processes the msg loop, objects and APC.
@@ -378,7 +414,7 @@ int WINAPI mir_main(LPTSTR cmdLine)
 
 MIR_APP_DLL(bool) Miranda_IsTerminated()
 {
-	return bMirandaTerminated;
+	return g_bMirandaTerminated;
 }
 
 MIR_APP_DLL(bool) Miranda_OkToExit()
@@ -392,7 +428,7 @@ MIR_APP_DLL(bool) Miranda_OkToExit()
 MIR_APP_DLL(DWORD) Miranda_GetVersion()
 {
 	wchar_t filename[MAX_PATH];
-	GetModuleFileName(g_hInst, filename, _countof(filename));
+	GetModuleFileName(g_plugin.getInst(), filename, _countof(filename));
 
 	DWORD unused, verInfoSize = GetFileVersionInfoSize(filename, &unused);
 	PVOID pVerInfo = _alloca(verInfoSize);
@@ -410,7 +446,7 @@ MIR_APP_DLL(DWORD) Miranda_GetVersion()
 MIR_APP_DLL(void) Miranda_GetFileVersion(MFileVersion *pVer)
 {
 	wchar_t filename[MAX_PATH];
-	GetModuleFileName(g_hInst, filename, _countof(filename));
+	GetModuleFileName(g_plugin.getInst(), filename, _countof(filename));
 
 	DWORD unused, verInfoSize = GetFileVersionInfoSize(filename, &unused);
 	PVOID pVerInfo = _alloca(verInfoSize);
@@ -429,7 +465,7 @@ MIR_APP_DLL(void) Miranda_GetFileVersion(MFileVersion *pVer)
 MIR_APP_DLL(void) Miranda_GetVersionText(char *pDest, size_t cbSize)
 {
 	wchar_t filename[MAX_PATH], *productVersion;
-	GetModuleFileName(g_hInst, filename, _countof(filename));
+	GetModuleFileName(g_plugin.getInst(), filename, _countof(filename));
 
 	DWORD unused, verInfoSize = GetFileVersionInfoSize(filename, &unused);
 	PVOID pVerInfo = _alloca(verInfoSize);

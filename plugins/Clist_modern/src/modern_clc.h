@@ -238,7 +238,7 @@ struct ClcData : public ClcDataBase
 	time_t last_tick_time;
 	bool bForceInDialog, bPlaceOfflineToRoot, bMetaIgnoreEmptyExtra, bMetaExpanding;
 	int  subIndent;
-	int  rightMargin;
+	int  rightMargin, topMargin, bottomMargin;
 	HBITMAP hMenuBackground;
 	DWORD MenuBkColor, MenuBkHiColor, MenuTextColor, MenuTextHiColor;
 	int  MenuBmpUse;
@@ -318,7 +318,7 @@ struct ClcData : public ClcDataBase
 	BYTE bCompactMode;
 
 	__forceinline int getRowHeight(int iRow) const
-	{ return (row_variable_height) ? row_heights[iRow] : rowHeight;
+	{ return (row_heights && row_variable_height) ? row_heights[iRow] : rowHeight;
 	}
 };
 

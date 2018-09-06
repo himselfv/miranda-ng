@@ -28,7 +28,7 @@ static int CompareProtos(const MBaseProto *p1, const MBaseProto *p2)
 	return strcmp(p1->szName, p2->szName);
 }
 
-LIST<MBaseProto> g_arProtos(10, CompareProtos);
+OBJLIST<MBaseProto> g_arProtos(10, CompareProtos);
 
 extern HANDLE hAckEvent;
 
@@ -122,7 +122,7 @@ static int __cdecl ProtoPrebuildContactMenu(WPARAM, LPARAM)
 void InitProtoMenus(void)
 {
 	// "Request authorization"
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	SET_UID(mi, 0x36375a1f, 0xc142, 0x4d6e, 0xa6, 0x57, 0xe4, 0x76, 0x5d, 0xbc, 0x59, 0x8e);
 	mi.pszService = "Proto/Menu/ReqAuth";
 	mi.name.a = LPGEN("Request authorization");

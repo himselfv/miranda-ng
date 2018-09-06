@@ -1,7 +1,6 @@
 #include "stdafx.h"
 
-HINSTANCE hInst;
-int hLangpack = 0;
+CMPlugin g_plugin;
 
 // add icon to srmm status icons
 static void SrmmMenu_UpdateIcon(MCONTACT hContact);
@@ -12,8 +11,8 @@ HGENMENU hMenuToggle, hMenuClear;
 
 mir_cs list_cs;
 
-#define MS_NOHISTORY_TOGGLE 		MODULE "/ToggleOnOff"
-#define MS_NOHISTORY_CLEAR	 		MODULE "/Clear"
+#define MS_NOHISTORY_TOGGLE 		MODULENAME "/ToggleOnOff"
+#define MS_NOHISTORY_CLEAR	 		MODULENAME "/Clear"
 
 #define DBSETTING_REMOVE			"RemoveHistory"
 
@@ -27,7 +26,7 @@ struct EventListNode {
 EventListNode *event_list = nullptr;
 
 // plugin stuff
-PLUGININFOEX pluginInfo =
+PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -41,16 +40,11 @@ PLUGININFOEX pluginInfo =
 	{0xb25e8c7b, 0x292b, 0x495a, {0x9f, 0xb8, 0xa4, 0xc3, 0xd4, 0xee, 0xb0, 0x4b}}
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(MODULENAME, pluginInfoEx)
+{}
 
-extern "C" __declspec (dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 void RemoveReadEvents(MCONTACT hContact = 0)
 {
@@ -74,7 +68,7 @@ void RemoveReadEvents(MCONTACT hContact = 0)
 		}
 		
 		if (remove) {
-			if (db_get_b(node->hContact, MODULE, DBSETTING_REMOVE, 0)) // is history disabled for this contact?
+			if (db_get_b(node->hContact, MODULENAME, DBSETTING_REMOVE, 0)) // is history disabled for this contact?
 				db_event_delete(node->hContact, node->hDBEvent);
 			
 			// remove list node anyway
@@ -111,7 +105,7 @@ void CALLBACK TimerProc(HWND, UINT, UINT_PTR, DWORD)
 int OnDatabaseEventAdd(WPARAM hContact, LPARAM hDBEvent)
 {
 	// history not disabled for this contact
-	if (db_get_b(hContact, MODULE, DBSETTING_REMOVE, 0) == 0)
+	if (db_get_b(hContact, MODULENAME, DBSETTING_REMOVE, 0) == 0)
 		return 0;
 	
 	DBEVENTINFO info = {};
@@ -140,7 +134,7 @@ INT_PTR ServiceClear(WPARAM hContact, LPARAM)
 
 int PrebuildContactMenu(WPARAM hContact, LPARAM)
 {
-	bool remove = db_get_b(hContact, MODULE, DBSETTING_REMOVE, 0) != 0;
+	bool remove = db_get_b(hContact, MODULENAME, DBSETTING_REMOVE, 0) != 0;
 	char *proto = GetContactProto(hContact);
 	bool chat_room = (proto && db_get_b(hContact, proto, "ChatRoom", 0) != 0);
 
@@ -159,12 +153,12 @@ int PrebuildContactMenu(WPARAM hContact, LPARAM)
 
 INT_PTR ServiceToggle(WPARAM hContact, LPARAM)
 {
-	int remove = db_get_b(hContact, MODULE, DBSETTING_REMOVE, 0) != 0;
+	int remove = db_get_b(hContact, MODULENAME, DBSETTING_REMOVE, 0) != 0;
 	remove = !remove;
-	db_set_b(hContact, MODULE, DBSETTING_REMOVE, remove != 0);
+	db_set_b(hContact, MODULENAME, DBSETTING_REMOVE, remove != 0);
 
 	StatusIconData sid = {};
-	sid.szModule = MODULE;
+	sid.szModule = MODULENAME;
 
 	for (int i = 0; i < 2; ++i) {
 		sid.dwId = i;
@@ -187,10 +181,10 @@ int WindowEvent(WPARAM, LPARAM lParam)
 	case MSG_WINDOW_EVT_OPEN:
 		char *proto = GetContactProto(hContact);
 		bool chat_room = (proto && db_get_b(hContact, proto, "ChatRoom", 0) != 0);
-		int remove = db_get_b(hContact, MODULE, DBSETTING_REMOVE, 0) != 0;
+		int remove = db_get_b(hContact, MODULENAME, DBSETTING_REMOVE, 0) != 0;
 
 		StatusIconData sid = {};
-		sid.szModule = MODULE;
+		sid.szModule = MODULENAME;
 		for (int i=0; i < 2; ++i) {
 			sid.dwId = i;
 			sid.flags = (chat_room ? MBF_HIDDEN : (i == remove) ? 0 : MBF_HIDDEN);
@@ -208,7 +202,7 @@ int IconPressed(WPARAM hContact, LPARAM lParam)
 		return 0;
 
 	if (sicd->flags & MBCF_RIGHTBUTTON) return 0; // ignore right-clicks
-	if (mir_strcmp(sicd->szModule, MODULE) != 0) return 0; // not our event
+	if (mir_strcmp(sicd->szModule, MODULENAME) != 0) return 0; // not our event
 
 	char *proto = GetContactProto(hContact);
 	bool chat_room = (proto && db_get_b(hContact, proto, "ChatRoom", 0) != 0);
@@ -223,27 +217,29 @@ int IconPressed(WPARAM hContact, LPARAM lParam)
 void SrmmMenu_Load()
 {
 	StatusIconData sid = {};
-	sid.szModule = MODULE;
+	sid.szModule = MODULENAME;
 
 	sid.dwId = 0;
 	sid.szTooltip = LPGEN("History Enabled");
 	sid.hIcon = sid.hIconDisabled = hIconKeep;
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 
 	sid.dwId = 1;
 	sid.szTooltip = LPGEN("History Disabled");
 	sid.hIcon = sid.hIconDisabled = hIconRemove;
-	Srmm_AddIcon(&sid);
+	Srmm_AddIcon(&sid, &g_plugin);
 		
 	// hook the window events so that we can can change the status of the icon
 	HookEvent(ME_MSG_WINDOWEVENT, WindowEvent);
 	HookEvent(ME_MSG_ICONPRESSED, IconPressed);
 }
 
-int ModulesLoaded(WPARAM, LPARAM)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static int ModulesLoaded(WPARAM, LPARAM)
 {
 	// create contact menu item
-	CMenuItem mi;
+	CMenuItem mi(&g_plugin);
 	mi.flags = CMIF_UNICODE;
 
 	SET_UID(mi, 0xede12697, 0x3e9d, 0x47ca, 0x83, 0xe0, 0xc1, 0x40, 0x69, 0xbf, 0x2d, 0xab);
@@ -265,10 +261,8 @@ int ModulesLoaded(WPARAM, LPARAM)
 	return 0;
 }
 
-extern "C" __declspec (dllexport) int Load()
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
 	// Ensure that the common control DLL is loaded (for listview)
 	INITCOMMONCONTROLSEX icex = { sizeof(icex), ICC_LISTVIEW_CLASSES };
 	InitCommonControlsEx(&icex); 	
@@ -285,7 +279,9 @@ extern "C" __declspec (dllexport) int Load()
 	return 0;
 }
 
-extern "C" __declspec (dllexport) int Unload(void)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int CMPlugin::Unload(void)
 {
 	RemoveReadEvents();
 	return 0;

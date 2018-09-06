@@ -314,11 +314,11 @@ void CMsnProto::MSN_GetCustomSmileyFileName(MCONTACT hContact, wchar_t* pszDest,
 		DBVARIANT dbv = { 0 };
 		if (getWString(hContact, "e-mail", &dbv)) {
 			dbv.type = DBVT_ASCIIZ;
-			dbv.ptszVal = (wchar_t*)mir_alloc(11*sizeof(wchar_t));
-			_ui64tow((UINT_PTR)hContact, dbv.ptszVal, 10);
+			dbv.pwszVal = (wchar_t*)mir_alloc(11*sizeof(wchar_t));
+			_ui64tow((UINT_PTR)hContact, dbv.pwszVal, 10);
 		}
 
-		tPathLen += mir_snwprintf(pszDest + tPathLen, cbLen - tPathLen, L"\\%s", dbv.ptszVal);
+		tPathLen += mir_snwprintf(pszDest + tPathLen, cbLen - tPathLen, L"\\%s", dbv.pwszVal);
 		db_free(&dbv);
 	}
 	else {
@@ -742,7 +742,7 @@ void HandlePopupData(PopupData *tData)  {
 		if (tData->flags & MSN_HOTMAIL_POPUP) {
 			MCONTACT hContact = tData->proto->MSN_HContactFromEmail(tData->proto->MyOptions.szEmail, nullptr);
 			if (hContact)
-				pcli->pfnRemoveEvent(hContact, 1);
+				g_clistApi.pfnRemoveEvent(hContact, 1);
 			if (tData->flags & MSN_ALLOW_ENTER)
 				tData->proto->MsnInvokeMyURL(true, tData->url);
 		}
@@ -755,7 +755,7 @@ void RemovePopupData(PopupData *tData) {
 	if (tData != nullptr && (tData->flags & MSN_HOTMAIL_POPUP)) {
 		MCONTACT hContact = tData->proto->MSN_HContactFromEmail(tData->proto->MyOptions.szEmail, nullptr);
 		if (hContact)
-			pcli->pfnRemoveEvent(hContact, 1);
+			g_clistApi.pfnRemoveEvent(hContact, 1);
 	}
 }
 
@@ -795,33 +795,32 @@ void CMsnProto::InitPopups(void)
 	char name[256];
 
 	POPUPCLASS ppc = { sizeof(ppc) };
-	ppc.flags = PCF_TCHAR;
+	ppc.flags = PCF_UNICODE;
 	ppc.PluginWindowProc = NullWindowProc;
 	ppc.hIcon = LoadIconEx("main");
-	ppc.pwszDescription = desc;
 	ppc.pszName = name;
+	ppc.pszDescription.w = desc;
 
+	mir_snprintf(name, "%s_%s", m_szModuleName, "Hotmail");
+	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Hotmail"));
 	ppc.colorBack = RGB(173, 206, 247);
 	ppc.colorText = GetSysColor(COLOR_WINDOWTEXT);
 	ppc.iSeconds = 3;
-	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Hotmail"));
-	mir_snprintf(name, "%s_%s", m_szModuleName, "Hotmail");
 	hPopupHotmail = Popup_RegisterClass(&ppc);
 
+	mir_snprintf(name, "%s_%s", m_szModuleName, "Notify");
+	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Notifications"));
 	ppc.colorBack = RGB(173, 206, 247);
 	ppc.colorText = GetSysColor(COLOR_WINDOWTEXT);
 	ppc.iSeconds = 3;
-	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Notify"));
-	mir_snprintf(name, "%s_%s", m_szModuleName, "Notify");
 	hPopupNotify = Popup_RegisterClass(&ppc);
 
+	mir_snprintf(name, "%s_%s", m_szModuleName, "Error");
+	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Errors"));
 	ppc.hIcon = (HICON)LoadImage(nullptr, IDI_WARNING, IMAGE_ICON, 0, 0, LR_SHARED);
 	ppc.colorBack = RGB(191, 0, 0); //Red
 	ppc.colorText = RGB(255, 245, 225); //Yellow
 	ppc.iSeconds = 60;
-
-	mir_snwprintf(desc, L"%s/%s", m_tszUserName, TranslateT("Error"));
-	mir_snprintf(name, "%s_%s", m_szModuleName, "Error");
 	hPopupError = Popup_RegisterClass(&ppc);
 }
 

@@ -3,7 +3,6 @@
 static UINT_PTR	timer_id = 0;
 volatile long m_state = 0;
 
-
 LRESULT CALLBACK DlgProcPopup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg) {
@@ -78,11 +77,26 @@ wchar_t* DoubleSlash(wchar_t *sorce)
 	return ret;
 }
 
-bool MakeZip_Dir(LPCWSTR szDir, LPCWSTR szDest, LPCWSTR pwszBackupFolder, HWND progress_dialog)
+bool MakeZip_Dir(LPCWSTR szDir, LPCWSTR pwszProfile, LPCWSTR szDest, LPCWSTR pwszBackupFolder, HWND progress_dialog)
 {
 	HWND hProgBar = GetDlgItem(progress_dialog, IDC_PROGRESS);
 	size_t count = 0, folderNameLen = mir_wstrlen(pwszBackupFolder);
 	OBJLIST<ZipFile> lstFiles(15);
+
+	wchar_t wszTempName[MAX_PATH];
+	if (!GetTempPathW(_countof(wszTempName), wszTempName))
+		return false;
+
+	if (!GetTempFileNameW(wszTempName, L"mir_backup_", 0, wszTempName))
+		return false;
+
+	if (db_get_current()->Backup(wszTempName))
+		return false;
+
+	lstFiles.insert(new ZipFile(wszTempName, pwszProfile));
+
+	CMStringW wszProfile;
+	wszProfile.Format(L"%s\\%s", szDir, pwszProfile);
 
 	for (auto it = fs::recursive_directory_iterator(fs::path(szDir)); it != fs::recursive_directory_iterator(); ++it) {
 		const auto& file = it->path();
@@ -90,6 +104,9 @@ bool MakeZip_Dir(LPCWSTR szDir, LPCWSTR szDest, LPCWSTR pwszBackupFolder, HWND p
 			continue;
 
 		const std::wstring &filepath = file.wstring();
+		if (wszProfile == filepath.c_str())
+			continue;
+
 		if (filepath.find(szDest) != std::wstring::npos || !mir_wstrncmpi(filepath.c_str(), pwszBackupFolder, folderNameLen))
 			continue;
 
@@ -106,19 +123,29 @@ bool MakeZip_Dir(LPCWSTR szDir, LPCWSTR szDest, LPCWSTR pwszBackupFolder, HWND p
 		return GetWindowLongPtr(progress_dialog, GWLP_USERDATA) != 1;
 	});
 
+	DeleteFileW(wszTempName);
 	return 1;
 }
 
-bool MakeZip(wchar_t *tszSource, wchar_t *tszDest, wchar_t *dbname, HWND progress_dialog)
+bool MakeZip(wchar_t *tszDest, wchar_t *dbname, HWND progress_dialog)
 {
 	HWND hProgBar = GetDlgItem(progress_dialog, IDC_PROGRESS);
 
-	ptrW tszDestPath(DoubleSlash(tszDest));
-	OBJLIST<ZipFile> lstFiles(15);
-	lstFiles.insert(new ZipFile(tszSource, dbname));
+	wchar_t wszTempName[MAX_PATH];
+	if (!GetTempPathW(_countof(wszTempName), wszTempName))
+		return false;
+
+	if (!GetTempFileNameW(wszTempName, L"mir_backup_", 0, wszTempName))
+		return false;
+
+	if (db_get_current()->Backup(wszTempName))
+		return false;
+
+	OBJLIST<ZipFile> lstFiles(1);
+	lstFiles.insert(new ZipFile(wszTempName, dbname));
 
 	CreateZipFile(tszDest, lstFiles, [&](size_t)->bool { SendMessage(hProgBar, PBM_SETPOS, (WPARAM)(100), 0); return true; });
-
+	DeleteFileW(wszTempName);
 	return true;
 }
 
@@ -143,15 +170,16 @@ int Comp(const void *i, const void *j)
 
 int RotateBackups(wchar_t *backupfolder, wchar_t *dbname)
 {
-	backupFile *bf = nullptr, *bftmp;
-	HANDLE hFind;
-	wchar_t backupfolderTmp[MAX_PATH];
-	WIN32_FIND_DATA FindFileData;
+	if (options.num_backups == 0) // Rotation disabled?
+		return 0; 
 
-	if (options.num_backups == 0)
-		return 0; /* Roration disabled. */
-	mir_snwprintf(backupfolderTmp, L"%s\\%s*", backupfolder, dbname);
-	hFind = FindFirstFile(backupfolderTmp, &FindFileData);
+	backupFile *bf = nullptr, *bftmp;
+
+	wchar_t backupfolderTmp[MAX_PATH];
+	mir_snwprintf(backupfolderTmp, L"%s\\%s*.%s", backupfolder, dbname, options.use_zip ? L"zip" : L"dat");
+
+	WIN32_FIND_DATA FindFileData;
+	HANDLE hFind = FindFirstFile(backupfolderTmp, &FindFileData);
 	if (hFind == INVALID_HANDLE_VALUE)
 		return 0;
 
@@ -182,7 +210,7 @@ err_out:
 int Backup(wchar_t *backup_filename)
 {
 	bool bZip = false;
-	wchar_t dbname[MAX_PATH], source_file[MAX_PATH] = { 0 }, dest_file[MAX_PATH];
+	wchar_t dbname[MAX_PATH], dest_file[MAX_PATH];
 	HWND progress_dialog = nullptr;
 
 	Profile_GetNameW(_countof(dbname), dbname);
@@ -218,19 +246,17 @@ int Backup(wchar_t *backup_filename)
 		ShowPopup(dbname, TranslateT("Backup in progress"), nullptr);
 
 	if (!options.disable_progress)
-		progress_dialog = CreateDialog(g_hInstance, MAKEINTRESOURCE(IDD_COPYPROGRESS), nullptr, DlgProcProgress);
+		progress_dialog = CreateDialog(g_plugin.getInst(), MAKEINTRESOURCE(IDD_COPYPROGRESS), nullptr, DlgProcProgress);
 
 	SetDlgItemText(progress_dialog, IDC_PROGRESSMESSAGE, TranslateT("Copying database file..."));
 
-	VARSW profile_path(L"%miranda_userdata%");
-	mir_snwprintf(source_file, L"%s\\%s", profile_path, dbname);
-	BOOL res = 0;
+	BOOL res;
 	if (bZip) {
 		res = options.backup_profile
-			? MakeZip_Dir(profile_path, dest_file, backupfolder, progress_dialog)
-			: MakeZip(source_file, dest_file, dbname, progress_dialog);
+			? MakeZip_Dir(VARSW(L"%miranda_userdata%"), dbname, dest_file, backupfolder, progress_dialog)
+			: MakeZip(dest_file, dbname, progress_dialog);
 	}
-	else res = CopyFile(source_file, dest_file, 0);
+	else res = db_get_current()->Backup(dest_file) == ERROR_SUCCESS;
 
 	if (res) {
 		if (!bZip) { // Set the backup file to the current time for rotator's correct  work
@@ -245,7 +271,7 @@ int Backup(wchar_t *backup_filename)
 		}
 		SendDlgItemMessage(progress_dialog, IDC_PROGRESS, PBM_SETPOS, (WPARAM)(100), 0);
 		UpdateWindow(progress_dialog);
-		db_set_dw(0, MODULE, "LastBackupTimestamp", (DWORD)time(0));
+		db_set_dw(0, MODULENAME, "LastBackupTimestamp", (DWORD)time(0));
 
 		if (options.use_cloudfile) {
 			CFUPLOADDATA ui = { options.cloudfile_service, dest_file, L"Backups" };

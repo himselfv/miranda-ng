@@ -1,30 +1,30 @@
 /*
-    Variables Plugin for Miranda-IM (www.miranda-im.org)
-    Copyright 2003-2006 P. Boon
+	Variables Plugin for Miranda-IM (www.miranda-im.org)
+	Copyright 2003-2006 P. Boon
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "stdafx.h"
 
-static wchar_t *parseUrlEnc(ARGUMENTSINFO *ai)
+static wchar_t* parseUrlEnc(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 2)
 		return nullptr;
 
-	char *res = mir_u2a(ai->targv[1]);
+	char *res = mir_u2a(ai->argv.w[1]);
 	if (res == nullptr)
 		return nullptr;
 
@@ -50,12 +50,12 @@ static wchar_t *parseUrlEnc(ARGUMENTSINFO *ai)
 	return tres;
 }
 
-static wchar_t *parseUrlDec(ARGUMENTSINFO *ai)
+static wchar_t* parseUrlDec(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 2)
 		return nullptr;
 
-	char *res = mir_u2a(ai->targv[1]);
+	char *res = mir_u2a(ai->argv.w[1]);
 	if (res == nullptr)
 		return nullptr;
 
@@ -77,23 +77,23 @@ static wchar_t *parseUrlDec(ARGUMENTSINFO *ai)
 	return tres;
 }
 
-static wchar_t *parseNToA(ARGUMENTSINFO *ai)
+static wchar_t* parseNToA(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 2)
 		return nullptr;
 
 	struct in_addr in;
-	in.s_addr = ttoi(ai->targv[1]);
+	in.s_addr = ttoi(ai->argv.w[1]);
 	return mir_a2u(inet_ntoa(in));
 }
 
-static wchar_t *parseHToA(ARGUMENTSINFO *ai)
+static wchar_t* parseHToA(ARGUMENTSINFO *ai)
 {
 	if (ai->argc != 2)
 		return nullptr;
 
 	struct in_addr in;
-	in.s_addr = htonl(ttoi(ai->targv[1]));
+	in.s_addr = htonl(ttoi(ai->argv.w[1]));
 	return mir_a2u(inet_ntoa(in));
 }
 

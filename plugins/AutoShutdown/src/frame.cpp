@@ -22,9 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdafx.h"
 
 /* Show Frame */
-extern HINSTANCE hInst;
 static HWND hwndCountdownFrame;
-static WORD hFrame;
+static int hFrame;
 /* Misc */
 static HANDLE hHookModulesLoaded;
 
@@ -289,14 +288,14 @@ static LRESULT CALLBACK FrameWndProc(HWND hwndFrame, UINT msg, WPARAM wParam, LP
 		}
 	case M_SET_COUNTDOWN:
 		if (dat->fTimeFlags&SDWTF_ST_TIME) {
-			dat->settingLastTime = (time_t)db_get_dw(NULL, "AutoShutdown", "TimeStamp", SETTING_TIMESTAMP_DEFAULT);
+			dat->settingLastTime = (time_t)db_get_dw(NULL, MODULENAME, "TimeStamp", SETTING_TIMESTAMP_DEFAULT);
 			dat->countdown = time(0);
 			if (dat->settingLastTime > dat->countdown) dat->countdown = dat->settingLastTime - dat->countdown;
 			else dat->countdown = 0;
 		}
 		else if (dat->flags&FWPDF_COUNTDOWNINVALID) {
-			dat->countdown = (time_t)db_get_dw(NULL, "AutoShutdown", "Countdown", SETTING_COUNTDOWN_DEFAULT);
-			dat->countdown *= (time_t)db_get_dw(NULL, "AutoShutdown", "CountdownUnit", SETTING_COUNTDOWNUNIT_DEFAULT);
+			dat->countdown = (time_t)db_get_dw(NULL, MODULENAME, "Countdown", SETTING_COUNTDOWN_DEFAULT);
+			dat->countdown *= (time_t)db_get_dw(NULL, MODULENAME, "CountdownUnit", SETTING_COUNTDOWNUNIT_DEFAULT);
 		}
 		dat->flags &= ~FWPDF_COUNTDOWNINVALID;
 		/* commctl 4.70+, Win95: 1-100 will work fine (wrap around) */
@@ -488,29 +487,29 @@ void ShowCountdownFrame(WORD fTimeFlags)
 		0, 0,
 		GetSystemMetrics(SM_CXICON) + 103,
 		GetSystemMetrics(SM_CYICON) + 2,
-		pcli->hwndContactList,
+		g_clistApi.hwndContactList,
 		nullptr,
-		hInst,
+		g_plugin.getInst(),
 		&fTimeFlags);
 	if (hwndCountdownFrame == nullptr) return;
 
 	if (ServiceExists(MS_CLIST_FRAMES_ADDFRAME)) {
-		CLISTFrame clf = { sizeof(clf) };
-		clf.hIcon = IcoLib_GetIcon("AutoShutdown_Active"); /* CListFrames does not make a copy */
-		clf.align = alBottom;
-		clf.height = GetSystemMetrics(SM_CYICON);
-		clf.Flags = F_VISIBLE | F_SHOWTBTIP | F_NOBORDER | F_SKINNED;
-		clf.name = Translate("AutoShutdown");
-		clf.TBname = Translate("Automatic shutdown");
-		clf.hWnd = hwndCountdownFrame;
-		hFrame = (WORD)CallService(MS_CLIST_FRAMES_ADDFRAME, (WPARAM)&clf, 0);
+		CLISTFrame Frame = { sizeof(Frame) };
+		Frame.hIcon = IcoLib_GetIcon("AutoShutdown_Active"); /* CListFrames does not make a copy */
+		Frame.align = alBottom;
+		Frame.height = GetSystemMetrics(SM_CYICON);
+		Frame.Flags = F_VISIBLE | F_SHOWTBTIP | F_NOBORDER | F_SKINNED;
+		Frame.szName.a = MODULENAME;
+		Frame.szTBname.a = LPGEN("Automatic shutdown");
+		Frame.hWnd = hwndCountdownFrame;
+		hFrame = g_plugin.addFrame(&Frame);
 		if (hFrame) {
 			ShowWindow(hwndCountdownFrame, SW_SHOW);
-			CallService(MS_CLIST_FRAMES_SETFRAMEOPTIONS, MAKEWPARAM(FO_TBTIPNAME, hFrame), (LPARAM)clf.name);
+			CallService(MS_CLIST_FRAMES_SETFRAMEOPTIONS, MAKEWPARAM(FO_TBTIPNAME, hFrame), (LPARAM)MODULENAME);
 			/* HACKS TO FIX CLUI FRAMES:
 			 * *** why is CLUIFrames is horribly buggy??! *** date: sept 2005, nothing changed until sept 2006
 			 * workaround #1: MS_CLIST_FRAMES_REMOVEFRAME does not finish with destroy cycle (clist_modern, clist_nicer crashes) */
-			SendMessage(pcli->hwndContactList, WM_SIZE, 0, 0);
+			SendMessage(g_clistApi.hwndContactList, WM_SIZE, 0, 0);
 			/* workaround #2: drawing glitch after adding a frame (frame positioned wrongly when hidden) */
 			CallService(MS_CLIST_FRAMES_UPDATEFRAME, hFrame, FU_FMPOS | FU_FMREDRAW);
 			/* workaround #3: MS_CLIST_FRAMES_SETFRAMEOPTIONS does cause redrawing problems */
@@ -554,13 +553,13 @@ static int FrameModulesLoaded(WPARAM, LPARAM)
 		LOGFONT lf;
 		/* built-in font module is not available before this hook */
 		COLORREF clr = GetDefaultColor(FRAMEELEMENT_TEXT);
-		FontService_RegisterFont("AutoShutdown", "CountdownFont", LPGENW("Automatic shutdown"), LPGENW("Countdown on frame"), LPGENW("Automatic shutdown"), LPGENW("Background"), 0, FALSE, GetDefaultFont(&lf), clr);
+		FontService_RegisterFont(MODULENAME, "CountdownFont", LPGENW("Automatic shutdown"), LPGENW("Countdown on frame"), LPGENW("Automatic shutdown"), LPGENW("Background"), 0, FALSE, GetDefaultFont(&lf), clr);
 		clr = GetDefaultColor(FRAMEELEMENT_BKGRND);
-		FontService_RegisterColor("AutoShutdown", "BkgColor", LPGENW("Automatic shutdown"), LPGENW("Background"), clr);
+		FontService_RegisterColor(MODULENAME, "BkgColor", LPGENW("Automatic shutdown"), LPGENW("Background"), clr);
 		if (!IsThemeActive()) {
 			/* progressbar color can only be changed with classic theme */
 			clr = GetDefaultColor(FRAMEELEMENT_BAR);
-			FontService_RegisterColor("AutoShutdown", "ProgressColor", TranslateT("Automatic shutdown"), TranslateT("Progress bar"), clr);
+			FontService_RegisterColor(MODULENAME, "ProgressColor", TranslateT("Automatic shutdown"), TranslateT("Progress bar"), clr);
 		}
 	}
 	return 0;
@@ -572,7 +571,7 @@ int InitFrame(void)
 	wcx.cbSize = sizeof(wcx);
 	wcx.style = CS_DBLCLKS | CS_PARENTDC;
 	wcx.lpfnWndProc = FrameWndProc;
-	wcx.hInstance = hInst;
+	wcx.hInstance = g_plugin.getInst();
 	wcx.hCursor = (HCURSOR)LoadImage(nullptr, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
 	wcx.lpszClassName = COUNTDOWNFRAME_CLASS;
 	if (!RegisterClassEx(&wcx))
@@ -586,6 +585,6 @@ int InitFrame(void)
 void UninitFrame(void)
 {
 	/* frame closed by UninitWatcher() */
-	UnregisterClass(COUNTDOWNFRAME_CLASS, hInst); /* fails if window still exists */
+	UnregisterClass(COUNTDOWNFRAME_CLASS, g_plugin.getInst()); /* fails if window still exists */
 	UnhookEvent(hHookModulesLoaded);
 }

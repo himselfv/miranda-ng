@@ -13,10 +13,19 @@ There is no warranty.
 #define SRV_CHANGE_PM  "Database/ChangePM"
 #define SRV_RESTART_ME "System/RestartMe"
 
-HINSTANCE hInst;
-int hLangpack;
+struct CMPlugin : public PLUGIN<CMPlugin>
+{
+	CMPlugin();
 
-PLUGININFOEX pluginInfo = {
+	int Load() override;
+}
+g_plugin;
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+PLUGININFOEX pluginInfoEx =
+{
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
 	PLUGIN_MAKE_VERSION(__MAJOR_VERSION, __MINOR_VERSION, __RELEASE_NUM, __BUILD_NUM),
@@ -29,18 +38,9 @@ PLUGININFOEX pluginInfo = {
 	{ 0x7eeeb55e, 0x9d83, 0x4e1a, { 0xa1, 0x2f, 0x8f, 0x13, 0xf1, 0xa1, 0x24, 0xfb } }
 };
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID)
-{
-	hInst = hinstDLL;
-	return TRUE;
-}
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -81,18 +81,16 @@ static MUUID uids[_countof(iconList)] =
 	{ 0x5A2EDCCD, 0xB43B, 0x48FA, 0x8A, 0xE8, 0xB5, 0x8B, 0xD7, 0xA5, 0x5A, 0x13 }
 };
 
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
-	mir_getLP(&pluginInfo);
-
-	Icon_Register(hInst, LPGEN("Profile manager"), iconList, _countof(iconList));
+	g_plugin.registerIcon(LPGEN("Profile manager"), iconList);
 
 	CreateServiceFunction(SRV_LOAD_PM, LoadPM);
 	CreateServiceFunction(SRV_CHANGE_PM, ChangePM);
 	CreateServiceFunction(SRV_RESTART_ME, RestartMe);
 
-	CMenuItem mi;
-	mi.root = Menu_CreateRoot(MO_MAIN, LPGENW("Database"), -500200000);
+	CMenuItem mi(&g_plugin);
+	mi.root = g_plugin.addRootMenu(MO_MAIN, LPGENW("Database"), -500200000);
 
 	for (int i = 0; i < _countof(iconList); i++) {
 		mi.name.a = iconList[i].szDescr;
@@ -104,10 +102,5 @@ extern "C" __declspec(dllexport) int Load(void)
 
 		Menu_AddMainMenuItem(&mi);
 	}
-	return 0;
-}
-
-extern "C" __declspec(dllexport) int Unload(void)
-{
 	return 0;
 }
