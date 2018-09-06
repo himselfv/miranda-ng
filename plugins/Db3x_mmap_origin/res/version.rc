@@ -5,4 +5,5 @@
 #endif //APSTUDIO_INVOKED
 
 #include "..\src\version.h"
+
 #include "..\..\build\Version.rc"

@@ -6,6 +6,21 @@ MAINTENANCE:
 Watch for changes in main/db3x_mmap, main/dbx_mdbx, and files m_db_int.h, m_database.h. Implement them in this plugin.
 
 
+0.95.9
+m_database.h, m_db_int.h: Nothing relevant.
+dbx_mdbx: Nothing relevant (Explicit backup support, optional)
+
+version.rc - everything moved to
+  #include "..\..\build\Version.rc"
+
+stdafx.h, init.cpp, ui.cpp, ui.h:
+  Switch to CMPlugin() architecture.
+
+new functions to access mirandaboot.ini in ui.cpp
+
+ui.cpp/ui.h switched to overriden OnInitDialog/OnClose.
+
+
 0.95.8
 Changes to database interfaces since db3x_mmap deprecation and mitigations in db3x_mmap_origin:
 

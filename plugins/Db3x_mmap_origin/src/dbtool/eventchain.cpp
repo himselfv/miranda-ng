@@ -55,7 +55,7 @@ void CDb3Mmap::ConvertOldEvent(DBEvent*& dbei)
 	}
 
 	if (msglenW > 0 && msglenW <= msglen) {
-		char* utf8str = Utf8EncodeW((WCHAR*)&dbei->blob[msglen]);
+		char* utf8str = mir_utf8encodeW((WCHAR*)&dbei->blob[msglen]);
 		if (utf8str == nullptr)
 			return;
 
