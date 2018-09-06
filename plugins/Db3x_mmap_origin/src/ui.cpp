@@ -63,7 +63,7 @@ static INT_PTR CALLBACK sttEnterPassword(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 	switch (uMsg) {
 	case WM_INITDIALOG:
 		TranslateDialogDefault(hwndDlg);
-		SendDlgItemMessage(hwndDlg, IDC_HEADERBAR, WM_SETICON, ICON_SMALL, (LPARAM)LoadIcon(g_hInst, MAKEINTRESOURCE(iconList[0].defIconID)));
+		SendDlgItemMessage(hwndDlg, IDC_HEADERBAR, WM_SETICON, ICON_SMALL, (LPARAM)LoadIcon(g_plugin.getInst(), MAKEINTRESOURCE(iconList[0].defIconID)));
 
 		param = (DlgChangePassParam*)lParam;
 		SetWindowLongPtr(hwndDlg, GWLP_USERDATA, lParam);
@@ -140,7 +140,7 @@ bool CDb3Mmap::EnterPassword(const BYTE *pKey, const size_t keyLen)
 			CredFree(pCred);
 		}
 		else {
-			if (IDOK != DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_LOGIN), nullptr, sttEnterPassword, (LPARAM)&param))
+			if (IDOK != DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(IDD_LOGIN), nullptr, sttEnterPassword, (LPARAM)&param))
 				return false;
 			m_crypto->setPassword(T2Utf(param.newPass));
 		}
@@ -258,7 +258,7 @@ static INT_PTR ChangePassword(void* obj, WPARAM, LPARAM)
 {
 	CDb3Mmap *db = (CDb3Mmap*)obj;
 	DlgChangePassParam param = { db };
-	DialogBoxParam(g_hInst, MAKEINTRESOURCE(db->usesPassword() ? IDD_CHANGEPASS : IDD_NEWPASS), nullptr, sttChangePassword, (LPARAM)&param);
+	DialogBoxParam(g_plugin.getInst(), MAKEINTRESOURCE(db->usesPassword() ? IDD_CHANGEPASS : IDD_NEWPASS), nullptr, sttChangePassword, (LPARAM)&param);
 	return 0;
 }
 
@@ -304,13 +304,13 @@ static int OnOptionsInit(PVOID obj, WPARAM wParam, LPARAM)
 {
 	OPTIONSDIALOGPAGE odp = { 0 };
 	odp.position = -790000000;
-	odp.hInstance = g_hInst;
+	odp.hInstance = g_plugin.getInst();
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.szTitle.a = LPGEN("Database");
 	odp.pfnDlgProc = DlgProcOptions;
 	odp.dwInitParam = (LPARAM)obj;
-	Options_AddPage(wParam, &odp);
+	g_plugin.addOptions(wParam, &odp);
 	return 0;
 }
 
@@ -325,14 +325,14 @@ static int OnModulesLoaded(PVOID obj, WPARAM, LPARAM)
 {
 	CDb3Mmap *db = (CDb3Mmap*)obj;
 
-	Icon_Register(g_hInst, LPGEN("Database"), iconList, _countof(iconList), "mmap");
+	g_plugin.registerIcon(LPGEN("Database"), iconList, _countof(iconList), "mmap");
 
 	HookEventObj(ME_OPT_INITIALISE, OnOptionsInit, db);
 
-	CMenuItem mi;
+	CMenuItem mi(g_plugin);
 
 	// main menu item
-	mi.root = Menu_CreateRoot(MO_MAIN, LPGENW("Database"), 500000000, iconList[0].hIcolib);
+	mi.root = g_plugin.addRootMenu(MO_MAIN, LPGENW("Database"), 500000000, iconList[0].hIcolib);
 	Menu_ConfigureItem(mi.root, MCI_OPT_UID, "F7C5567C-D1EE-484B-B4F6-24677A5AAAEF");
 
 	SET_UID(mi, 0x50321866, 0xba1, 0x46dd, 0xb3, 0xa6, 0xc3, 0xcc, 0x55, 0xf2, 0x42, 0x9e);

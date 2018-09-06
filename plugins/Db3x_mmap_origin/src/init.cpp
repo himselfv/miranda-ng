@@ -23,9 +23,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 
-int hLangpack;
+CMPlugin g_plugin;
 
-static PLUGININFOEX pluginInfo =
+LIST<CDb3Mmap> g_Dbs(1, HandleKeySortT);
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_DATABASE, MIID_LAST };
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+static PLUGININFOEX pluginInfoEx =
 {
 	sizeof(PLUGININFOEX),
 	__PLUGIN_NAME,
@@ -39,9 +47,9 @@ static PLUGININFOEX pluginInfo =
 	{ 0xf7a6b27c, 0x9d9c, 0x4a42, { 0xbe, 0x86, 0xa4, 0x48, 0xae, 0x10, 0x91, 0x61 } }
 };
 
-HINSTANCE g_hInst = nullptr;
-
-LIST<CDb3Mmap> g_Dbs(1, HandleKeySortT);
+CMPlugin::CMPlugin() :
+	PLUGIN<CMPlugin>(nullptr, pluginInfoEx)
+{}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -92,9 +100,6 @@ static MDatabaseCommon* LoadDatabase(const wchar_t *profile, BOOL bReadOnly)
 	if (mir_wstrcmp(profile, DB_INTERFACE_DBCHECKERLINK) == 0)
 		return reinterpret_cast<MDatabaseCommon*>(&dbcheckerlink);
 
-	// set the memory, lists & UTF8 manager
-	mir_getLP(&pluginInfo);
-
 	std::auto_ptr<CDb3Mmap> db(new CDb3Mmap(profile, (bReadOnly) ? DBMODE_READONLY : 0));
 	if (db->Load(false) != ERROR_SUCCESS)
 		return nullptr;
@@ -115,26 +120,8 @@ static DATABASELINK dblink =
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-extern "C" __declspec(dllexport) PLUGININFOEX* MirandaPluginInfoEx(DWORD)
-{
-	return &pluginInfo;
-}
-
-extern "C" __declspec(dllexport) const MUUID MirandaInterfaces[] = { MIID_DATABASE, MIID_LAST };
-
-extern "C" __declspec(dllexport) int Load(void)
+int CMPlugin::Load()
 {
 	RegisterDatabasePlugin(&dblink);
 	return 0;
-}
-
-extern "C" __declspec(dllexport) int Unload(void)
-{
-	return 0;
-}
-
-BOOL WINAPI DllMain(HINSTANCE hInstDLL, DWORD, LPVOID)
-{
-	g_hInst = hInstDLL;
-	return TRUE;
 }
