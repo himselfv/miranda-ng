@@ -1,0 +1,18 @@
+This a full version of db3x_mmap database plugin. Old databases/profiles will work correctly.
+
+In the mainline Miranda NG db3x_mmap is gutted and redirects to the new dbx_mdbx, but this one is a restored version updated to work on Miranda NG 0.95.9+
+
+
+INSTALLATION:
+* Choose the version according to your Miranda's bitness.
+* Copy to your Miranda\Plugins folder.
+  REPLACE the db3x_mmap which comes with Miranda.
+  DO NOT UPDATE the db3x_mmap in auto-updater after that.
+
+Q: Should I choose Debug or Release?
+A: Choose Release.
+
+
+AUTO-UPDATER
+Do not auto-update this plugin, the updater will install the gutted version. You should download the new full version instead.
+The new version might be delayed, and updating Miranda64.exe sometimes breaks compatibility with the plugins, so it's recommended not to update anything at all until new db3x_mmap_origin is available.

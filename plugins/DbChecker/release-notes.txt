@@ -1,0 +1,15 @@
+This is a working version of DbChecker for db3x_mmap_origin, with the following caveats:
+
+* It has been renamed DbCheckerOrig.dll as the original file is auto-removed.
+
+* You need to run it manually either from Profile manager or from the command line ("/svc:DbCheckerOrig")
+
+* You cannot DbCheck active database. You need to have another, empty, working database and tell Miranda to load that. Then in DbChecker, select the database you want to check.
+
+
+INSTALLATION:
+Choose the version according to your Miranda's bitness.
+Copy to your Miranda\Plugins folder.
+
+Q: Should I choose Debug or Release?
+A: Choose Release.
