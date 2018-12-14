@@ -57,7 +57,7 @@ STDMETHODIMP_(MEVENT) CDb3Mmap::AddEvent(MCONTACT contactID, DBEVENTINFO *dbei)
 		}
 	}
 
-	if (NotifyEventHooks(hEventFilterAddedEvent, contactNotifyID, (LPARAM)dbei))
+	if (NotifyEventHooks(g_hevEventFiltered, contactNotifyID, (LPARAM)dbei))
 		return 0;
 
 	dbe.timestamp = dbei->timestamp;
@@ -157,7 +157,7 @@ STDMETHODIMP_(MEVENT) CDb3Mmap::AddEvent(MCONTACT contactID, DBEVENTINFO *dbei)
 
 	// Notify only in safe mode or on really new events
 	if (neednotify)
-		NotifyEventHooks(hEventAddedEvent, contactNotifyID, (LPARAM)ofsNew);
+		NotifyEventHooks(g_hevEventAdded, contactNotifyID, (LPARAM)ofsNew);
 
 	return (MEVENT)ofsNew;
 }
@@ -185,7 +185,7 @@ STDMETHODIMP_(BOOL) CDb3Mmap::DeleteEvent(MCONTACT contactID, MEVENT hDbEvent)
 	log1("delete event @ %08x", hContact);
 
 	// call notifier while outside mutex
-	NotifyEventHooks(hEventDeletedEvent, contactID, (LPARAM)hDbEvent);
+	NotifyEventHooks(g_hevEventDeleted, contactID, (LPARAM)hDbEvent);
 
 	// get back in
 	lck.lock();
@@ -352,7 +352,7 @@ STDMETHODIMP_(BOOL) CDb3Mmap::MarkEventRead(MCONTACT contactID, MEVENT hDbEvent)
 	DBFlush(0);
 
 	lck.unlock();
-	NotifyEventHooks(hEventMarkedRead, contactID, (LPARAM)hDbEvent);
+	NotifyEventHooks(g_hevMarkedRead, contactID, (LPARAM)hDbEvent);
 	return ret;
 }
 

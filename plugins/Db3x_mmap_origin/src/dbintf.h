@@ -293,7 +293,6 @@ public:
 
 protected:
 	DWORD    m_dwFileSize, m_dwMaxContactId;
-	HANDLE   hSettingChangeEvent, hContactDeletedEvent, hContactAddedEvent, hEventMarkedRead;
 
 	DWORD    CreateNewSpace(int bytes);
 	void     DeleteSpace(DWORD ofs, int bytes);
@@ -322,7 +321,6 @@ protected:
 
 	HANDLE   m_hModHeap;
 	LIST<ModuleName> m_lMods, m_lOfs;
-	HANDLE   hEventAddedEvent, hEventDeletedEvent, hEventFilterAddedEvent;
 	MCONTACT m_hLastCachedContact;
 	ModuleName *m_lastmn;
 
